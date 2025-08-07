@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: agro-erp
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn wsgi:app"
+    autoDeploy: true
