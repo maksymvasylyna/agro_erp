@@ -1,0 +1,56 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title_text %}Продукти{% endblock %}
+{% block header_text %}🧪 Продукти{% endblock %}
+
+{% block filter_form %}
+<form method="get" class="d-flex flex-wrap mb-3">
+  {{ form.hidden_tag() }}
+  <div class="me-2">
+    {{ form.category.label }}
+    {{ form.category(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.group.label }}
+    {{ form.group(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.manufacturer.label }}
+    {{ form.manufacturer(class="form-select") }}
+  </div>
+  <div class="me-2 align-self-end">
+    {{ form.submit(class="btn btn-primary") }}
+  </div>
+</form>
+{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Категорія</th>
+  <th>Група</th>
+  <th>Виробник</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for product in items %}
+  <tr>
+    <td>{{ product.id }}</td>
+    <td>{{ product.name }}</td>
+    <td>{{ product.category.name if product.category else '—' }}</td>
+    <td>{{ product.group.name if product.group else '—' }}</td>
+    <td>{{ product.manufacturer.name if product.manufacturer else '—' }}</td>
+    <td>
+      <a href="{{ url_for('products.edit', id=product.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('products.delete', id=product.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="6">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

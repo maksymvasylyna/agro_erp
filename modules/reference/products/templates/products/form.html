@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{{ header }}{% endblock %}
+
+{% block content %}
+
+  <!-- ✅ Відображення flash-повідомлень -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- 🏠 та ⬅️ Кнопки -->
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+    <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  </div>
+
+  <!-- Форма продукту -->
+  <form method="post">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+      {{ form.name.label }}
+      {{ form.name(class="form-control") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.category.label }}
+      {{ form.category(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.unit.label }}
+      {{ form.unit(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.group.label }}
+      {{ form.group(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.manufacturer.label }}
+      {{ form.manufacturer(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.container.label }}
+      {{ form.container(class="form-control") }}
+    </div>
+
+    {{ form.submit(class="btn btn-success") }}
+  </form>
+{% endblock %}

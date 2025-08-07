@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Структура посівних площ{% endblock %}
+
+{% block header %}🌾 Структура посівних площ{% endblock %}
+
+{% block content %}
+<!-- ✅ Кнопка «На головну» -->
+<a href="{{ url_for('index') }}" class="btn btn-outline-secondary mb-3">🏠 На головну</a>
+
+<div class="row">
+  <div class="col-md-4 mb-3">
+    <a href="{{ url_for('fields_structure.index') }}" class="btn btn-outline-primary w-100">
+      📋 Структура по полях
+    </a>
+  </div>
+  <div class="col-md-4 mb-3">
+    <a href="{{ url_for('summary_structure.index') }}" class="btn btn-outline-primary w-100">
+      📊 Загальна структура
+    </a>
+  </div>
+</div>
+{% endblock %}

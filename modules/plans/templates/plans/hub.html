@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Плани{% endblock %}
+
+{% block header %}📋 Плани{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="/" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="row">
+  <div class="col-md-4 mb-4">
+    <a href="{{ url_for('new_plans.index') }}" class="btn btn-outline-primary w-100">
+      ✏️ Нові плани
+    </a>
+  </div>
+  <div class="col-md-4 mb-4">
+    <a href="{{ url_for('ready_plans.index') }}" class="btn btn-outline-primary w-100">
+      ✅ Готові плани
+    </a>
+  </div>
+  <div class="col-md-4 mb-4">
+    <a href="{{ url_for('approved_plans.index') }}" class="btn btn-outline-primary w-100">
+      🗂️ Затверджені плани
+    </a>
+  </div>
+</div>
+{% endblock %}

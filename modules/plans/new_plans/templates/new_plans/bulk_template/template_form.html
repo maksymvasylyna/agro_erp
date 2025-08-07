@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}План за шаблоном{% endblock %}
+{% block header %}📋 Створення кількох планів за шаблоном{% endblock %}
+
+{% block content %}
+
+<div class="mb-3">
+  <strong>Обрано полів:</strong> {{ fields|length }}
+</div>
+<ul>
+  {% for field in fields %}
+    <li>{{ field.name }} ({{ field.area }} га, {{ field.culture.name if field.culture else '—' }})</li>
+  {% endfor %}
+</ul>
+
+<form method="POST">
+  {{ form.hidden_tag() }}
+  <input type="hidden" name="field_ids" value="{{ field_ids }}">
+
+  <table class="table table-bordered text-center align-middle" id="treatments-table">
+    <thead class="table-success">
+      <tr>
+        <th>Вид обробітку</th>
+        <th>Продукт</th>
+        <th>Норма</th>
+        <th>Одиниця</th>
+        <th>Виробник</th>
+        <th>Кількість (× площа)</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <div class="mb-3">
+    <button type="button" class="btn btn-outline-info" id="add-treatment">➕ Додати обробіток</button>
+  </div>
+
+  <div class="text-end">
+    {{ form.submit(class="btn btn-success") }}
+  </div>
+</form>
+
+<template id="treatment-row-template">
+  <tr>
+    <td>
+      <select name="treatments-__index__-treatment_type_id" class="form-select" required>
+        <option value="" disabled selected>— Оберіть —</option>
+        {% for t in treatment_types %}
+        <option value="{{ t.id }}">{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <select name="treatments-__index__-product_id" class="form-select product-select" required>
+        <option value="" disabled selected>— Оберіть —</option>
+        {% for p in products %}
+        <option value="{{ p.id }}"
+                data-manufacturer="{{ p.manufacturer.name if p.manufacturer else '' }}"
+                data-unit="{{ p.unit.name if p.unit else '' }}">
+          {{ p.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </td>
+    <td><input type="number" name="treatments-__index__-rate" class="form-control rate-field" step="0.01" min="0" required></td>
+    <td><input type="text" name="treatments-__index__-unit" class="form-control unit-field" readonly></td>
+    <td><input type="text" name="treatments-__index__-manufacturer" class="form-control manufacturer-field" readonly></td>
+    <td><input type="text" name="treatments-__index__-quantity" class="form-control quantity-field" readonly></td>
+    <td><button type="button" class="btn btn-outline-danger btn-sm delete-row">🗑️</button></td>
+  </tr>
+</template>
+
+<script>
+let treatmentIndex = 0;
+document.getElementById('add-treatment').addEventListener('click', function () {
+  const tableBody = document.querySelector('#treatments-table tbody');
+  const template = document.getElementById('treatment-row-template').innerHTML;
+  const rowHtml = template.replace(/__index__/g, treatmentIndex);
+  const tempDiv = document.createElement('tbody');
+  tempDiv.innerHTML = rowHtml;
+  const newRow = tempDiv.firstElementChild;
+  tableBody.appendChild(newRow);
+  treatmentIndex++;
+
+  const productSelect = newRow.querySelector('.product-select');
+  const manufacturerInput = newRow.querySelector('.manufacturer-field');
+  const unitInput = newRow.querySelector('.unit-field');
+  const rateInput = newRow.querySelector('.rate-field');
+  const quantityInput = newRow.querySelector('.quantity-field');
+
+  function updateQuantity() {
+    const avg_area = {{ fields|map(attribute='area')|sum / fields|length }};
+    const rate = parseFloat(rateInput.value);
+    if (!isNaN(rate)) {
+      const quantity = avg_area * rate;
+      quantityInput.value = quantity.toFixed(1);
+    } else {
+      quantityInput.value = '';
+    }
+  }
+
+  productSelect.addEventListener('change', function () {
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    manufacturerInput.value = selectedOption.dataset.manufacturer || '';
+    unitInput.value = selectedOption.dataset.unit || '';
+    updateQuantity();
+  });
+
+  rateInput.addEventListener('input', updateQuantity);
+});
+document.querySelector('#treatments-table tbody').addEventListener('click', function (e) {
+  if (e.target.classList.contains('delete-row')) {
+    e.target.closest('tr').remove();
+  }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title %}Підприємства{% endblock %}
+{% block header %}🏢 Підприємства{% endblock %}
+
+{% block filter_form %}
+<form method="get" class="d-flex flex-wrap mb-3">
+  {{ form.hidden_tag() }}
+  <div class="me-2">
+    {{ form.name.label }}
+    {{ form.name(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.cluster.label }}
+    {{ form.cluster(class="form-select") }}
+  </div>
+  <div class="me-2 align-self-end">
+    {{ form.submit(class="btn btn-primary") }}
+  </div>
+</form>
+{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Кластер</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for id, name, cluster_name, edit_url, delete_url in items %}
+  <tr>
+    <td>{{ id }}</td>
+    <td>{{ name }}</td>
+    <td>{{ cluster_name }}</td>
+    <td>
+      <a href="{{ edit_url }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ delete_url }}" method="post" style="display:inline-block;" onsubmit="return confirm('Підтвердити видалення?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="4">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

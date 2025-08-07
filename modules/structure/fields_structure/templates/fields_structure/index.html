@@ -1,0 +1,72 @@
+{% extends 'reference/_index_base.html' %}
+
+{# 📌 Заголовок сторінки та header #}
+{% block title_text %}Структура по полях{% endblock %}
+{% block header_text %}🌾 Структура по полях{% endblock %}
+
+{# ⬅️ Кнопка Назад веде на головну структури #}
+{% block back_url %}{{ url_for('structure.index') }}{% endblock %}
+
+{# ✅ Текст кнопки залишаємо стандартним: ⬅️ Назад #}
+
+{# 🔍 Форма фільтрації #}
+{% block filter_form %}
+<form method="get" class="d-flex flex-wrap mb-3">
+  {{ filter_form.hidden_tag() }}
+  <div class="me-2">
+    {{ filter_form.cluster.label }}
+    {{ filter_form.cluster(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ filter_form.company.label }}
+    {{ filter_form.company(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ filter_form.culture.label }}
+    {{ filter_form.culture(class="form-select") }}
+  </div>
+  <div class="me-2 align-self-end">
+    {{ filter_form.submit(class="btn btn-primary") }}
+  </div>
+</form>
+{% endblock %}
+
+{# ✅ Чиста таблиця #}
+{% block table_content %}
+<table class="table table-bordered table-striped table-hover align-middle">
+  <thead class="table-success text-center">
+    <tr>
+      <th class="text-center">ID</th>
+      <th class="text-center">Назва поля</th>
+      <th class="text-center">Кластер</th>
+      <th class="text-center">Підприємство</th>
+      <th class="text-center">Культура</th>
+      <th class="text-center">Площа, га</th>
+    </tr>
+  </thead>
+  <tbody class="text-center">
+    {% if items %}
+      {% for field in items %}
+      <tr>
+        <td>{{ field.id }}</td>
+        <td>{{ field.name }}</td>
+        <td>{{ field.cluster.name if field.cluster else '' }}</td>
+        <td>{{ field.company.name if field.company else '' }}</td>
+        <td>{{ field.culture.name if field.culture else '' }}</td>
+        <td>{{ field.area }}</td>
+      </tr>
+      {% endfor %}
+      <!-- ✅ Рядок підсумку -->
+      <tr class="fw-bold">
+        <td colspan="5" class="text-end">Разом:</td>
+        <td>{{ "%.2f"|format(total_area) }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="6">Даних немає</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+{% endblock %}
+

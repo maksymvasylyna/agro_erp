@@ -1,0 +1,37 @@
+# Python кеш
+__pycache__/
+*.py[cod]
+*.pyo
+
+# macOS системні файли
+.DS_Store
+
+# Flask instance config
+instance/
+
+# Віртуальне середовище
+venv/
+
+# Тестові та лог-файли
+*.log
+
+# IDE та редактори
+.vscode/
+.idea/
+*.swp
+*.sublime*
+
+# Бекапи
+*.bak
+*.tmp
+*~
+
+# SQLite DB (якщо вона локальна і не повинна бути у git)
+*.sqlite3
+*.db
+
+# Папки міграцій (якщо з Flask-Migrate)
+migrations/
+
+# Pip кеш
+pip-wheel-metadata/

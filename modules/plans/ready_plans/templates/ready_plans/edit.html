@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Редагування плану{% endblock %}
+{% block header %}✏️ Редагування плану №{{ plan.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('ready_plans.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<form method="POST">
+  {{ form.hidden_tag() }}
+
+  <table class="table table-bordered text-center align-middle" id="treatments-table">
+    <thead class="table-success">
+      <tr>
+        <th>Вид обробітку</th>
+        <th>Продукт</th>
+        <th>Норма</th>
+        <th>Од.</th>
+        <th>Виробник</th>
+        <th>Кількість</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for subform in form.treatments %}
+      <tr>
+        <td>{{ subform.treatment_type_id(class="form-select") }}</td>
+        <td>
+          {{ subform.product_id(class="form-select product-select", data_index=loop.index0) }}
+        </td>
+        <td>{{ subform.rate(class="form-control rate-field") }}</td>
+        <td>{{ subform.unit(class="form-control unit-field", readonly=True) }}</td>
+        <td>{{ subform.manufacturer(class="form-control manufacturer-field", readonly=True) }}</td>
+        <td>{{ subform.quantity(class="form-control quantity-field", readonly=True) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="btn btn-success">💾 Зберегти зміни</button>
+</form>
+
+<script>
+  const products = {{ products_data | tojson }};
+  const fieldArea = {{ plan.field.area | round(2) }};
+
+  document.querySelectorAll('.product-select').forEach((select, idx) => {
+    const unitInput = document.querySelectorAll('.unit-field')[idx];
+    const manufacturerInput = document.querySelectorAll('.manufacturer-field')[idx];
+    const rateInput = document.querySelectorAll('.rate-field')[idx];
+    const quantityInput = document.querySelectorAll('.quantity-field')[idx];
+
+    function updateFields() {
+      const selected = products.find(p => p.id == select.value);
+      if (selected) {
+        unitInput.value = selected.unit || '';
+        manufacturerInput.value = selected.manufacturer || '';
+        const rate = parseFloat(rateInput.value || 0);
+        quantityInput.value = (rate * fieldArea).toFixed(1);
+      }
+    }
+
+    select.addEventListener('change', updateFields);
+    rateInput.addEventListener('input', updateFields);
+
+    updateFields();  // initial
+  });
+</script>
+{% endblock %}

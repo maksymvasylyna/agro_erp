@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Перегляд затвердженого плану{% endblock %}
+{% block header %}✅ Перегляд плану №{{ plan.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('approved_plans.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  <a href="{{ url_for('approved_plans.export_plan_pdf', plan_id=plan.id) }}" class="btn btn-sm btn-outline-secondary">
+    📄 Експорт
+  </a>  
+</div>
+
+<!-- Інфо про поле -->
+<div class="mb-3 d-flex gap-4">
+  <div><strong>Поле:</strong> {{ field.name }}</div>
+  <div><strong>Площа:</strong> {{ field.area }} га</div>
+  <div><strong>Культура:</strong> {{ field.culture.name if field.culture else '—' }}</div>
+</div>
+
+<!-- Таблиця обробітків -->
+<table class="table table-bordered text-center align-middle">
+  <thead class="table-success">
+    <tr>
+      <th>Вид обробітку</th>
+      <th>Продукт</th>
+      <th>Норма</th>
+      <th>Виробник</th>
+      <th>Одиниця</th>
+      <th>Кількість</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in treatments %}
+    <tr>
+      <td>{{ t.treatment_type.name }}</td>
+      <td>{{ t.product.name }}</td>
+      <td>{{ t.rate }}</td>
+      <td>{{ t.manufacturer }}</td>
+      <td>{{ t.unit }}</td>
+      <td>{{ t.quantity }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Кнопка повернення до редагування -->
+<form method="POST" action="{{ url_for('approved_plans.unapprove_plan', plan_id=plan.id) }}">
+  <button type="submit" class="btn btn-outline-warning mt-3">
+    🔓 Дозволити редагування
+  </button>
+</form>
+
+{% endblock %}

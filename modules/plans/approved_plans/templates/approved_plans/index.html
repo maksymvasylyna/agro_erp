@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Затверджені плани{% endblock %}
+{% block header %}✅ Затверджені плани{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('plans.hub') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  <a href="{{ url_for('approved_plans.export_pdf', company_id=request.args.get('company_id'), culture_id=request.args.get('culture_id')) }}"
+   class="btn btn-outline-primary">
+  🧾 Експорт у PDF
+</a>
+</div>
+
+<!-- 🔍 Форма фільтрації -->
+<form method="GET" class="row g-2 mb-4">
+  <div class="col-md-3">
+    <select name="company_id" class="form-select">
+      <option value="">🏢 Всі підприємства</option>
+      {% for c in companies %}
+        <option value="{{ c.id }}" {% if selected_company == c.id %}selected{% endif %}>
+          {{ c.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <select name="culture_id" class="form-select">
+      <option value="">🌱 Всі культури</option>
+      {% for c in cultures %}
+        <option value="{{ c.id }}" {% if selected_culture == c.id %}selected{% endif %}>
+          {{ c.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3 d-grid">
+    <button type="submit" class="btn btn-outline-success">🔍 Фільтрувати</button>
+  </div>
+</form>
+
+<!-- 📋 Таблиця затверджених планів -->
+<table class="table table-hover table-bordered text-center align-middle">
+  <thead class="table-success">
+    <tr>
+      <th>Поле</th>
+      <th>Площа</th>
+      <th>Культура</th>
+      <th>Дата створення</th>
+      <th>Дії</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for plan in plans %}
+    <tr>
+      <td>{{ plan.field.name }}</td>
+      <td>{{ plan.field.area }}</td>
+      <td>{{ plan.field.culture.name if plan.field.culture else '—' }}</td>
+      <td>{{ plan.created_at.strftime('%Y-%m-%d') if plan.created_at else '' }}</td>
+      <td>
+        <a href="{{ url_for('approved_plans.view_plan', plan_id=plan.id) }}"
+           class="btn btn-outline-primary btn-sm">👁️ Перегляд</a>
+        <a href="{{ url_for('approved_plans.unlock_plan', plan_id=plan.id) }}"
+           class="btn btn-outline-warning btn-sm">🔓 Дозволити редагування</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="5" class="text-muted">Немає затверджених планів за вибраними фільтрами.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

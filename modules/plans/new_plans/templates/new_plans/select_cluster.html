@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Оберіть кластер{% endblock %}
+{% block header %}🏢 Оберіть кластер{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('new_plans.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+</div>
+
+<div class="row">
+  {% for cluster in clusters %}
+    <div class="col-md-4 mb-4">
+      <a href="{{ url_for('new_plans.select_company', cluster_id=cluster.id) }}"
+         class="btn btn-outline-success w-100">
+        🏘️ {{ cluster.name }}
+      </a>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

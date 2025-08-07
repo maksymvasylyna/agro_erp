@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{{ header }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+    <a href="{{ url_for('categories.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  </div>
+
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.name.label }}
+      {{ form.name(class="form-control") }}
+    </div>
+    {{ form.submit(class="btn btn-success") }}
+  </form>
+{% endblock %}

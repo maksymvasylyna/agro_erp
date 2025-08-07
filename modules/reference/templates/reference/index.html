@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Довідники{% endblock %}
+
+{% block header %}📚 Довідники{% endblock %}
+
+{% block content %}
+<!-- ✅ Кнопка «На головну» -->
+<a href="{{ url_for('index') }}" class="btn btn-outline-secondary mb-3">🏠 На головну</a>
+
+<div class="row">
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('units.index') }}" class="btn btn-outline-primary w-100">
+          📏 Одиниці виміру
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('categories.index') }}" class="btn btn-outline-primary w-100">
+          🗂️ Категорії
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('currencies.index') }}" class="btn btn-outline-primary w-100">
+          💱 Валюти
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('products.index') }}" class="btn btn-outline-primary w-100">
+          🧪 Продукти
+      </a>
+  </div>    
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('manufacturers.index') }}" class="btn btn-outline-primary w-100">
+          🏭 Виробники
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('payers.index') }}" class="btn btn-outline-primary w-100">
+          💼 Платники
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('cultures.index') }}" class="btn btn-outline-primary w-100">
+          🌱 Культури
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('groups.index') }}" class="btn btn-outline-primary w-100">
+          🧪 Групи продуктів
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('clusters.index') }}" class="btn btn-outline-primary w-100">
+          🏗️ Кластери
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('companies.index') }}" class="btn btn-outline-primary w-100">
+          🏢 Підприємства
+      </a>
+  </div>
+  <div class="col-md-4 mb-3">
+      <a href="{{ url_for('fields.index') }}" class="btn btn-outline-primary w-100">
+        🌾 Поля
+      </a>
+  </div>
+  <div class="col-md-4 mb-4">
+    <a href="{{ url_for('treatment_types.index') }}" class="btn btn-outline-primary w-100">
+      🚜 Види обробітку
+    </a>
+  </div>
+</div>
+{% endblock %}

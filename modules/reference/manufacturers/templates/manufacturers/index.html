@@ -1,0 +1,29 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title_text %}Виробники{% endblock %}
+{% block header_text %}🏭 Виробники{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for manufacturer in manufacturers %}
+  <tr>
+    <td>{{ manufacturer.id }}</td>
+    <td>{{ manufacturer.name }}</td>
+    <td>
+      <a href="{{ url_for('manufacturers.edit', id=manufacturer.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('manufacturers.delete', id=manufacturer.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="3">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

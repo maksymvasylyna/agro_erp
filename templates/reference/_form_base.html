@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}{% block title_text %}Форма{% endblock %}{% endblock %}
+{% block header %}{% block header_text %}📝 Форма{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+    <a href="{% block back_url %}#{% endblock %}" class="btn btn-outline-secondary">⬅️ Назад</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<form method="POST" class="row g-3">
+    {{ form.hidden_tag() }}
+
+    {% block form_fields %}
+    <div class="col-md-12">
+        <label for="name" class="form-label">Назва</label>
+        {{ form.name(class="form-control") }}
+    </div>
+    {% endblock %}
+
+    <div class="col-12">
+        {{ form.submit(class="btn btn-success") }}
+    </div>
+</form>
+{% endblock %}

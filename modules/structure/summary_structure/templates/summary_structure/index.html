@@ -1,0 +1,89 @@
+{# modules/structure/summary_structure/templates/summary_structure/index.html #}
+
+{% extends "base.html" %}
+
+{% block title %}Підсумкова структура посівних площ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<h2 class="mb-4">📊 Підсумкова структура посівних площ</h2>
+
+<form method="post" class="mb-4">
+  {{ form.hidden_tag() }}
+  <div class="row g-3">
+    <div class="col-md-3">
+      {{ form.season_year.label(class="form-label") }}
+      {{ form.season_year(class="form-control") }}
+    </div>
+    <div class="col-md-3">
+      {{ form.cluster.label(class="form-label") }}
+      {{ form.cluster(class="form-select") }}
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      {{ form.submit(class="btn btn-success") }}
+    </div>
+  </div>
+</form>
+
+{% if clusters %}
+  {% for cluster in clusters %}
+    <h4 class="mt-4 text-success">Кластер: {{ cluster }}</h4>
+    <table class="table table-bordered table-striped table-hover align-middle">
+      <thead class="table-success text-center">
+        <tr>
+          <th>Підприємство</th>
+          {% for culture in cultures %}
+            <th>{{ culture }}</th>
+          {% endfor %}
+          <th>Разом</th>
+        </tr>
+      </thead>
+      <tbody class="text-center">
+        {% for company, cultures_data in result[cluster].items() %}
+          <tr>
+            <td class="text-start">{{ company }}</td>
+            {% for culture in cultures %}
+              <td>{{ "%.2f"|format(cultures_data.get(culture, 0)) }}</td>
+            {% endfor %}
+            <td class="fw-bold">{{ "%.2f"|format(company_totals[cluster][company]) }}</td>
+          </tr>
+        {% endfor %}
+        <tr class="table-secondary fw-bold">
+          <td>Разом по кластеру</td>
+          {% for culture in cultures %}
+            <td>{{ "%.2f"|format(cluster_totals[cluster][culture]) }}</td>
+          {% endfor %}
+          <td>{{ "%.2f"|format(cluster_totals[cluster]['Разом']) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  {% endfor %}
+
+  <h4 class="mt-4 text-primary">Загальна структура</h4>
+  <table class="table table-bordered table-striped table-hover align-middle">
+    <thead class="table-primary text-center">
+      <tr>
+        <th> </th>
+        {% for culture in cultures %}
+          <th>{{ culture }}</th>
+        {% endfor %}
+        <th>Разом</th>
+      </tr>
+    </thead>
+    <tbody class="text-center">
+      <tr class="fw-bold">
+        <td>Разом</td>
+        {% for culture in cultures %}
+          <td>{{ "%.2f"|format(total_row[culture]) }}</td>
+        {% endfor %}
+        <td>{{ "%.2f"|format(total_row['Разом']) }}</td>
+      </tr>
+    </tbody>
+  </table>
+{% else %}
+  <p class="text-muted">Дані не знайдено для вибраних параметрів.</p>
+{% endif %}
+{% endblock %}

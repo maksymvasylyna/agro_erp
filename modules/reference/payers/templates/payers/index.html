@@ -1,0 +1,29 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title_text %}Платники{% endblock %}
+{% block header_text %}💼 Платники{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for payer in payers %}
+  <tr>
+    <td>{{ payer.id }}</td>
+    <td>{{ payer.name }}</td>
+    <td>
+      <a href="{{ url_for('payers.edit', id=payer.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('payers.delete', id=payer.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="3">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

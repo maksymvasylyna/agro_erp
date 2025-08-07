@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}{% block title_text %}Agro ERP{% endblock %}{% endblock %}
+{% block header %}{% block header_text %}Agro ERP{% endblock %}{% endblock %}
+
+{% block content %}
+  <!-- 🏠 і ⬅️ тут керуються тільки тут -->
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+    <a href="{% block back_url %}{{ url_for('reference.index') }}{% endblock %}" class="btn btn-outline-secondary">
+      {% block back_text %}⬅️ Назад{% endblock %}
+    </a>
+  </div>
+
+  {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-success mb-3">➕ Додати</a>
+  {% endif %}
+
+  {% block filter_form %}{% endblock %}
+
+  {% block table_content %}
+    <table class="table table-bordered table-striped table-hover align-middle">
+      <thead class="table-success text-center">
+        <tr>
+          {% block table_headers %}
+            <th>ID</th>
+            <th>Назва</th>
+            <th>Дії</th>
+          {% endblock %}
+        </tr>
+      </thead>
+      <tbody class="text-center">
+        {% block table_rows %}
+          <tr>
+            <td colspan="3">Даних немає</td>
+          </tr>
+        {% endblock %}
+      </tbody>
+    </table>
+  {% endblock %}
+{% endblock %}

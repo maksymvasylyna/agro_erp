@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Створення кількох планів{% endblock %}
+
+{% block content %}
+  <h1 class="mb-4">Оберіть поля для створення планів</h1>
+
+  <!-- Форма фільтрації -->
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Підприємство</label>
+      <select class="form-select" name="company_id">
+        <option value="">Усі</option>
+        {% for c in companies %}
+          <option value="{{ c.id }}" {% if selected_company_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Культура</label>
+      <select class="form-select" name="culture_id">
+        <option value="">Усі</option>
+        {% for c in cultures %}
+          <option value="{{ c.id }}" {% if selected_culture_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <button type="submit" class="btn btn-outline-primary w-100">🔍 Фільтрувати</button>
+    </div>
+  </form>
+
+  <form method="post">
+    <table class="table table-bordered text-center align-middle">
+      <thead class="table-success">
+        <tr>
+          <th>✅</th>
+          <th>Назва поля</th>
+          <th>Площа</th>
+          <th>Культура</th>
+          <th>Підприємство</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for field in fields %}
+        <tr>
+          <td><input type="checkbox" name="field_ids" value="{{ field.id }}"></td>
+          <td>{{ field.name }}</td>
+          <td>{{ field.area }}</td>
+          <td>{{ field.culture.name if field.culture else '—' }}</td>
+          <td>{{ field.company.name if field.company else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="text-end">
+      <button type="submit" class="btn btn-success">➡️ Продовжити</button>
+    </div>
+  </form>
+{% endblock %}

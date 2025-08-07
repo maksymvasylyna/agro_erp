@@ -1,0 +1,58 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title_text %}Поля{% endblock %}
+{% block header_text %}🌾 Поля{% endblock %}
+
+{% block filter_form %}
+<form method="get" class="d-flex flex-wrap mb-3">
+  {{ form.hidden_tag() }}
+  <div class="me-2">
+    {{ form.cluster.label }}
+    {{ form.cluster(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.company.label }}
+    {{ form.company(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.culture.label }}
+    {{ form.culture(class="form-select") }}
+  </div>
+  <div class="me-2 align-self-end">
+    {{ form.submit(class="btn btn-primary") }}
+  </div>
+</form>
+{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Кластер</th>
+  <th>Підприємство</th>
+  <th>Культура</th>
+  <th>Площа</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for field in items %}
+  <tr>
+    <td>{{ field.id }}</td>
+    <td>{{ field.name }}</td>
+    <td>{{ field.cluster.name if field.cluster else '' }}</td>
+    <td>{{ field.company.name if field.company else '' }}</td>
+    <td>{{ field.culture.name if field.culture else '' }}</td>
+    <td>{{ field.area }}</td>
+    <td>
+      <a href="{{ url_for('fields.edit', id=field.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('fields.delete', id=field.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="7">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

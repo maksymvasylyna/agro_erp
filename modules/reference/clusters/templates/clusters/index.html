@@ -1,0 +1,29 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title_text %}Кластери{% endblock %}
+{% block header_text %}🧭 Кластери{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for cluster in clusters %}
+  <tr>
+    <td>{{ cluster.id }}</td>
+    <td>{{ cluster.name }}</td>
+    <td>
+      <a href="{{ url_for('clusters.edit', id=cluster.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('clusters.delete', id=cluster.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="3">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Оберіть поле{% endblock %}
+{% block header %}🌾 Поля компанії {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('new_plans.select_company', cluster_id=cluster_id) }}"
+     class="btn btn-outline-secondary">⬅️ Назад до компаній</a>
+</div>
+
+<div class="row">
+  {% for field in fields %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title">{{ field.name }}</h5>
+          {% if field.culture %}
+            <p class="card-text">🌱 Культура: {{ field.culture.name }}</p>
+          {% else %}
+            <p class="text-muted">Без культури</p>
+          {% endif %}
+          <a href="{{ url_for('new_plans.create_plan', field_id=field.id) }}"
+             class="btn btn-outline-primary w-100 mt-2">
+             ➕ Додати план
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

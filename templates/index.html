@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Головна{% endblock %}
+
+{% block header %}🏠 Головна сторінка{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <a href="{{ url_for('reference.index') }}" class="btn btn-outline-success w-100">
+            📚 Довідники
+        </a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3"">
+      <a href="{{ url_for('structure.index') }}" class="btn btn-outline-success w-100">🌾 Структура посівних площ</a>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-4 mb-3"">
+      <a href="{{ url_for('plans.hub') }}" class="btn btn-outline-success w-100">📋 Плани</a>
+    </div>
+  </div>
+
+{% endblock %}

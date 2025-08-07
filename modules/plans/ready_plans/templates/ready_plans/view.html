@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}План №{{ plan.id }}{% endblock %}
+{% block header %}🔍 Перегляд плану №{{ plan.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('ready_plans.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  <a href="{{ url_for('ready_plans.export_single_plan_pdf', plan_id=plan.id) }}"
+   class="btn btn-outline-danger">
+   📄 Експортувати в PDF
+</a>
+</div>
+
+<div class="mb-4">
+  <p><strong>Поле:</strong> {{ plan.field.name }}</p>
+  <p><strong>Площа:</strong> {{ plan.field.area }} га</p>
+  <p><strong>Культура:</strong> {{ plan.field.culture.name if plan.field.culture else '—' }}</p>
+  <p><strong>Підприємство:</strong> {{ plan.field.company.name if plan.field.company else '—' }}</p>
+  <p><strong>Дата створення:</strong> {{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+</div>
+
+<h5>Обробітки</h5>
+<table class="table table-bordered table-striped text-center align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Вид обробітку</th>
+      <th>Продукт</th>
+      <th>Норма</th>
+      <th>Одиниця</th>
+      <th>Виробник</th>
+      <th>Кількість</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in plan.treatments %}
+    <tr>
+      <td>{{ t.treatment_type.name }}</td>
+      <td>{{ t.product.name }}</td>
+      <td>{{ t.rate }}</td>
+      <td>{{ t.unit }}</td>
+      <td>{{ t.manufacturer }}</td>
+      <td>{{ t.quantity }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

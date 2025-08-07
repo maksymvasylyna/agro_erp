@@ -1,0 +1,29 @@
+{% extends 'reference/_index_base.html' %}
+
+{% block title_text %}Одиниці виміру{% endblock %}
+{% block header_text %}📏 Одиниці виміру{% endblock %}
+
+{% block table_headers %}
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Дії</th>
+{% endblock %}
+
+{% block table_rows %}
+  {% for unit in units %}
+  <tr>
+    <td>{{ unit.id }}</td>
+    <td>{{ unit.name }}</td>
+    <td>
+      <a href="{{ url_for('units.edit', id=unit.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('units.delete', id=unit.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="3">Даних немає</td>
+  </tr>
+  {% endfor %}
+{% endblock %}

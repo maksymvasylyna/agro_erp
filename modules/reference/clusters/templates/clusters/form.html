@@ -1,0 +1,12 @@
+{% extends 'reference/_form_base.html' %}
+
+{% block title_text %}{{ action }} кластер{% endblock %}
+{% block header_text %}{{ action }} кластер{% endblock %}
+{% block back_url %}{{ url_for('clusters.index') }}{% endblock %}
+
+{% block form_fields %}
+<div class="col-md-12">
+    <label for="name" class="form-label">Назва</label>
+    {{ form.name(class="form-control") }}
+</div>
+{% endblock %}

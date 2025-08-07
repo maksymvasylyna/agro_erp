@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Новий план{% endblock %}
+{% block header %}➕ Новий план для поля {{ field.name }}{% endblock %}
+
+{% block content %}
+<!-- Кнопка Назад з підтвердженням -->
+<button type="button" class="btn btn-outline-secondary mb-3" id="back-button">
+  ⬅️ Назад
+</button>
+
+<!-- Інфо про поле -->
+<div class="mb-3 d-flex gap-4">
+  <div><strong>Поле:</strong> {{ field.name }}</div>
+  <div><strong>Площа:</strong> {{ field.area }} га</div>
+  <div><strong>Культура:</strong> {{ field.culture.name if field.culture else '—' }}</div>
+</div>
+
+<form method="POST">
+  {{ form.hidden_tag() }}
+
+  <table class="table table-bordered text-center align-middle" id="treatments-table">
+    <thead class="table-success">
+      <tr>
+        <th>Вид обробітку</th>
+        <th>Продукт</th>
+        <th>Норма</th>
+        <th>Виробник</th>
+        <th>Одиниця</th>
+        <th>Кількість</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Спочатку порожня -->
+    </tbody>
+  </table>
+
+  <div class="mb-3">
+    <button type="button" class="btn btn-outline-info" id="add-treatment">➕ Додати обробіток</button>
+  </div>
+
+  <div class="text-end">
+    {{ form.submit(class="btn btn-success") }}
+  </div>
+</form>
+
+<!-- Шаблон рядка -->
+<template id="treatment-row-template">
+  <tr>
+    <td>
+      <select name="treatments-__index__-treatment_type_id" class="form-select" required>
+        <option value="" disabled selected>— Оберіть вид —</option>
+        {% for t in treatment_types %}
+        <option value="{{ t.id }}">{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <select name="treatments-__index__-product_id" class="form-select product-select" required>
+        <option value="" disabled selected>— Оберіть продукт —</option>
+        {% for p in products %}
+        <option value="{{ p.id }}"
+                data-manufacturer="{{ p.manufacturer.name if p.manufacturer else '' }}"
+                data-unit="{{ p.unit.name if p.unit else '' }}">
+          {{ p.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <input type="number" name="treatments-__index__-rate" class="form-control rate-field" step="0.01" min="0" required>
+    </td>
+    <td>
+      <input type="text" class="form-control unit-field" name="treatments-__index__-unit" readonly>
+    </td>
+    <td>
+      <input type="text" class="form-control manufacturer-field" name="treatments-__index__-manufacturer" readonly>
+    </td>
+    <td>
+      <input type="text" class="form-control quantity-field" name="treatments-__index__-quantity" readonly>
+    </td>
+    <td>
+      <button type="button" class="btn btn-outline-danger btn-sm delete-row">🗑️</button>
+    </td>
+  </tr>
+</template>
+
+
+<!-- Модальне вікно підтвердження виходу -->
+<div class="modal fade" id="confirmExitModal" tabindex="-1" aria-labelledby="confirmExitModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmExitModalLabel">Зберегти план?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+      </div>
+      <div class="modal-body">
+        Ви хочете зберегти план перед поверненням?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="exit-without-saving">Повернутись до вибору поля</button>
+        <button type="button" class="btn btn-success" id="submit-plan">Зберегти план</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- JavaScript -->
+<script>
+  let treatmentIndex = 0;
+
+  document.getElementById('add-treatment').addEventListener('click', function () {
+    const tableBody = document.querySelector('#treatments-table tbody');
+    const template = document.getElementById('treatment-row-template').innerHTML;
+    const rowHtml = template.replace(/__index__/g, treatmentIndex);
+    const tempDiv = document.createElement('tbody');
+    tempDiv.innerHTML = rowHtml;
+    const newRow = tempDiv.firstElementChild;
+    tableBody.appendChild(newRow);
+    treatmentIndex++;
+
+    // Поля з нового рядка
+    const productSelect = newRow.querySelector('.product-select');
+    const manufacturerInput = newRow.querySelector('.manufacturer-field');
+    const unitInput = newRow.querySelector('.unit-field');
+    const rateInput = newRow.querySelector('.rate-field');
+    const quantityInput = newRow.querySelector('.quantity-field');
+
+    // Функція для обчислення кількості
+    function updateQuantity() {
+      const area = Number("{{ field.area|round(3) }}".replace(',', '.'));  // площа поля передається з Jinja
+      const rate = parseFloat(rateInput.value);
+      if (!isNaN(rate)) {
+        const quantity = area * rate;
+        quantityInput.value = quantity.toFixed(1); // округлення до 1 знака
+      } else {
+        quantityInput.value = '';
+      }
+    }
+
+    // При виборі продукту — оновити виробника, одиницю, перерахувати кількість
+    productSelect.addEventListener('change', function () {
+      const selectedOption = productSelect.options[productSelect.selectedIndex];
+      manufacturerInput.value = selectedOption.dataset.manufacturer || '';
+      unitInput.value = selectedOption.dataset.unit || '';
+      updateQuantity();
+    });
+
+    // При зміні норми — оновити кількість
+    rateInput.addEventListener('input', updateQuantity);
+
+    // Ініціалізуємо значення одразу
+    productSelect.dispatchEvent(new Event('change'));
+    rateInput.dispatchEvent(new Event('input'));
+  });
+
+  // Видалення рядка
+  document.querySelector('#treatments-table tbody').addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-row')) {
+      e.target.closest('tr').remove();
+    }
+  });
+</script>
+
+  
+<!-- Підтвердження при поверненні назад -->
+<script>
+  document.getElementById('back-button').addEventListener('click', function () {
+    const modal = new bootstrap.Modal(document.getElementById('confirmExitModal'));
+    modal.show();
+  });
+
+  document.getElementById('submit-plan').addEventListener('click', function () {
+    document.querySelector('form').submit();
+  });
+
+  document.getElementById('exit-without-saving').addEventListener('click', function () {
+    const clusterId = "{{ cluster_id }}";
+    const companyId = "{{ company.id }}";
+    window.location.href = `/new_plans/select_field/${clusterId}/${companyId}`;
+  });
+</script>
+
+  
+{% endblock %}
