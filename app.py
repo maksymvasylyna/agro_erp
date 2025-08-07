@@ -11,6 +11,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # ✅ Створюємо папку instance/ для SQLite
+    os.makedirs(app.instance_path, exist_ok=True)
+
     db.init_app(app)
     register_blueprints(app)
 
@@ -29,7 +32,7 @@ def create_app():
     # Додай сюди інші моделі, якщо є ForeignKey
 
     with app.app_context():
-        db.create_all()  # створює всі таблиці, бо тепер знає про них!
+        db.create_all()
 
     @app.route('/')
     def index():
