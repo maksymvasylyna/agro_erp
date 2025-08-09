@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Закупівля{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-success mb-4">🛒 Закупівля</h2>
+
+  <div class="row g-3">
+    <!-- Зведена потреба по продуктах -->
+    <div class="col-md-4">
+      <a href="{{ url_for('needs.summary_needs') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">Зведена потреба</h5>
+            <div class="text-muted small">по продуктах (затверджені плани)</div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    {# приклади майбутніх підблоків (залишено як коментар, щоб не ламати навігацію)
+    <div class="col-md-4">
+      <a href="#" class="text-decoration-none disabled">
+        <div class="card shadow-sm rounded-2 border-secondary-subtle">
+          <div class="card-body text-center">
+            <h5 class="card-title mb-1">Замовлення постачальникам</h5>
+            <div class="text-muted small">(скоро)</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    #}
+  </div>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
 from extensions import db
 from flask import request, render_template, redirect, url_for, flash
 from . import bp
-from modules.plans.new_plans.models import Plan, Treatment
+from modules.plans.models import Plan, Treatment
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
@@ -91,7 +91,7 @@ def export_pdf():
     from reportlab.pdfbase.ttfonts import TTFont
     import os
     from flask import send_file, request
-    from modules.plans.new_plans.models import Plan
+    from modules.plans.models import Plan, Treatment
     from modules.reference.fields.field_models import Field
 
     # ✅ Параметри фільтрації
@@ -166,7 +166,7 @@ def export_plan_pdf(plan_id):
     from io import BytesIO
     import os
     from flask import send_file
-    from modules.plans.new_plans.models import Plan
+    from modules.plans.models import Plan, Treatment
 
     plan = Plan.query.get_or_404(plan_id)
 

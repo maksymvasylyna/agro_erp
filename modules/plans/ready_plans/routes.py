@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request
-from modules.plans.new_plans.models import Plan
+from modules.plans.models import Plan
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
@@ -9,7 +9,7 @@ from modules.plans.forms import PlanForm
 from modules.reference.treatment_types.models import TreatmentType
 from modules.reference.products.models import Product
 from sqlalchemy.orm import joinedload
-from modules.plans.new_plans.models import Plan, Treatment
+from modules.plans.models import Plan, Treatment
 
 
 ready_plans_bp = Blueprint(
@@ -212,7 +212,7 @@ def export_pdf():
     from io import BytesIO
     import os
 
-    from modules.plans.new_plans.models import Plan
+    from modules.plans.models import Plan, Treatment
     from modules.reference.fields.field_models import Field
 
     # 🔤 Підключаємо шрифт
@@ -284,7 +284,8 @@ def export_single_plan_pdf(plan_id):
     from io import BytesIO
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    from modules.plans.new_plans.models import Plan
+    from modules.plans.models import Plan, Treatment
+
 
     plan = Plan.query.get_or_404(plan_id)
 

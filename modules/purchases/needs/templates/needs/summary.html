@@ -8,22 +8,23 @@
         <h2 class="text-success">Зведена потреба ТМЦ</h2>
         <div>
             <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">🏠 На головну</a>
-            <a href="{{ url_for('reference.index') }}" class="btn btn-outline-secondary btn-sm">⬅️ Назад</a>
+            <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary btn-sm">⬅️ Назад</a>
         </div>
     </div>
 
     <form method="get" class="form-inline mb-3 d-flex flex-wrap gap-2">
+        {{ form.hidden_tag() }}
         <div>
-            {{ form.company.label(class="form-label") }}
-            {{ form.company(class="form-select form-select-sm") }}
+            {{ form.company_id.label(class="form-label") }}
+            {{ form.company_id(class="form-select form-select-sm") }}
         </div>
         <div>
-            {{ form.culture.label(class="form-label") }}
-            {{ form.culture(class="form-select form-select-sm") }}
+            {{ form.culture_id.label(class="form-label") }}
+            {{ form.culture_id(class="form-select form-select-sm") }}
         </div>
         <div>
-            {{ form.product.label(class="form-label") }}
-            {{ form.product(class="form-select form-select-sm") }}
+            {{ form.product_id.label(class="form-label") }}
+            {{ form.product_id(class="form-select form-select-sm") }}
         </div>
         <div class="align-self-end">
             {{ form.submit(class="btn btn-success btn-sm") }}
@@ -41,7 +42,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for row in summary_data %}
+            {% for row in table_data %}
             <tr>
                 <td>{{ row.company }}</td>
                 <td>{{ row.product }}</td>

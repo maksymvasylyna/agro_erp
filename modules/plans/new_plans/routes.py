@@ -7,7 +7,7 @@ from modules.reference.clusters.models import Cluster
 from modules.reference.cultures.models import Culture
 from modules.reference.companies.models import Company
 from modules.reference.fields.field_models import Field
-from modules.plans.new_plans.models import Plan, Treatment
+from modules.plans.models import Plan, Treatment
 from extensions import db
 
 bp = Blueprint(

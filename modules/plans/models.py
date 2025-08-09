@@ -1,9 +1,7 @@
-from extensions import db
-from sqlalchemy.orm import relationship
+# modules/plans/models.py
 
-from modules.reference.fields.field_models import Field
-from modules.reference.products.models import Product
-from modules.reference.treatment_types.models import TreatmentType
+from extensions import db
+from datetime import datetime
 
 
 class Plan(db.Model):
@@ -11,11 +9,12 @@ class Plan(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     field_id = db.Column(db.Integer, db.ForeignKey('fields.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String, default='готовий')
     is_approved = db.Column(db.Boolean, default=False)
 
-    # зв'язки
-    field = relationship('Field', backref='plans')
-    treatments = relationship('Treatment', backref='plan', cascade='all, delete-orphan')
+    field = db.relationship('Field', backref='plans')
+    treatments = db.relationship('Treatment', backref='plan', cascade='all, delete-orphan')
 
 
 class Treatment(db.Model):
@@ -32,6 +31,5 @@ class Treatment(db.Model):
     manufacturer = db.Column(db.String)
     quantity = db.Column(db.Float)
 
-    # зв'язки
-    treatment_type = relationship('TreatmentType', backref='treatments')
-    product = relationship('Product', backref='treatments')
+    treatment_type = db.relationship('TreatmentType', backref='treatments')
+    product = db.relationship('Product', backref='treatments')

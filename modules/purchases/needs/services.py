@@ -1,7 +1,7 @@
 from extensions import db
 from sqlalchemy.orm import joinedload
 
-from modules.plans.new_plans.models import Plan, Treatment
+from modules.plans.models import Plan, Treatment
 from modules.reference.fields.field_models import Field
 from modules.reference.products.models import Product
 from modules.reference.companies.models import Company
@@ -12,18 +12,18 @@ from modules.reference.units.models import Unit
 def get_summary_data(company_id=None, culture_id=None, product_id=None):
     query = (
         db.session.query(Treatment)
-        .join(Plan)
-        .join(Product)
+        .join(Treatment.plan)  # 👈 обовʼязково через звʼязок
+        .join(Treatment.product)
         .join(Plan.field)
         .options(
             joinedload(Treatment.product).joinedload(Product.unit),
-            joinedload(Plan.field).joinedload(Field.company),
-            joinedload(Plan.field).joinedload(Field.culture)
+            joinedload(Treatment.plan).joinedload(Plan.field).joinedload(Field.company),
+            joinedload(Treatment.plan).joinedload(Plan.field).joinedload(Field.culture)
         )
-        .filter(Plan.is_approved.is_(True))  # ✅ надійна перевірка булевого значення
+        .filter(Plan.is_approved.is_(True))  # 👈 правильне фільтрування
     )
 
-    # 🔎 Фільтри
+    # Застосовуємо фільтри
     if company_id:
         query = query.filter(Field.company_id == company_id)
     if culture_id:
