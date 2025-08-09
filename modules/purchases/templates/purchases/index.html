@@ -3,6 +3,10 @@
 {% block title %}Закупівля{% endblock %}
 
 {% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
 <div class="container mt-4">
   <h2 class="text-success mb-4">🛒 Закупівля</h2>
 
@@ -19,7 +23,8 @@
       </a>
     </div>
 
-    {# приклади майбутніх підблоків (залишено як коментар, щоб не ламати навігацію)
+    {# Приклади майбутніх підблоків #}
+    {# 
     <div class="col-md-4">
       <a href="#" class="text-decoration-none disabled">
         <div class="card shadow-sm rounded-2 border-secondary-subtle">
