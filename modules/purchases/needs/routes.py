@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from .forms import NeedsFilterForm
+from .forms import NeedsFilterForm  # Імпортуємо форму
 
 needs_bp = Blueprint(
     'needs',
@@ -8,12 +8,7 @@ needs_bp = Blueprint(
     template_folder='templates'
 )
 
-@needs_bp.route('/', endpoint='index')
-def index():
-    form = NeedsFilterForm()
-    return render_template('needs/index.html', form=form)
-
 @needs_bp.route('/summary', endpoint='summary')
 def summary():
-    # Сторінка зведеної потреби
-    return render_template('needs/summary.html')
+    form = NeedsFilterForm()  # Створюємо форму фільтра
+    return render_template('needs/summary.html', form=form)  # Передаємо форму в шаблон
