@@ -1,5 +1,5 @@
 from extensions import db
-from modules.reference.fields.models import Field
+from modules.reference.fields.field_models import Field
 
 # ✅ Імпорт твого factory!
 from app import create_app

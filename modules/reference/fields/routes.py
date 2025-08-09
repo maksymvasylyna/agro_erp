@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from extensions import db
-from modules.reference.fields.models import Field
+from modules.reference.fields.field_models import Field
 from modules.reference.fields.forms import FieldForm, FieldFilterForm
 
 fields_bp = Blueprint('fields', __name__, template_folder='templates')

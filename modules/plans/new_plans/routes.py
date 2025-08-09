@@ -1,13 +1,13 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from .forms import PlanForm
-from modules.reference.fields.models import Field
+from modules.reference.fields.field_models import Field
 from modules.reference.products.models import Product
 from modules.reference.treatment_types.models import TreatmentType
 from modules.reference.clusters.models import Cluster
 from modules.reference.cultures.models import Culture
 from modules.reference.companies.models import Company
-from modules.reference.fields.models import Field
-from modules.plans.models import Plan, Treatment
+from modules.reference.fields.field_models import Field
+from modules.plans.new_plans.models import Plan, Treatment
 from extensions import db
 
 bp = Blueprint(

@@ -19,6 +19,7 @@ def register_blueprints(app):
     from modules.plans.ready_plans.routes import ready_plans_bp
     from modules.plans.approved_plans import bp as approved_plans_bp
     from modules.reference.treatment_types.routes import treatment_types_bp
+    from modules.purchases.needs.routes import needs_bp
     
 
     
@@ -42,5 +43,6 @@ def register_blueprints(app):
     app.register_blueprint(ready_plans_bp)
     app.register_blueprint(treatment_types_bp)
     app.register_blueprint(approved_plans_bp, url_prefix='/approved_plans')
+    app.register_blueprint(needs_bp)
     
     

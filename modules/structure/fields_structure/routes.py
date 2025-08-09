@@ -1,7 +1,7 @@
 # modules/structure/fields_structure/routes.py
 
 from flask import Blueprint, render_template, request
-from modules.reference.fields.models import Field
+from modules.reference.fields.field_models import Field
 from modules.structure.fields_structure.forms import FieldsStructureFilterForm
 
 fields_structure_bp = Blueprint(

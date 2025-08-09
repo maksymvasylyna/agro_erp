@@ -3,7 +3,7 @@
 from flask import Blueprint, render_template, request
 from extensions import db
 from modules.structure.summary_structure.forms import SummaryStructureFilterForm
-from modules.reference.fields.models import Field
+from modules.reference.fields.field_models import Field
 from modules.reference.clusters.models import Cluster
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture

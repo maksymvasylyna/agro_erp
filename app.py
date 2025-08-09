@@ -28,7 +28,7 @@ def create_app():
     from modules.reference.clusters.models import Cluster
     from modules.reference.cultures.models import Culture
     from modules.reference.companies.models import Company
-    from modules.reference.fields.models import Field
+    from modules.reference.fields.field_models import Field
     # Додай сюди інші моделі, якщо є ForeignKey
 
     with app.app_context():
