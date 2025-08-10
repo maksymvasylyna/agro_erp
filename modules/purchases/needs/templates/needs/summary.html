@@ -4,33 +4,36 @@
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Заголовок та кнопки -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="text-success">Зведена потреба ТМЦ</h2>
-        <div>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">🏠 На головну</a>
+        <h2 class="text-success mb-0">Зведена потреба ТМЦ</h2>
+        <div class="d-flex gap-2">
             <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary btn-sm">⬅️ Назад</a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">🏠 На головну</a>
         </div>
     </div>
 
-    <form method="get" class="form-inline mb-3 d-flex flex-wrap gap-2">
+    <!-- Форма фільтрації -->
+    <form method="get" class="row g-2 mb-3">
         {{ form.hidden_tag() }}
-        <div>
-            {{ form.company_id.label(class="form-label") }}
+        <div class="col-md-3">
+            {{ form.company_id.label(class="form-label mb-1") }}
             {{ form.company_id(class="form-select form-select-sm") }}
         </div>
-        <div>
-            {{ form.culture_id.label(class="form-label") }}
+        <div class="col-md-3">
+            {{ form.culture_id.label(class="form-label mb-1") }}
             {{ form.culture_id(class="form-select form-select-sm") }}
         </div>
-        <div>
-            {{ form.product_id.label(class="form-label") }}
+        <div class="col-md-3">
+            {{ form.product_id.label(class="form-label mb-1") }}
             {{ form.product_id(class="form-select form-select-sm") }}
         </div>
-        <div class="align-self-end">
-            {{ form.submit(class="btn btn-success btn-sm") }}
+        <div class="col-md-3 d-flex align-items-end">
+            {{ form.submit(class="btn btn-success btn-sm w-100") }}
         </div>
     </form>
 
+    <!-- Таблиця результатів -->
     <table class="table table-bordered table-hover table-sm text-center align-middle">
         <thead class="table-success">
             <tr>
@@ -47,7 +50,7 @@
                 <td>{{ row.company }}</td>
                 <td>{{ row.product }}</td>
                 <td>{{ row.culture }}</td>
-                <td>{{ row.quantity }}</td>
+                <td>{{ row.quantity|round(2) }}</td>
                 <td>{{ row.unit }}</td>
             </tr>
             {% else %}

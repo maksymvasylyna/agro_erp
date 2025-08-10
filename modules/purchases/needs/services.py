@@ -1,54 +1,53 @@
+# modules/purchases/needs/services.py
+from sqlalchemy import func, case
 from extensions import db
-from sqlalchemy.orm import joinedload
-
-from modules.plans.models import Plan, Treatment
-from modules.reference.fields.field_models import Field
+from modules.plans.approved_plans.models import ApprovedPlan, ApprovedPlanItem  # підстав свої імена моделей
 from modules.reference.products.models import Product
-from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
-from modules.reference.units.models import Unit
+from modules.reference.companies.models import Company
+# Якщо маєш Units/коефіцієнти — імпортуй і додай конвертацію нижче
 
+def get_summary(company_id=None, culture_id=None, product_id=None):
+    """
+    Повертає зведену потребу з ТІЛЬКИ затверджених планів.
+    Фільтри опційні: company_id, culture_id, product_id.
+    Повертає список dict: {product_id, product_name, culture_name, company_name, qty}
+    """
 
-def get_summary_data(company_id=None, culture_id=None, product_id=None):
-    query = (
-        db.session.query(Treatment)
-        .join(Treatment.plan)  # 👈 обовʼязково через звʼязок
-        .join(Treatment.product)
-        .join(Plan.field)
-        .options(
-            joinedload(Treatment.product).joinedload(Product.unit),
-            joinedload(Treatment.plan).joinedload(Plan.field).joinedload(Field.company),
-            joinedload(Treatment.plan).joinedload(Plan.field).joinedload(Field.culture)
+    q = (
+        db.session.query(
+            Product.id.label("product_id"),
+            Product.name.label("product_name"),
+            Culture.name.label("culture_name"),
+            Company.name.label("company_name"),
+            # Якщо потрібна конвертація одиниць, заміни ApprovedPlanItem.qty на нормалізовану величину
+            func.coalesce(func.sum(ApprovedPlanItem.qty), 0).label("qty")
         )
-        .filter(Plan.is_approved.is_(True))  # 👈 правильне фільтрування
+        .join(ApprovedPlan, ApprovedPlan.id == ApprovedPlanItem.plan_id)
+        .join(Product, Product.id == ApprovedPlanItem.product_id)
+        .join(Culture, Culture.id == ApprovedPlan.culture_id)
+        .join(Company, Company.id == ApprovedPlan.company_id)
+        .filter(ApprovedPlan.status == "approved")  # критично: тільки затверджені
+        .group_by(Product.id, Product.name, Culture.name, Company.name)
+        .order_by(Product.name.asc())
     )
 
-    # Застосовуємо фільтри
     if company_id:
-        query = query.filter(Field.company_id == company_id)
+        q = q.filter(ApprovedPlan.company_id == company_id)
     if culture_id:
-        query = query.filter(Field.culture_id == culture_id)
+        q = q.filter(ApprovedPlan.culture_id == culture_id)
     if product_id:
-        query = query.filter(Treatment.product_id == product_id)
+        q = q.filter(ApprovedPlanItem.product_id == product_id)
 
-    treatments = query.all()
-    result = []
+    rows = q.all()
 
-    for t in treatments:
-        plan = t.plan
-        field = plan.field
-        product = t.product
-
-        area = field.area or 0
-        rate = t.rate or 0
-        quantity = round(area * rate, 1)
-
-        result.append({
-            "company": field.company.name if field.company else "—",
-            "product": product.name,
-            "culture": field.culture.name if field.culture else "—",
-            "quantity": quantity,
-            "unit": product.unit.name if product.unit else "—"
-        })
-
-    return result
+    return [
+        {
+            "product_id": r.product_id,
+            "product_name": r.product_name,
+            "culture_name": r.culture_name,
+            "company_name": r.company_name,
+            "qty": float(r.qty or 0),
+        }
+        for r in rows
+    ]
