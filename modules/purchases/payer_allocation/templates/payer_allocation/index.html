@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Розподіл між Платниками{% endblock %}
+{% block header %}💳 Розподіл між Платниками{% endblock %}
+
+{% block content %}
+
+{# ==== 1-й ряд кнопок: Назад (ліворуч) — Додому (праворуч) ==== #}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+{# ==== 2-й ряд: усі фільтри + кнопка Фільтрувати ==== #}
+<form action="{{ url_for('payer_allocation.index') }}" method="get" class="mb-3">
+  {{ form.hidden_tag() }}
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-3">
+      <label for="{{ form.company.id }}" class="form-label small fw-semibold mb-1">По підприємству</label>
+      {{ form.company(class="form-select") }}
+    </div>
+    <div class="col-12 col-md-3">
+      <label for="{{ form.product.id }}" class="form-label small fw-semibold mb-1">По продукту</label>
+      {{ form.product(class="form-select") }}
+    </div>
+    <div class="col-12 col-md-3">
+      <label for="{{ form.manufacturer.id }}" class="form-label small fw-semibold mb-1">По виробнику</label>
+      {{ form.manufacturer(class="form-select") }}
+    </div>
+    <div class="col-12 col-md-3">
+      <label for="{{ form.payer.id }}" class="form-label small fw-semibold mb-1">По покупцю</label>
+      {{ form.payer(class="form-select") }}
+    </div>
+    <div class="col-12 col-md-auto">
+      {{ form.submit(class="btn btn-primary mt-2 mt-md-0") }}
+    </div>
+  </div>
+</form>
+
+{# ==== 3-й ряд: випадаючий список Покупців + Застосувати + Оновити з планів ==== #}
+<div class="row g-2 align-items-end mb-3">
+  <div class="col-12 col-md-8">
+    <form id="bulk-form" action="{{ url_for('payer_allocation.bulk_assign') }}" method="post" class="row g-2 align-items-end">
+      {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+      <input type="hidden" name="ids" id="bulk-ids" />
+      <div class="col-12 col-md-6">
+        <label for="{{ bulk_form.payer.id }}" class="form-label small fw-semibold mb-1">Покупець для обраних рядків</label>
+        {{ bulk_form.payer(class="form-select") }}
+      </div>
+      <div class="col-12 col-md-auto">
+        {{ bulk_form.assign(class="btn btn-success mt-2 mt-md-0") }}
+      </div>
+    </form>
+  </div>
+
+  <div class="col-12 col-md-4">
+    <form action="{{ url_for('payer_allocation.sync') }}" method="post" class="d-flex justify-content-md-end">
+      {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+      <button type="submit" class="btn btn-outline-success mt-2 mt-md-0">🔄 Оновити з планів</button>
+    </form>
+  </div>
+</div>
+
+<table class="table table-sm align-middle">
+  <thead>
+    <tr>
+      <th style="width:2.5rem;"><input type="checkbox" id="check-all"></th>
+      <th>Підприємство</th>
+      <th>Поле</th>
+      <th>Продукт</th>
+      <th>Виробник</th>
+      <th class="text-end">Кількість</th>
+      <th>Одиниця</th>
+      <th>Покупець</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    <tr>
+      <td><input type="checkbox" class="check-row" value="{{ row.id }}"></td>
+      <td>{{ row.company.name if row.company else '—' }}</td>
+      <td>{{ row.field.name if row.field else '—' }}</td>
+      <td>{{ row.product.name if row.product else '—' }}</td>
+      <td>{{ row.manufacturer.name if row.manufacturer else '—' }}</td>
+      <td class="text-end">{{ row.qty }}</td>
+      <td>{{ row.unit.name if row.unit else '—' }}</td>
+      <td>{{ row.payer.name if row.payer else '—' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="text-center text-muted">Даних немає</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Вибрати всі
+document.getElementById('check-all')?.addEventListener('change', function(e){
+  document.querySelectorAll('.check-row').forEach(cb => cb.checked = e.target.checked);
+});
+
+// Зібрати ID перед сабмітом масової форми
+document.getElementById('bulk-form')?.addEventListener('submit', function(e){
+  const ids = Array.from(document.querySelectorAll('.check-row:checked')).map(cb => cb.value);
+  if (!ids.length) {
+    e.preventDefault();
+    alert('Оберіть хоча б один рядок.');
+    return false;
+  }
+  document.getElementById('bulk-ids').value = ids.join(',');
+});
+</script>
+{% endblock %}

@@ -16,10 +16,9 @@
       <button type="submit" class="btn btn-outline-danger">
         📄 Експортувати всі готові плани (PDF)
       </button>
-    </form>    
+    </form>
   </div>
 </div>
-
 
 <!-- 🔽 Фільтрація -->
 <form method="GET" class="row g-3 mb-4">
@@ -48,61 +47,70 @@
   </div>
 </form>
 
-<!-- 🔽 Масове затвердження -->
-<form method="post" action="{{ url_for('ready_plans.bulk_approve') }}">
-  <table class="table table-bordered table-striped text-center align-middle">
-    <thead class="table-success">
-      <tr>
-        <th><input type="checkbox" id="select-all"></th>
-        <th>ID</th>
-        <th>Поле</th>
-        <th>Площа</th>
-        <th>Культура</th>
-        <th>Підприємство</th>
-        <th>Дата створення</th>
-        <th>Дії</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for plan in plans %}
-      <tr>
-        <td>
-          {% if not plan.is_approved %}
-            <input type="checkbox" name="plan_ids" value="{{ plan.id }}">
-          {% endif %}
-        </td>
-        <td>{{ plan.id }}</td>
-        <td>{{ plan.field.name }}</td>
-        <td>{{ plan.field.area }} га</td>
-        <td>{{ plan.field.culture.name if plan.field.culture else '—' }}</td>
-        <td>{{ plan.field.company.name if plan.field.company else '—' }}</td>
-        <td>{{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-        <td>
-          <a href="{{ url_for('ready_plans.view_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">🔍</a>
-          {% if not plan.is_approved %}
-            <a href="{{ url_for('ready_plans.approve_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-success">✅</a>
-            <a href="{{ url_for('ready_plans.edit_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-warning">✏️</a>
-            <form method="post" action="{{ url_for('ready_plans.delete_plan', plan_id=plan.id) }}" style="display:inline;">
-              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Ви впевнені, що хочете видалити цей план?')">🗑️</button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <div class="text-end mt-3">
-    <button type="submit" class="btn btn-success">✅ Затвердити вибрані</button>
-  </div>
+{# 🔽 Окрема форма для масового затвердження (без вкладень у таблицю) #}
+<form id="bulk-approve-form" method="post" action="{{ url_for('ready_plans.bulk_approve') }}">
+  {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
 </form>
+
+<table class="table table-bordered table-striped text-center align-middle">
+  <thead class="table-success">
+    <tr>
+      <th>
+        <input type="checkbox" id="select-all">
+      </th>
+      <th>ID</th>
+      <th>Поле</th>
+      <th>Площа</th>
+      <th>Культура</th>
+      <th>Підприємство</th>
+      <th>Дата створення</th>
+      <th>Дії</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for plan in plans %}
+    <tr>
+      <td>
+        {% if not plan.is_approved %}
+          {# прив’язуємо чекбокс до форми bulk-approve-form через атрибут form #}
+          <input type="checkbox" class="cb-plan" name="plan_ids" value="{{ plan.id }}" form="bulk-approve-form">
+        {% endif %}
+      </td>
+      <td>{{ plan.id }}</td>
+      <td>{{ plan.field.name }}</td>
+      <td>{{ plan.field.area }} га</td>
+      <td>{{ plan.field.culture.name if plan.field.culture else '—' }}</td>
+      <td>{{ plan.field.company.name if plan.field.company else '—' }}</td>
+      <td>{{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>
+        <a href="{{ url_for('ready_plans.view_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">🔍</a>
+        {% if not plan.is_approved %}
+          <a href="{{ url_for('ready_plans.approve_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-success">✅</a>
+          <a href="{{ url_for('ready_plans.edit_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-warning">✏️</a>
+
+          {# окрема форма видалення — НЕ всередині іншої форми #}
+          <form method="post" action="{{ url_for('ready_plans.delete_plan', plan_id=plan.id) }}" style="display:inline;">
+            {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+            <button type="submit" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Ви впевнені, що хочете видалити цей план?')">🗑️</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="text-end mt-3">
+  <button type="submit" form="bulk-approve-form" class="btn btn-success">✅ Затвердити вибрані</button>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  document.getElementById('select-all').addEventListener('change', function () {
-    const checkboxes = document.querySelectorAll('input[name="plan_ids"]');
-    checkboxes.forEach(cb => cb.checked = this.checked);
+  // "Вибрати всі" — тицяє лише по чекбоксах, що передаються у bulk-approve-form
+  document.getElementById('select-all')?.addEventListener('change', function () {
+    document.querySelectorAll('input.cb-plan').forEach(cb => cb.checked = this.checked);
   });
 </script>
 {% endblock %}

@@ -21,6 +21,7 @@ def register_blueprints(app):
     from modules.reference.treatment_types.routes import treatment_types_bp
     from modules.purchases.routes import purchases_bp
     from modules.purchases.needs.routes import needs_bp
+    from modules.purchases.payer_allocation.routes import bp as payer_allocation_bp
 
     app.register_blueprint(reference_bp)
     app.register_blueprint(units_bp)
@@ -46,3 +47,4 @@ def register_blueprints(app):
     # Блок "Закупівля"
     app.register_blueprint(purchases_bp)
     app.register_blueprint(needs_bp)
+    app.register_blueprint(payer_allocation_bp)

@@ -1,64 +1,87 @@
 {% extends 'base.html' %}
 
-{% block title %}Зведена потреба ТМЦ{% endblock %}
+{% block title %}Зведена потреба{% endblock %}
+{% block header %}🧮 Зведена потреба (затверджені плани){% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Заголовок та кнопки -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="text-success mb-0">Зведена потреба ТМЦ</h2>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary btn-sm">⬅️ Назад</a>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">🏠 На головну</a>
-        </div>
+
+{# 1-й ряд: Назад / Додому #}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+{# 2-й ряд: Фільтри + 'Фільтрувати' #}
+<form method="get" action="{{ url_for('needs.summary') }}" class="mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label class="form-label small fw-semibold mb-1" for="company">По підприємству</label>
+      <select class="form-select" name="company_id" id="company">
+        <option value="">— Усі —</option>
+        {% for c in companies %}
+          <option value="{{ c.id }}" {% if company_id and company_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
     </div>
 
-    <!-- Форма фільтрації -->
-    <form method="get" class="row g-2 mb-3">
-        {{ form.hidden_tag() }}
-        <div class="col-md-3">
-            {{ form.company_id.label(class="form-label mb-1") }}
-            {{ form.company_id(class="form-select form-select-sm") }}
-        </div>
-        <div class="col-md-3">
-            {{ form.culture_id.label(class="form-label mb-1") }}
-            {{ form.culture_id(class="form-select form-select-sm") }}
-        </div>
-        <div class="col-md-3">
-            {{ form.product_id.label(class="form-label mb-1") }}
-            {{ form.product_id(class="form-select form-select-sm") }}
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-            {{ form.submit(class="btn btn-success btn-sm w-100") }}
-        </div>
-    </form>
+    <div class="col-12 col-md-4">
+      <label class="form-label small fw-semibold mb-1" for="culture">По культурі</label>
+      <select class="form-select" name="culture_id" id="culture">
+        <option value="">— Усі —</option>
+        {% for cu in cultures %}
+          <option value="{{ cu.id }}" {% if culture_id and culture_id == cu.id %}selected{% endif %}>{{ cu.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-    <!-- Таблиця результатів -->
-    <table class="table table-bordered table-hover table-sm text-center align-middle">
-        <thead class="table-success">
-            <tr>
-                <th>Компанія</th>
-                <th>Продукт</th>
-                <th>Культура</th>
-                <th>Кількість</th>
-                <th>Одиниця</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in table_data %}
-            <tr>
-                <td>{{ row.company }}</td>
-                <td>{{ row.product }}</td>
-                <td>{{ row.culture }}</td>
-                <td>{{ row.quantity|round(2) }}</td>
-                <td>{{ row.unit }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5" class="text-muted">Даних не знайдено</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+    <div class="col-12 col-md-4">
+      <label class="form-label small fw-semibold mb-1" for="product">По продукту</label>
+      <select class="form-select" name="product_id" id="product">
+        <option value="">— Усі —</option>
+        {% for p in products %}
+          <option value="{{ p.id }}" {% if product_id and product_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-auto">
+      <button type="submit" class="btn btn-primary mt-2 mt-md-0">🔎 Фільтрувати</button>
+    </div>
+  </div>
+</form>
+
+{# 3-й ряд: 'Оновити з планів' — передає поточні фільтри як hidden #}
+<form method="post" action="{{ url_for('needs.summary_sync') }}" class="mb-3">
+  {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+  <input type="hidden" name="company_id" value="{{ company_id or '' }}">
+  <input type="hidden" name="culture_id" value="{{ culture_id or '' }}">
+  <input type="hidden" name="product_id" value="{{ product_id or '' }}">
+  <button type="submit" class="btn btn-outline-success">🔄 Оновити з планів</button>
+</form>
+
+<table class="table table-sm align-middle">
+  <thead>
+    <tr>
+      <th>Продукт</th>
+      <th>Культура</th>
+      <th>Підприємство</th>
+      <th class="text-end">Кількість</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in data %}
+      <tr>
+        <td>{{ r.product_name }}</td>
+        <td>{{ r.culture_name }}</td>
+        <td>{{ r.company_name }}</td>
+        <td class="text-end">{{ '%.3f'|format(r.qty) }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="4" class="text-center text-muted">Даних немає</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 {% endblock %}

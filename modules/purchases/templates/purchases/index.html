@@ -23,19 +23,17 @@
       </a>
     </div>
 
-    {# Приклади майбутніх підблоків #}
-    {# 
+    <!-- Розподіл між Платниками (такий самий стиль) -->
     <div class="col-md-4">
-      <a href="#" class="text-decoration-none disabled">
-        <div class="card shadow-sm rounded-2 border-secondary-subtle">
+      <a href="{{ url_for('payer_allocation.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
           <div class="card-body text-center">
-            <h5 class="card-title mb-1">Замовлення постачальникам</h5>
-            <div class="text-muted small">(скоро)</div>
+            <h5 class="card-title text-success mb-1">Розподіл між Платниками</h5>
+            <div class="text-muted small">Призначення платника для потреб з планів</div>
           </div>
         </div>
       </a>
     </div>
-    #}
   </div>
 </div>
 {% endblock %}
