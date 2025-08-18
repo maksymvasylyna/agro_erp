@@ -1,4 +1,3 @@
-# modules/purchases/needs/services.py
 from sqlalchemy import func
 from extensions import db
 

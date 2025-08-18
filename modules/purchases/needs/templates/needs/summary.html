@@ -50,14 +50,23 @@
   </div>
 </form>
 
-{# 3-й ряд: 'Оновити з планів' — передає поточні фільтри як hidden #}
-<form method="post" action="{{ url_for('needs.summary_sync') }}" class="mb-3">
-  {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
-  <input type="hidden" name="company_id" value="{{ company_id or '' }}">
-  <input type="hidden" name="culture_id" value="{{ culture_id or '' }}">
-  <input type="hidden" name="product_id" value="{{ product_id or '' }}">
-  <button type="submit" class="btn btn-outline-success">🔄 Оновити з планів</button>
-</form>
+{# 3-й ряд: 'Оновити з планів' + 'Експорт PDF' #}
+<div class="d-flex gap-2 mb-3">
+  <form method="post" action="{{ url_for('needs.summary_sync') }}">
+    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+    <input type="hidden" name="company_id" value="{{ company_id or '' }}">
+    <input type="hidden" name="culture_id" value="{{ culture_id or '' }}">
+    <input type="hidden" name="product_id" value="{{ product_id or '' }}">
+    <button type="submit" class="btn btn-outline-success">🔄 Оновити з планів</button>
+  </form>
+
+  <form method="get" action="{{ url_for('needs.summary_export_pdf') }}">
+    <input type="hidden" name="company_id" value="{{ company_id or '' }}">
+    <input type="hidden" name="culture_id" value="{{ culture_id or '' }}">
+    <input type="hidden" name="product_id" value="{{ product_id or '' }}">
+    <button type="submit" class="btn btn-outline-danger">📄 Експорт (PDF)</button>
+  </form>
+</div>
 
 <table class="table table-sm align-middle">
   <thead>

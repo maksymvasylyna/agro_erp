@@ -1,5 +1,5 @@
-# modules/purchases/needs/routes.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+from io import BytesIO
 from modules.purchases.needs.services import get_summary
 from modules.reference.products.models import Product
 from modules.reference.cultures.models import Culture
@@ -47,9 +47,8 @@ def summary():
 @needs_bp.route("/summary/sync", methods=["POST"])
 def summary_sync():
     """
-    Спеціальний ендпойнт для кнопки 'Оновити з планів'.
-    Ми не тримаємо проміжних таблиць, тому просто робимо редірект на summary
-    з переданими фільтрами (hidden inputs), і все рахується наново.
+    Кнопка 'Оновити з планів' — просто редірект на summary з тими ж фільтрами,
+    все рахується напряму з затверджених планів.
     """
     company_id = request.form.get("company_id", type=int)
     culture_id = request.form.get("culture_id", type=int)
@@ -64,3 +63,57 @@ def summary_sync():
             product_id=product_id or "",
         )
     )
+
+@needs_bp.route("/summary/export_pdf", methods=["GET"])
+def summary_export_pdf():
+    """
+    Експорт зведеної потреби у PDF для поточних фільтрів (company_id, culture_id, product_id).
+    """
+    company_id = request.args.get("company_id", type=int)
+    culture_id = request.args.get("culture_id", type=int)
+    product_id = request.args.get("product_id", type=int)
+
+    data = get_summary(company_id=company_id, culture_id=culture_id, product_id=product_id)
+
+    # ==== PDF (ReportLab) ====
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+
+    font_path = os.path.join('static', 'fonts', 'DejaVuSans.ttf')
+    if os.path.exists(font_path):
+        pdfmetrics.registerFont(TTFont('DejaVu', font_path))
+        title_style = ParagraphStyle(name='DejaVuTitle', fontName='DejaVu', fontSize=16, leading=20)
+        cell_font = 'DejaVu'
+    else:
+        title_style = ParagraphStyle(name='BaseTitle', fontSize=16, leading=20)
+        cell_font = 'Helvetica'
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+
+    elements.append(Paragraph("Зведена потреба (затверджені плани) — експорт", title_style))
+    elements.append(Spacer(1, 10))
+
+    data_rows = [["Продукт", "Культура", "Підприємство", "Кількість"]]
+    for r in data:
+        data_rows.append([r["product_name"], r["culture_name"], r["company_name"], f'{r["qty"]:.3f}'])
+
+    table = Table(data_rows, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), cell_font),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgreen),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+
+    elements.append(table)
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="needs_summary.pdf", mimetype="application/pdf")

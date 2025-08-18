@@ -5,13 +5,13 @@
 
 {% block content %}
 
-{# ==== 1-й ряд кнопок: Назад (ліворуч) — Додому (праворуч) ==== #}
+{# ==== 1-й ряд: Назад — Додому ==== #}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
   <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
 </div>
 
-{# ==== 2-й ряд: усі фільтри + кнопка Фільтрувати ==== #}
+{# ==== 2-й ряд: усі фільтри + Фільтрувати ==== #}
 <form action="{{ url_for('payer_allocation.index') }}" method="get" class="mb-3">
   {{ form.hidden_tag() }}
   <div class="row g-2 align-items-end">
@@ -37,7 +37,7 @@
   </div>
 </form>
 
-{# ==== 3-й ряд: випадаючий список Покупців + Застосувати + Оновити з планів ==== #}
+{# ==== 3-й ряд: Покупець + Застосувати + Оновити з планів + Експорт PDF ==== #}
 <div class="row g-2 align-items-end mb-3">
   <div class="col-12 col-md-8">
     <form id="bulk-form" action="{{ url_for('payer_allocation.bulk_assign') }}" method="post" class="row g-2 align-items-end">
@@ -54,10 +54,21 @@
   </div>
 
   <div class="col-12 col-md-4">
-    <form action="{{ url_for('payer_allocation.sync') }}" method="post" class="d-flex justify-content-md-end">
-      {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
-      <button type="submit" class="btn btn-outline-success mt-2 mt-md-0">🔄 Оновити з планів</button>
-    </form>
+    <div class="d-flex justify-content-md-end gap-2">
+      <form action="{{ url_for('payer_allocation.sync') }}" method="post">
+        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+        <button type="submit" class="btn btn-outline-success mt-2 mt-md-0">🔄 Оновити з планів</button>
+      </form>
+
+      {# GET-форма на експорт, передає поточні фільтри з request.args #}
+      <form action="{{ url_for('payer_allocation.export_pdf') }}" method="get">
+        <input type="hidden" name="company" value="{{ request.args.get('company') or '' }}">
+        <input type="hidden" name="product" value="{{ request.args.get('product') or '' }}">
+        <input type="hidden" name="manufacturer" value="{{ request.args.get('manufacturer') or '' }}">
+        <input type="hidden" name="payer" value="{{ request.args.get('payer') or '' }}">
+        <button type="submit" class="btn btn-outline-danger mt-2 mt-md-0">📄 Експорт (PDF)</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -91,7 +102,6 @@
   {% endfor %}
   </tbody>
 </table>
-
 {% endblock %}
 
 {% block scripts %}
