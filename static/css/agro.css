@@ -1,0 +1,27 @@
+/* ==== Home tiles (light green background) ==== */
+.tile-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(25,135,84,.28) !important; /* чіткий контур */
+  background-color: rgba(25,135,84,.06);           /* легкий зелений фон */
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background-color .15s ease;
+  will-change: transform;
+  background-clip: padding-box;
+}
+.tile-card:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 .75rem 1.25rem rgba(0,0,0,.12);
+  border-color: rgba(25,135,84,.48);
+  background-color: rgba(25,135,84,.10);           /* трохи виразніший на hover */
+}
+.tile-emoji { font-size: 2.25rem; line-height: 1; }
+.tile-subtle { color: #6c757d; }
+
+.tile-card:focus-within {
+  outline: 2px solid rgba(25,135,84,.35);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-card { transition: none; }
+  .tile-card:hover { transform: none; }
+}

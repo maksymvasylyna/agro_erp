@@ -1,36 +1,58 @@
 {% extends 'base.html' %}
 
 {% block title %}Головна{% endblock %}
-
 {% block header %}🏠 Agribusiness Needs & Network Assistant{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <a href="{{ url_for('reference.index') }}" class="btn btn-outline-success w-100">
-            📚 Довідники
-        </a>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <a href="{{ url_for('structure.index') }}" class="btn btn-outline-success w-100">
-            🌾 Структура посівних площ
-        </a>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <a href="{{ url_for('plans.hub') }}" class="btn btn-outline-success w-100">
-            📋 Плани
-        </a>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-4 mb-3">
-      <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-success w-100">
-        🛒 Закупівля
-      </a>
+<div class="row row-cols-1 row-cols-md-2 g-4">
+
+  <!-- 1. Структура посівних площ -->
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2">🌾</div>
+        <h5 class="card-title mb-1">Структура посівних площ</h5>
+        <div class="tile-subtle small">Поля, культури, площі та розподіл.</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('structure.index') }}" aria-label="Відкрити розділ Структура посівних площ"></a>
     </div>
   </div>
+
+  <!-- 2. Плани -->
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2">📋</div>
+        <h5 class="card-title mb-1">Плани</h5>
+        <div class="tile-subtle small">Нові, готові, затверджені; PDF-експорт.</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('plans.hub') }}" aria-label="Відкрити розділ Плани"></a>
+    </div>
+  </div>
+
+  <!-- 3. Закупівля -->
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2">🛒</div>
+        <h5 class="card-title mb-1">Закупівля</h5>
+        <div class="tile-subtle small">Зведена потреба, узгодження, контроль.</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('purchases.index') }}" aria-label="Відкрити розділ Закупівля"></a>
+    </div>
+  </div>
+
+  <!-- 4. Довідники -->
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2">📚</div>
+        <h5 class="card-title mb-1">Довідники</h5>
+        <div class="tile-subtle small">Культури, продукти, одиниці, компанії…</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('reference.index') }}" aria-label="Відкрити розділ Довідники"></a>
+    </div>
+  </div>
+
+</div>
 {% endblock %}
