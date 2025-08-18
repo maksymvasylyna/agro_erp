@@ -3,19 +3,45 @@
 {% block title %}Підприємства{% endblock %}
 {% block header %}🏢 Підприємства{% endblock %}
 
+{% block before_table %}
+  {# Flash-повідомлення (перенеси в _index_base.html, якщо хочеш мати глобально) #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'warning' if category in ['warning', 'error'] else category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endblock %}
+
 {% block filter_form %}
-<form method="get" class="d-flex flex-wrap mb-3">
+<form method="get" class="d-flex flex-wrap gap-3 mb-3">
   {{ form.hidden_tag() }}
-  <div class="me-2">
-    {{ form.name.label }}
-    {{ form.name(class="form-select") }}
+
+  <div>
+    {{ form.name.label(class="form-label") }}
+    {{ form.name(class="form-select" + (" is-invalid" if form.name.errors else "")) }}
+    {% for err in form.name.errors %}
+      <div class="invalid-feedback d-block">{{ err }}</div>
+    {% endfor %}
   </div>
-  <div class="me-2">
-    {{ form.cluster.label }}
-    {{ form.cluster(class="form-select") }}
+
+  <div>
+    {{ form.cluster.label(class="form-label") }}
+    {{ form.cluster(class="form-select" + (" is-invalid" if form.cluster.errors else "")) }}
+    {% for err in form.cluster.errors %}
+      <div class="invalid-feedback d-block">{{ err }}</div>
+    {% endfor %}
   </div>
-  <div class="me-2 align-self-end">
+
+  <div class="align-self-end d-flex gap-2">
     {{ form.submit(class="btn btn-primary") }}
+    <a href="{{ url_for('companies.index') }}" class="btn btn-outline-secondary">Reset</a>
   </div>
 </form>
 {% endblock %}
@@ -24,7 +50,7 @@
   <th>ID</th>
   <th>Назва</th>
   <th>Кластер</th>
-  <th>Дії</th>
+  <th class="text-center">Дії</th>
 {% endblock %}
 
 {% block table_rows %}
@@ -33,16 +59,20 @@
     <td>{{ id }}</td>
     <td>{{ name }}</td>
     <td>{{ cluster_name }}</td>
-    <td>
-      <a href="{{ edit_url }}" class="btn btn-sm btn-primary">✏️</a>
+    <td class="text-center">
+      <a href="{{ edit_url }}" class="btn btn-sm btn-primary" title="Редагувати">✏️</a>
       <form action="{{ delete_url }}" method="post" style="display:inline-block;" onsubmit="return confirm('Підтвердити видалення?')">
-        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+        {# Якщо використовується Flask-WTF CSRFProtect — додай токен: #}
+        {% if csrf_token %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+        <button type="submit" class="btn btn-sm btn-danger" title="Видалити">🗑️</button>
       </form>
     </td>
   </tr>
   {% else %}
   <tr>
-    <td colspan="4">Даних немає</td>
+    <td colspan="4" class="text-center text-muted">Даних немає</td>
   </tr>
   {% endfor %}
 {% endblock %}

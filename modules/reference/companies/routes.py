@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
+from sqlalchemy.exc import IntegrityError
 from extensions import db
 from modules.reference.companies.models import Company
 from modules.reference.companies.forms import CompanyForm, CompanyFilterForm
@@ -11,7 +12,7 @@ def index():
     query = Company.query
 
     if form.name.data:
-        query = query.filter_by(id=form.name.data.id)  # ✅ фільтр по ID обраної компанії
+        query = query.filter_by(id=form.name.data.id)  # ✅ фільтр по вибраній компанії
     if form.cluster.data:
         query = query.filter_by(cluster_id=form.cluster.data.id)
 
@@ -19,7 +20,9 @@ def index():
 
     items = [
         (
-            c.id, c.name, c.cluster.name if c.cluster else '—',
+            c.id,
+            c.name,
+            c.cluster.name if c.cluster else '—',
             url_for('companies.edit', id=c.id),
             url_for('companies.delete', id=c.id)
         )
@@ -39,19 +42,20 @@ def index():
 def create():
     form = CompanyForm()
 
-    # 🧪 Діагностика (залишай за потреби)
-    clusters = form.cluster.query_factory()
-    print("📦 Кластери у query_factory:", [f"{c.id} – {c.name}" for c in clusters])
-
     if form.validate_on_submit():
         new_company = Company(
-            name=form.name.data,
-            cluster=form.cluster.data
+            name=(form.name.data or '').strip(),
+            cluster=form.cluster.data  # QuerySelectField повертає об’єкт або None
         )
         db.session.add(new_company)
-        db.session.commit()
-        flash('Підприємство додано успішно.', 'success')
-        return redirect(url_for('companies.index'))
+        try:
+            db.session.commit()
+            flash('Підприємство додано успішно.', 'success')
+            return redirect(url_for('companies.index'))
+        except IntegrityError:
+            db.session.rollback()
+            # Страхуємося на випадок гонки або різниці в регістрі
+            form.name.errors.append('Компанія з такою назвою вже існує (БД).')
 
     return render_template(
         'companies/form.html',
@@ -63,14 +67,19 @@ def create():
 @companies_bp.route('/companies/edit/<int:id>', methods=['GET', 'POST'])
 def edit(id):
     company = Company.query.get_or_404(id)
-    form = CompanyForm(obj=company)
+    # важливо: передати obj_id, щоб валідатор не вважав поточний запис дублем
+    form = CompanyForm(obj=company, obj_id=company.id)
 
     if form.validate_on_submit():
-        company.name = form.name.data
+        company.name = (form.name.data or '').strip()
         company.cluster = form.cluster.data
-        db.session.commit()
-        flash('Зміни збережено.', 'success')
-        return redirect(url_for('companies.index'))
+        try:
+            db.session.commit()
+            flash('Зміни збережено.', 'success')
+            return redirect(url_for('companies.index'))
+        except IntegrityError:
+            db.session.rollback()
+            form.name.errors.append('Компанія з такою назвою вже існує (БД).')
 
     return render_template(
         'companies/form.html',

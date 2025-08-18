@@ -4,23 +4,46 @@
 {% block header %}{% block header_text %}📝 Форма{% endblock %}{% endblock %}
 
 {% block content %}
+{% from _self import render_field %}
+
 <div class="d-flex justify-content-between mb-3">
-    <a href="{% block back_url %}#{% endblock %}" class="btn btn-outline-secondary">⬅️ Назад</a>
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  <a href="{% block back_url %}#{% endblock %}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
 </div>
 
-<form method="POST" class="row g-3">
-    {{ form.hidden_tag() }}
+{# ⚠️ CSRF-помилки (якщо виникнуть) #}
+{% if form.csrf_token is defined and form.csrf_token.errors %}
+  <div class="alert alert-danger">
+    {{ form.csrf_token.errors|join(', ') }}
+  </div>
+{% endif %}
 
-    {% block form_fields %}
+<form method="POST" class="row g-3" novalidate>
+  {{ form.hidden_tag() }}
+
+  {# 🔧 Поля форми. За замовчуванням — тільки "name". Перекрий у дочірніх шаблонах. #}
+  {% block form_fields %}
     <div class="col-md-12">
-        <label for="name" class="form-label">Назва</label>
-        {{ form.name(class="form-control") }}
+      {{ render_field(form.name) }}
     </div>
-    {% endblock %}
+  {% endblock %}
 
-    <div class="col-12">
-        {{ form.submit(class="btn btn-success") }}
-    </div>
+  <div class="col-12">
+    {{ form.submit(class="btn btn-success") }}
+  </div>
 </form>
+
 {% endblock %}
+
+{# ================= MACROS ================= #}
+{% macro render_field(field, label_text=None) -%}
+  {% set is_select = 'Select' in field.type %}
+  {% set base_class = 'form-select' if is_select else 'form-control' %}
+  {% set classes = base_class + (' is-invalid' if field.errors else '') %}
+
+  <label class="form-label">{{ label_text or field.label.text }}</label>
+  {{ field(class=classes) }}
+  {% for err in field.errors %}
+    <div class="invalid-feedback d-block">{{ err }}</div>
+  {% endfor %}
+{%- endmacro %}
