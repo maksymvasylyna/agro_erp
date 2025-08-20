@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from datetime import datetime
 from io import BytesIO
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from extensions import db
 from .models import PayerAllocation
 from .forms import AllocationFilterForm, BulkAssignForm
@@ -20,40 +20,63 @@ def index():
     form = AllocationFilterForm(request.args)
     bulk_form = BulkAssignForm()
 
-    q = PayerAllocation.query.filter(PayerAllocation.status == "active")
+    # Універсально дістаємо id як для QuerySelectField(об'єкт), так і для SelectField(coerce=int)
+    def _id(x):
+        return getattr(x, "id", x) if x else None
 
-    if form.company.data:
-        q = q.filter(PayerAllocation.company_id == form.company.data.id)
-    if form.product.data:
-        q = q.filter(PayerAllocation.product_id == form.product.data.id)
-    if form.manufacturer.data:
-        q = q.filter(PayerAllocation.manufacturer_id == form.manufacturer.data.id)
-    if form.payer.data:
-        q = q.filter(PayerAllocation.payer_id == form.payer.data.id)
+    company_id = _id(form.company.data)
+    product_id = _id(form.product.data)
+    manufacturer_id = _id(form.manufacturer.data)
+    payer_id = _id(form.payer.data)
 
-    q = q.order_by(
-        PayerAllocation.company_id,
-        PayerAllocation.field_id,
-        PayerAllocation.product_id
+    q = (
+        PayerAllocation.query
+        .filter(PayerAllocation.status == "active")
+        .options(
+            selectinload(PayerAllocation.company),
+            selectinload(PayerAllocation.field),
+            selectinload(PayerAllocation.product),
+            selectinload(PayerAllocation.manufacturer),
+            selectinload(PayerAllocation.unit),
+            selectinload(PayerAllocation.payer),
+        )
+        .order_by(
+            PayerAllocation.company_id,
+            PayerAllocation.field_id,
+            PayerAllocation.product_id,
+        )
     )
+
+    if company_id:
+        q = q.filter(PayerAllocation.company_id == company_id)
+    if product_id:
+        q = q.filter(PayerAllocation.product_id == product_id)
+    if manufacturer_id:
+        q = q.filter(PayerAllocation.manufacturer_id == manufacturer_id)
+    if payer_id:
+        q = q.filter(PayerAllocation.payer_id == payer_id)
 
     rows = q.all()
 
-    # первинний автосинк: якщо порожньо — підтягнемо з планів один раз
+    # первинний автосинк: якщо порожньо — підтягнемо з планів і повернемося з тими ж фільтрами
     if not rows:
         stats = sync_from_plans()
         if stats["added"] or stats["updated"]:
             flash(
                 f"Виконано первинний імпорт з планів: додано {stats['added']}, змінено {stats['updated']}.",
-                "info"
+                "info",
             )
-            return redirect(url_for("payer_allocation.index"))
+            return redirect(url_for("payer_allocation.index", **request.args))
+
+    # для селекторів платника в таблиці
+    payers = Payer.query.order_by(Payer.name).all()
 
     return render_template(
         "payer_allocation/index.html",
         form=form,
         bulk_form=bulk_form,
         rows=rows,
+        payers=payers,
         title="Розподіл між Платниками",
         header="💳 Розподіл між Платниками",
     )
@@ -65,13 +88,15 @@ def sync():
     flash(
         f"Оновлено з планів: додано {stats['added']}, змінено {stats['updated']}, "
         f"позначено застарілими {stats['marked_stale']}. Активних: {stats['total_active']}.",
-        "success"
+        "success",
     )
     return redirect(url_for("payer_allocation.index"))
 
 @bp.route("/bulk-assign", methods=["POST"])
 def bulk_assign():
-    form = BulkAssignForm()
+    # Прив'язуємо форму до POST-даних
+    form = BulkAssignForm(request.form)
+
     ids_raw = request.form.get("ids", "").strip()
     if not ids_raw:
         flash("Не обрано жодного рядка.", "warning")
@@ -86,16 +111,18 @@ def bulk_assign():
         flash("Список обраних порожній.", "warning")
         return redirect(url_for("payer_allocation.index"))
 
-    payer = form.payer.data
+    payer = form.payer.data  # QuerySelectField -> об'єкт; SelectField(coerce=int) -> int
     if not payer:
         flash("Оберіть платника.", "warning")
         return redirect(url_for("payer_allocation.index"))
+
+    payer_id = getattr(payer, "id", payer)
 
     count = (
         PayerAllocation.query.filter(PayerAllocation.id.in_(ids))
         .update(
             {
-                PayerAllocation.payer_id: payer.id,
+                PayerAllocation.payer_id: payer_id,
                 PayerAllocation.assigned_at: datetime.utcnow(),
             },
             synchronize_session=False,
@@ -109,6 +136,7 @@ def bulk_assign():
 def set_payer(row_id):
     row = PayerAllocation.query.get_or_404(row_id)
     payer_id = request.form.get("payer_id")
+
     if payer_id is not None:
         if payer_id == "":  # очистити
             row.payer_id = None
@@ -120,10 +148,12 @@ def set_payer(row_id):
                 return redirect(url_for("payer_allocation.index"))
             row.payer_id = payer.id
             row.assigned_at = datetime.utcnow()
+
         db.session.commit()
         flash("Змінено платника.", "success")
     else:
         flash("Не обрано платника.", "warning")
+
     return redirect(url_for("payer_allocation.index"))
 
 @bp.route("/export_pdf", methods=["GET"])
@@ -149,7 +179,11 @@ def export_pdf():
             joinedload(PayerAllocation.unit),
             joinedload(PayerAllocation.payer),
         )
-        .order_by(PayerAllocation.company_id, PayerAllocation.field_id, PayerAllocation.product_id)
+        .order_by(
+            PayerAllocation.company_id,
+            PayerAllocation.field_id,
+            PayerAllocation.product_id
+        )
     )
 
     if company_id:
@@ -166,7 +200,7 @@ def export_pdf():
     # ==== PDF побудова (ReportLab) ====
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib import colors
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
@@ -189,7 +223,6 @@ def export_pdf():
     elements.append(Paragraph("Розподіл між Платниками — експорт", title_style))
     elements.append(Spacer(1, 10))
 
-    # Таблиця
     data = [["Підприємство", "Поле", "Продукт", "Виробник", "Кількість", "Одиниця", "Покупець"]]
     for r in rows:
         data.append([
@@ -207,7 +240,7 @@ def export_pdf():
         ('FONTNAME', (0, 0), (-1, -1), cell_font),
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgreen),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),  # qty праворуч
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 

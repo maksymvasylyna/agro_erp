@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Заявка на закупівлю{% endblock %}
+{% block header %}🧾 Заявка на закупівлю{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('requests.index') }}" class="btn btn-outline-secondary">Назад</a>
+  </div>
+</div>
+
+{# fallback: якщо selection_enabled не передали з роуту, вважаємо що воно еквівалентне наявності company_id #}
+{% set selection_enabled = selection_enabled if selection_enabled is defined else (company_id is not none and company_id != '') %}
+
+{% if not selection_enabled %}
+  <div class="alert alert-info">
+    Список показано для <strong>всіх підприємств</strong>. Оберіть <strong>Підприємство (споживача)</strong> у фільтрі, щоб
+    активувати вибір позицій та формування заявки.
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    <strong>Підприємство:</strong>
+    {{ (companies | selectattr('id', 'equalto', company_id) | list | first).name if company_id else '—' }}
+  </div>
+{% endif %}
+
+<form method="GET" action="{{ url_for('needs.request_form') }}" class="row g-2 align-items-end mb-3">
+  <div class="col-md-4">
+    <label class="form-label">Підприємство (споживач)</label>
+    <select name="company_id" class="form-select">
+      <option value="">— Усі —</option>
+      {% for c in companies %}
+        <option value="{{ c.id }}" {{ 'selected' if company_id==c.id else '' }}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Продукт (опціонально)</label>
+    <select name="product_id" class="form-select">
+      <option value="">— Усі —</option>
+      {% for p in products %}
+        <option value="{{ p.id }}" {{ 'selected' if product_id==p.id else '' }}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Платник (опціонально)</label>
+    <select name="payer_id" class="form-select">
+      <option value="">— Усі —</option>
+      {% for p in payers %}
+        <option value="{{ p.id }}" {{ 'selected' if payer_id==p.id else '' }}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-1 d-grid">
+    <button class="btn btn-success">Показати</button>
+  </div>
+</form>
+
+<form method="POST" action="{{ url_for('needs.request_preview') }}">
+  <input type="hidden" name="company_id" value="{{ company_id or '' }}">
+  <input type="hidden" name="product_id" value="{{ product_id or '' }}">
+  <input type="hidden" name="payer_id" value="{{ payer_id or '' }}">
+
+  <table class="table table-bordered align-middle text-center">
+    <thead class="table-success">
+      <tr>
+        <th style="width:52px;">✔</th>
+        <th class="text-start">Підприємство</th>
+        <th class="text-start">Продукт</th>
+        <th class="text-start">Тара</th>
+        <th>Од.</th>
+        <th class="text-start">Платник</th>
+        <th class="text-end" style="width:160px;">Залишок до замовлення</th>
+        <th style="width:180px;">Замовити</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        {% set pid = r.product_id %}
+        {% set pay = r.payer_id if r.payer_id is not none else 0 %}
+        {% set avail = r.available or 0 %}
+        <tr class="{{ 'table-light' if avail <= 0 }}">
+          <td>
+            <input class="form-check-input" type="checkbox"
+                   name="selected" value="{{ pid }}::{{ pay }}"
+                   {{ 'disabled' if (avail <= 0 or not selection_enabled) }}>
+          </td>
+          <td class="text-start">{{ r.company_name or '—' }}</td>
+          <td class="text-start">{{ r.product_name or ('#' ~ pid) }}</td>
+          <td class="text-start">{{ r.package or '—' }}</td>
+          <td>{{ r.unit_name or '—' }}</td>
+          <td class="text-start">{{ r.payer_name or '—' }}</td>
+          <td class="text-end">{{ '%.3f'|format(avail) }}</td>
+          <td>
+            <input class="form-control" type="number" step="0.001" min="0"
+                   max="{{ avail }}" value="{{ '%.3f'|format(avail) }}"
+                   name="qty_{{ pid }}_{{ pay }}"
+                   {{ 'disabled' if (avail <= 0 or not selection_enabled) }}>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="text-muted">Немає позицій за обраними фільтрами</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="btn btn-success"
+          {% if not rows or not selection_enabled %}disabled title="Оберіть підприємство, щоб сформувати заявку"{% endif %}>
+    Попередній перегляд
+  </button>
+</form>
+{% endblock %}

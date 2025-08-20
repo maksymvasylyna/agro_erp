@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Заявку сформовано{% endblock %}
+{% block header %}✅ Заявку сформовано (демо, без запису в БД){% endblock %}
+
+{% block content %}
+<div class="alert alert-success">
+  Заявку для <strong>{{ company.name if company else '—' }}</strong> сформовано.
+  Наразі це демо-крок без запису в БД — наступним кроком підв’яжемо «Проплати».
+</div>
+
+<table class="table table-bordered align-middle text-center">
+  <thead class="table-success">
+    <tr>
+      <th>#</th>
+      <th>Продукт</th>
+      <th>Культура</th>
+      <th>Кількість</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for it in items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td class="text-start">{{ it.product_name }}</td>
+        <td>{{ it.culture_name or '—' }}</td>
+        <td class="text-end">{{ '%.3f'|format(it.qty) }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="d-flex gap-2">
+  <a href="{{ url_for('requests.index') }}" class="btn btn-outline-secondary">⬅️ До хабу «Заявки»</a>
+  <a href="{{ url_for('needs.request_form', company_id=company.id if company else '') }}" class="btn btn-success">Створити ще</a>
+</div>
+{% endblock %}

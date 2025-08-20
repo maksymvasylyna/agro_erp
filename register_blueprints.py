@@ -22,6 +22,9 @@ def register_blueprints(app):
     from modules.purchases.routes import purchases_bp
     from modules.purchases.needs.routes import needs_bp
     from modules.purchases.payer_allocation.routes import bp as payer_allocation_bp
+    from modules.purchases.payments.routes import payments_bp  # ✅ додано
+    from modules.requests import requests_bp
+    
 
     app.register_blueprint(reference_bp)
     app.register_blueprint(units_bp)
@@ -48,3 +51,7 @@ def register_blueprints(app):
     app.register_blueprint(purchases_bp)
     app.register_blueprint(needs_bp)
     app.register_blueprint(payer_allocation_bp)
+    app.register_blueprint(payments_bp)  # ✅ додано
+
+    # Блок "Заявки"
+    app.register_blueprint(requests_bp, url_prefix='/requests')

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Попередній перегляд заявки{% endblock %}
+{% block header %}🔍 Попередній перегляд заявки{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('needs.request_form') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="alert alert-info">
+  <div><strong>Підприємство (споживач):</strong> {{ company.name if company else '—' }}</div>
+  <div class="small text-muted">Платник визначається автоматично за «Розподілом між Платниками».</div>
+</div>
+
+<form method="POST" action="{{ url_for('needs.request_submit') }}">
+  <input type="hidden" name="company_id" value="{{ company.id if company else '' }}">
+
+  <table class="table table-striped table-hover table-bordered align-middle text-center">
+    <thead class="table-success">
+      <tr>
+        <th style="width:56px;">#</th>
+        <th class="text-start">Продукт</th>
+        <th class="text-start">Тара</th>
+        <th class="text-start">Платник (авто)</th>
+        <th class="text-end" style="width:140px;">Кількість</th>
+        <th class="text-start" style="width:220px;">Виробник</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td class="text-start">{{ it.product_name }}</td>
+          <td class="text-start">{{ it.package or '—' }}</td>
+          <td class="text-start">{{ it.payer_name or '—' }}</td>
+          <td class="text-end">{{ '%.3f'|format(it.requested_qty) }}</td>
+          <td class="text-start">
+            {{ it.manufacturer_name or '—' }}
+            {# Якщо хочеш все ж передавати ID — можна приховано, але бекенд його ігнорує #}
+            {# <input type="hidden" name="item_manufacturer_id[]" value="{{ it.manufacturer_id or '' }}"> #}
+          </td>
+
+          <!-- приховані значення для бекенду -->
+          <input type="hidden" name="item_product_id[]" value="{{ it.product_id }}">
+          <input type="hidden" name="item_payer_id[]" value="{{ it.payer_id or '' }}">
+          <input type="hidden" name="item_qty[]" value="{{ '%.3f'|format(it.requested_qty) }}">
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted">Ви не вибрали жодної позиції</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('needs.request_form') }}" class="btn btn-outline-secondary">Змінити</a>
+    <button type="submit" class="btn btn-success" {% if not items %}disabled{% endif %}>Сформувати</button>
+  </div>
+</form>
+{% endblock %}

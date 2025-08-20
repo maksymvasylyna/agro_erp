@@ -23,13 +23,25 @@
       </a>
     </div>
 
-    <!-- Розподіл між Платниками (такий самий стиль) -->
+    <!-- Розподіл між Платниками -->
     <div class="col-md-4">
       <a href="{{ url_for('payer_allocation.index') }}" class="text-decoration-none">
         <div class="card shadow-sm rounded-2 border-success">
           <div class="card-body text-center">
             <h5 class="card-title text-success mb-1">Розподіл між Платниками</h5>
             <div class="text-muted small">Призначення платника для потреб з планів</div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Проплати — вхідні заявки -->
+    <div class="col-md-4">
+      <a href="{{ url_for('payments.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">Проплати — вхідні заявки</h5>
+            <div class="text-muted small">Сформовані заявки на оплату</div>
           </div>
         </div>
       </a>
