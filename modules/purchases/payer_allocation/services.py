@@ -131,17 +131,34 @@ def _build_plans_query(
     if conds:
         q = q.filter(and_(*conds))
 
-    # Для звичайних планів — по можливості лишаємо approved/готові
+    # Для звичайних планів — беремо ТІЛЬКИ затверджені
     if not use_approved and only_approved_in_plain:
-        variants = []
+        approved_variants = []
+
+        # 1) boolean прапор
         if _table_has_col(plans_t, "is_approved"):
-            variants.append(plans_t.c.is_approved == True)  # noqa: E712
+            approved_variants.append(plans_t.c.is_approved == True)  # noqa: E712
+
+        # 2) мітка часу затвердження
+        if _table_has_col(plans_t, "approved_at"):
+            approved_variants.append(plans_t.c.approved_at.isnot(None))
+
+        # 3) текстовий статус (case-insensitive), БЕЗ 'готовий/ready'
         if _table_has_col(plans_t, "status"):
-            variants.append(plans_t.c.status.in_(["затверджений", "approved", "готовий", "ready"]))
-        if variants:
-            q = q.filter(or_(*variants))
+            status_col = func.lower(plans_t.c.status)
+            approved_variants.append(
+                status_col.in_([
+                    "затверджений", "затверджено",
+                    "approved", "approve", "approved_ok"
+                ])
+            )
+
+        # застосовуємо лише approved-ознаки
+        if approved_variants:
+            q = q.filter(or_(*approved_variants))
 
     return q
+
 
 
 # ----------------------------- агрегація -----------------------------
