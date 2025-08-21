@@ -5,69 +5,132 @@
 {% block header %}📚 Довідники{% endblock %}
 
 {% block content %}
-<!-- ✅ Кнопка «На головну» -->
-<a href="{{ url_for('index') }}" class="btn btn-outline-secondary mb-3">🏠 На головну</a>
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
 
-<div class="row">
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('units.index') }}" class="btn btn-outline-primary w-100">
-          📏 Одиниці виміру
+<div class="container mt-4">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <a href="{{ url_for('units.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">📏 Одиниці виміру</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('categories.index') }}" class="btn btn-outline-primary w-100">
-          🗂️ Категорії
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('categories.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🗂️ Категорії</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('currencies.index') }}" class="btn btn-outline-primary w-100">
-          💱 Валюти
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('currencies.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">💱 Валюти</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('products.index') }}" class="btn btn-outline-primary w-100">
-          🧪 Продукти
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('products.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🧪 Продукти</h5>
+          </div>
+        </div>
       </a>
-  </div>    
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('manufacturers.index') }}" class="btn btn-outline-primary w-100">
-          🏭 Виробники
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('manufacturers.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏭 Виробники</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('payers.index') }}" class="btn btn-outline-primary w-100">
-          💼 Платники
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('payers.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">💼 Платники</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('cultures.index') }}" class="btn btn-outline-primary w-100">
-          🌱 Культури
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('cultures.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🌱 Культури</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('groups.index') }}" class="btn btn-outline-primary w-100">
-          🧪 Групи продуктів
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('groups.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🧪 Групи продуктів</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('clusters.index') }}" class="btn btn-outline-primary w-100">
-          🏗️ Кластери
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('clusters.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏗️ Кластери</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('companies.index') }}" class="btn btn-outline-primary w-100">
-          🏢 Підприємства
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('companies.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏢 Підприємства</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-3">
-      <a href="{{ url_for('fields.index') }}" class="btn btn-outline-primary w-100">
-        🌾 Поля
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('fields.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🌾 Поля</h5>
+          </div>
+        </div>
       </a>
-  </div>
-  <div class="col-md-4 mb-4">
-    <a href="{{ url_for('treatment_types.index') }}" class="btn btn-outline-primary w-100">
-      🚜 Види обробітку
-    </a>
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('treatment_types.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🚜 Види обробітку</h5>
+          </div>
+        </div>
+      </a>
+    </div>
+
   </div>
 </div>
 {% endblock %}

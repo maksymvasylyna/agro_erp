@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from sqlalchemy.orm import joinedload
 from extensions import db
 from modules.purchases.payments.models import PaymentInbox
@@ -30,23 +30,16 @@ def index():
 
         # --- НОРМАЛІЗАЦІЯ items_json ---
         raw = getattr(r, "items_json", None)
-
-        # допуски на старі/криві формати
         if isinstance(raw, dict):
-            rows = [raw]  # одиничний словник -> список з одного елемента
+            rows = [raw]
         elif isinstance(raw, list):
             rows = raw
         else:
-            # будь-що інше (int/str/None/float) -> порожній список
             rows = []
 
-        norm_rows = []
-        payer_order = []
-        seen_payers = set()
-
+        norm_rows, payer_order, seen_payers = [], [], set()
         for it in rows:
             if not isinstance(it, dict):
-                # пропускаємо все, що не словник
                 continue
 
             product_id        = it.get("product_id")
@@ -87,7 +80,6 @@ def index():
         header="💳 Проплати — вхідні заявки",
     )
 
-
 # ------- Видалення однієї заявки -------
 @payments_bp.post("/<int:inbox_id>/delete", endpoint="delete")
 def delete(inbox_id: int):
@@ -104,3 +96,32 @@ def clear_all():
     db.session.commit()
     flash(f"Очистка виконана. Видалено заявок: {deleted}.", "success")
     return redirect(url_for("payments.index"))
+
+# ------- Позначити «Оплачено» -------
+@payments_bp.post("/<int:inbox_id>/mark-paid", endpoint="mark_paid")
+def mark_paid(inbox_id: int):
+    inbox = PaymentInbox.query.get_or_404(inbox_id)
+
+    already_paid = (
+        (hasattr(inbox, "status") and (inbox.status or "").lower() == "оплачено") or
+        (hasattr(inbox, "is_paid") and bool(inbox.is_paid))
+    )
+    if already_paid:
+        flash(f"Заявка #{inbox_id} вже позначена як «Оплачено».", "info")
+        return redirect(request.referrer or url_for("payments.index"))
+
+    updated = False
+    if hasattr(inbox, "status"):
+        inbox.status = "Оплачено"
+        updated = True
+    if hasattr(inbox, "is_paid"):
+        inbox.is_paid = True
+        updated = True
+
+    if not updated:
+        flash("У PaymentInbox немає поля 'status' або 'is_paid' для фіксації оплати. Додай одне з них у модель.", "danger")
+        return redirect(url_for("payments.index"))
+
+    db.session.commit()
+    flash(f"Заявку #{inbox_id} позначено як «Оплачено».", "success")
+    return redirect(request.referrer or url_for("payments.index"))

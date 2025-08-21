@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
 {% block title %}Плани{% endblock %}
-
 {% block header %}📋 Плани{% endblock %}
 
 {% block content %}
@@ -9,21 +8,37 @@
   <a href="/" class="btn btn-outline-secondary">🏠 На головну</a>
 </div>
 
-<div class="row">
-  <div class="col-md-4 mb-4">
-    <a href="{{ url_for('new_plans.index') }}" class="btn btn-outline-primary w-100">
-      ✏️ Нові плани
-    </a>
-  </div>
-  <div class="col-md-4 mb-4">
-    <a href="{{ url_for('ready_plans.index') }}" class="btn btn-outline-primary w-100">
-      ✅ Готові плани
-    </a>
-  </div>
-  <div class="col-md-4 mb-4">
-    <a href="{{ url_for('approved_plans.index') }}" class="btn btn-outline-primary w-100">
-      🗂️ Затверджені плани
-    </a>
+<div class="container mt-4">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <a href="{{ url_for('new_plans.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">✏️ Нові плани</h5>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('ready_plans.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">✅ Готові плани</h5>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('approved_plans.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🗂️ Затверджені плани</h5>
+          </div>
+        </div>
+      </a>
+    </div>
   </div>
 </div>
 {% endblock %}

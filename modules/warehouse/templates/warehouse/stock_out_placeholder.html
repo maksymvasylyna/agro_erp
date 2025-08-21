@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Відпуск — каркас{% endblock %}
+{% block header %}➖ Відпуск — каркас{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('warehouse.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<p class="text-muted">Тут з'явиться форма відпуску зі складу.</p>
+{% endblock %}

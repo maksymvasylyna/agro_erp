@@ -1,23 +1,34 @@
 {% extends 'base.html' %}
 
 {% block title %}Структура посівних площ{% endblock %}
-
 {% block header %}🌾 Структура посівних площ{% endblock %}
 
 {% block content %}
-<!-- ✅ Кнопка «На головну» -->
-<a href="{{ url_for('index') }}" class="btn btn-outline-secondary mb-3">🏠 На головну</a>
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
 
-<div class="row">
-  <div class="col-md-4 mb-3">
-    <a href="{{ url_for('fields_structure.index') }}" class="btn btn-outline-primary w-100">
-      📋 Структура по полях
-    </a>
-  </div>
-  <div class="col-md-4 mb-3">
-    <a href="{{ url_for('summary_structure.index') }}" class="btn btn-outline-primary w-100">
-      📊 Загальна структура
-    </a>
+<div class="container mt-4">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <a href="{{ url_for('fields_structure.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">📋 Структура по полях</h5>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('summary_structure.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">📊 Загальна структура</h5>
+          </div>
+        </div>
+      </a>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -25,6 +25,9 @@ def register_blueprints(app):
     from modules.purchases.payments.routes import payments_bp  # ✅ додано
     from modules.requests import requests_bp
     
+    #Склад
+    from modules.warehouse import warehouse_bp
+    
 
     app.register_blueprint(reference_bp)
     app.register_blueprint(units_bp)
@@ -55,3 +58,5 @@ def register_blueprints(app):
 
     # Блок "Заявки"
     app.register_blueprint(requests_bp, url_prefix='/requests')
+    # Блок "Склад"
+    app.register_blueprint(warehouse_bp)

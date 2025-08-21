@@ -8,16 +8,27 @@
   <a href="{{ url_for('plans.hub') }}" class="btn btn-outline-secondary">⬅️ Назад до планів</a>
 </div>
 
-<div class="row">
-  <div class="col-md-6 mb-4">
-    <a href="{{ url_for('new_plans.select_cluster') }}" class="btn btn-outline-success w-100">
-      📍 Створити план по полю
-    </a>
-  </div>
-  <div class="col-md-6 mb-4">
-    <a href="{{ url_for('new_plans.bulk_template_select_fields') }}" class="btn btn-outline-info w-100">
-      📋 Створити кілька планів за шаблоном
-    </a>
+<div class="container mt-4">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <a href="{{ url_for('new_plans.select_cluster') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">📍 Створити план по полю</h5>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6">
+      <a href="{{ url_for('new_plans.bulk_template_select_fields') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">📋 Створити кілька планів за шаблоном</h5>
+          </div>
+        </div>
+      </a>
+    </div>
   </div>
 </div>
 {% endblock %}

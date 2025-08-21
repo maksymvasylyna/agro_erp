@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Склад{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="container mt-4">
+  <h2 class="text-success mb-4">🏬 Склад</h2>
+
+  <div class="row g-3">
+    <!-- Залишки -->
+    <div class="col-md-4">
+      <a href="{{ url_for('warehouse.stock_index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">Залишки</h5>
+            <div class="text-muted small">перелік продуктів та їх поточний баланс</div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Надходження -->
+    <div class="col-md-4">
+      <a href="{{ url_for('warehouse.stock_in_placeholder') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">Надходження</h5>
+            <div class="text-muted small">каркас форми оприбуткування</div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Відпуск -->
+    <div class="col-md-4">
+      <a href="{{ url_for('warehouse.stock_out_placeholder') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">Відпуск</h5>
+            <div class="text-muted small">каркас форми списання/відпуску</div>
+          </div>
+        </div>
+      </a>
+    </div>
+   <div class="col-md-4">
+    <a href="{{ url_for('warehouse.in_journal') }}" class="text-decoration-none">
+      <div class="card shadow-sm rounded-2 border-success">
+        <div class="card-body text-center">
+          <h5 class="card-title text-success mb-1">Журнал надходжень</h5>
+          <div class="text-muted small">всі оприбуткування зі зв’язками на проплати</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  
+</div>
+{% endblock %}

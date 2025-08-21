@@ -3,35 +3,45 @@
 {% block title %}Створення кількох планів{% endblock %}
 
 {% block content %}
-  <h1 class="mb-4">Оберіть поля для створення планів</h1>
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('new_plans.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="container mt-4">
+  <h2 class="text-success mb-4">✏️ Створення кількох планів</h2>
 
   <!-- Форма фільтрації -->
-  <form method="get" class="row g-3 mb-4">
-    <div class="col-md-4">
-      <label class="form-label">Підприємство</label>
-      <select class="form-select" name="company_id">
-        <option value="">Усі</option>
-        {% for c in companies %}
-          <option value="{{ c.id }}" {% if selected_company_id == c.id %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Культура</label>
-      <select class="form-select" name="culture_id">
-        <option value="">Усі</option>
-        {% for c in cultures %}
-          <option value="{{ c.id }}" {% if selected_culture_id == c.id %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4 d-flex align-items-end">
-      <button type="submit" class="btn btn-outline-primary w-100">🔍 Фільтрувати</button>
+  <form method="get" class="card shadow-sm rounded-2 border-success mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Підприємство</label>
+          <select class="form-select" name="company_id">
+            <option value="">Усі</option>
+            {% for c in companies %}
+              <option value="{{ c.id }}" {% if selected_company_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Культура</label>
+          <select class="form-select" name="culture_id">
+            <option value="">Усі</option>
+            {% for c in cultures %}
+              <option value="{{ c.id }}" {% if selected_culture_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-outline-primary w-100">🔍 Фільтрувати</button>
+        </div>
+      </div>
     </div>
   </form>
 
   <form method="post">
-    <table class="table table-bordered text-center align-middle">
+    <table class="table table-hover table-striped table-bordered text-center align-middle">
       <thead class="table-success">
         <tr>
           <th>✅</th>
@@ -44,7 +54,9 @@
       <tbody>
         {% for field in fields %}
         <tr>
-          <td><input type="checkbox" name="field_ids" value="{{ field.id }}"></td>
+          <td>
+            <input type="checkbox" class="form-check-input" name="field_ids" value="{{ field.id }}">
+          </td>
           <td>{{ field.name }}</td>
           <td>{{ field.area }}</td>
           <td>{{ field.culture.name if field.culture else '—' }}</td>
@@ -58,4 +70,5 @@
       <button type="submit" class="btn btn-success">➡️ Продовжити</button>
     </div>
   </form>
+</div>
 {% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Залишки складу{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <div>
+    <a href="{{ url_for('warehouse.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  </div>
+  <form method="post" action="{{ url_for('warehouse.stock_clear') }}" onsubmit="return confirm('Точно очистити всі залишки (усі рухи)?');">
+    <input type="hidden" name="warehouse_id" value="{{ warehouse_id }}">
+    <button type="submit" class="btn btn-outline-danger">🧹 Очистити залишки</button>
+  </form>
+</div>
+
+<div class="container mt-4">
+  <h2 class="text-success mb-4">🏬 Залишки складу</h2>
+
+  <!-- Фільтри -->
+  <form method="get" class="card shadow-sm rounded-2 border-success mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <input type="hidden" name="warehouse_id" value="{{ warehouse_id }}">
+        <div class="col-md-6">
+          <label class="form-label">Продукт</label>
+          <select name="product_id" class="form-select">
+            <option value="">Усі</option>
+            {% for pid, pname in product_opts %}
+              <option value="{{ pid }}" {% if product_id == pid %}selected{% endif %}>{{ pname }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Споживач (підприємство)</label>
+          <select name="consumer" class="form-select">
+            <option value="">Усі</option>
+            {% for cname in consumer_opts %}
+              <option value="{{ cname }}" {% if consumer == cname %}selected{% endif %}>{{ cname }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 d-flex justify-content-end gap-2">
+          <a href="{{ url_for('warehouse.stock_index', warehouse_id=warehouse_id) }}" class="btn btn-outline-secondary">♻️ Скинути</a>
+          <button type="submit" class="btn btn-outline-primary">🔍 Фільтрувати</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Таблиця залишків -->
+  <table class="table table-hover table-striped table-bordered text-center align-middle">
+    <thead class="table-success">
+      <tr>
+        <th class="text-start">Продукт</th>
+        <th>Виробник</th>
+        <th>Пакування</th>
+        <th>Од.</th>
+        <th class="text-start">Споживач</th>
+        <th class="text-start">Платник</th>
+        <th>Баланс</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="text-start">{{ r.last_product_name or r.product.name }}</td>
+        <td>{{ r.last_manufacturer or '—' }}</td>
+        <td>{{ r.last_package or '—' }}</td>
+        <td>{{ r.last_unit_text or r.unit_text or '—' }}</td>
+        <td class="text-start">{{ r.last_consumer or '—' }}</td>
+        <td class="text-start">{{ r.last_payer or '—' }}</td>
+        <td><strong>{{ '%.2f' | format(r.balance or 0) }}</strong></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="text-muted">Даних немає</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -66,6 +66,16 @@
       <a class="stretched-link" href="{{ url_for('requests.index') }}" aria-label="Відкрити розділ Заявки"></a>
     </div>
   </div>
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2">🏬</div>
+        <h5 class="card-title mb-1">Склад</h5>
+        <div class="tile-subtle small">Закупівля · Відвантаження · Повернення</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('warehouse.index') }}" aria-label="Відкрити Центральний склад"></a>
+    </div>
+  </div>
 
 </div>
 {% endblock %}

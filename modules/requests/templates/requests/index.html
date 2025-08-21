@@ -3,49 +3,49 @@
 {% block header %}Заявки{% endblock %}
 
 {% block content %}
-
-<!-- Тулбар навігації -->
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between mb-3">
   <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
 </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
+<div class="container mt-4">
+  <div class="row g-3">
 
-  <!-- Заявка на закупівлю -->
-  <div class="col">
-    <div class="card h-100 border-0 tile-card position-relative">
-      <div class="card-body p-4">
-        <div class="tile-emoji mb-2">🧾</div>
-        <h5 class="card-title mb-1">Заявка на закупівлю</h5>
-        <div class="tile-subtle small">Формування на базі зведеної потреби</div>
-      </div>
-      <a class="stretched-link" href="{{ url_for('needs.request_form') }}" aria-label="Заявка на закупівлю"></a>
+    <!-- Заявка на закупівлю -->
+    <div class="col-md-4">
+      <a href="{{ url_for('needs.request_form') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">🧾 Заявка на закупівлю</h5>
+            <div class="text-muted small">Формування на базі зведеної потреби</div>
+          </div>
+        </div>
+      </a>
     </div>
-  </div>
 
-  <!-- Заявка на відвантаження (плейсхолдер) -->
-  <div class="col">
-    <div class="card h-100 border-0 tile-card position-relative">
-      <div class="card-body p-4">
-        <div class="tile-emoji mb-2">🚚</div>
-        <h5 class="card-title mb-1">Заявка на відвантаження</h5>
-        <div class="tile-subtle small text-muted">Незабаром</div>
-      </div>
-      <a class="stretched-link" href="#" aria-label="Заявка на відвантаження"></a>
+    <!-- Заявка на відвантаження (плейсхолдер) -->
+    <div class="col-md-4">
+      <a href="#" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">🚚 Заявка на відвантаження</h5>
+            <div class="text-muted small">Незабаром</div>
+          </div>
+        </div>
+      </a>
     </div>
-  </div>
 
-  <!-- Заявка на повернення (плейсхолдер) -->
-  <div class="col">
-    <div class="card h-100 border-0 tile-card position-relative">
-      <div class="card-body p-4">
-        <div class="tile-emoji mb-2">↩️</div>
-        <h5 class="card-title mb-1">Заявка на повернення</h5>
-        <div class="tile-subtle small text-muted">Незабаром</div>
-      </div>
-      <a class="stretched-link" href="#" aria-label="Заявка на повернення"></a>
+    <!-- Заявка на повернення (плейсхолдер) -->
+    <div class="col-md-4">
+      <a href="#" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-1">↩️ Заявка на повернення</h5>
+            <div class="text-muted small">Незабаром</div>
+          </div>
+        </div>
+      </a>
     </div>
-  </div>
 
+  </div>
 </div>
 {% endblock %}
