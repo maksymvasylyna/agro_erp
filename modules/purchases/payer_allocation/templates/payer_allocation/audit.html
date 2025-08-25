@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Аудит розподілів платників{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <div>
+    <a href="{{ url_for('payer_allocation.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+  </div>
+</div>
+
+<div class="container mt-4">
+  <h2 class="text-success mb-4">🧮 Аудит розподілів платників</h2>
+
+  <!-- Фільтри -->
+  <form method="get" class="card shadow-sm rounded-2 border-success mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Поле</label>
+          <select name="field_id" class="form-select">
+            <option value="">Усі</option>
+            {% for f in fields %}
+              <option value="{{ f.id }}" {% if field_id == f.id %}selected{% endif %}>{{ f.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Платник</label>
+          <select name="payer_id" class="form-select">
+            <option value="">Усі</option>
+            {% for p in payers %}
+              <option value="{{ p.id }}" {% if payer_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 d-flex justify-content-end gap-2">
+          <a href="{{ url_for('payer_allocation.audit') }}" class="btn btn-outline-secondary">♻️ Скинути</a>
+          <button type="submit" class="btn btn-outline-primary">🔍 Фільтрувати</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  {% if field_id and conflicts %}
+  <!-- Конфлікти -->
+  <div class="card shadow-sm rounded-2 border-success mb-4">
+    <div class="card-body">
+      <h5 class="card-title text-success mb-3">⚠️ Конфлікти: один продукт → кілька платників</h5>
+      <table class="table table-hover table-striped table-bordered text-center align-middle mb-0">
+        <thead class="table-success">
+          <tr>
+            <th class="text-start">Продукт</th>
+            <th>Кількість платників</th>
+            <th class="text-start">Платники</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in conflicts %}
+          <tr>
+            <td class="text-start">{{ c.product_name }}</td>
+            <td><strong>{{ c.payers_cnt }}</strong></td>
+            <td class="text-start">
+              {% for nm in c.payers %}{{ nm }}{% if not loop.last %}, {% endif %}{% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not field_id and orphans %}
+  <!-- Сироти -->
+  <div class="card shadow-sm rounded-2 border-success mb-4">
+    <div class="card-body">
+      <h5 class="card-title text-success mb-3">🔎 «Сироти» без прив’язки до поля</h5>
+      <table class="table table-hover table-striped table-bordered text-center align-middle mb-0">
+        <thead class="table-success">
+          <tr>
+            <th>ID</th>
+            <th class="text-start">Продукт</th>
+            <th class="text-start">Платник</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in orphans %}
+          <tr>
+            <td>{{ o.pa_id }}</td>
+            <td class="text-start">{{ o.product_name }}</td>
+            <td class="text-start">{{ o.payer_name }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="text-muted small mt-2">Показано останні {{ orphans|length }} записів.</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Зведення -->
+  <div class="row g-3 mb-4">
+    {% if summary_by_payer %}
+    <div class="col-md-6">
+      <div class="card shadow-sm rounded-2 border-success h-100">
+        <div class="card-body">
+          <h5 class="card-title text-success mb-3">📌 Зведення за платником (у полі)</h5>
+          <table class="table table-hover table-striped table-bordered text-center align-middle mb-0">
+            <thead class="table-success">
+              <tr>
+                <th class="text-start">Платник</th>
+                <th>Призначень</th>
+                <th>Продуктів</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in summary_by_payer %}
+              <tr>
+                <td class="text-start">{{ r.payer_name }}</td>
+                <td>{{ r.allocs }}</td>
+                <td>{{ r.products_cnt }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if summary_by_field %}
+    <div class="col-md-6">
+      <div class="card shadow-sm rounded-2 border-success h-100">
+        <div class="card-body">
+          <h5 class="card-title text-success mb-3">🏷️ Зведення за полем (для платника)</h5>
+          <table class="table table-hover table-striped table-bordered text-center align-middle mb-0">
+            <thead class="table-success">
+              <tr>
+                <th class="text-start">Поле</th>
+                <th>Призначень</th>
+                <th>Продуктів</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in summary_by_field %}
+              <tr>
+                <td class="text-start">{{ r.field_name }}</td>
+                <td>{{ r.allocs }}</td>
+                <td>{{ r.products_cnt }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Реєстр призначень -->
+  <div class="card shadow-sm rounded-2 border-success">
+    <div class="card-body">
+      <h5 class="card-title text-success mb-3">📜 Реєстр призначень</h5>
+      <table class="table table-hover table-striped table-bordered text-center align-middle mb-0">
+        <thead class="table-success">
+          <tr>
+            <th class="text-start">Поле</th>
+            <th class="text-start">Продукт</th>
+            <th class="text-start">Платник</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in allocations %}
+          <tr>
+            <td class="text-start">{{ r.field_name or '—' }}</td>
+            <td class="text-start">{{ r.product_name }}</td>
+            <td class="text-start">{{ r.payer_name }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-muted">Даних немає</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+<!-- Панель очищення -->
+<div class="card shadow-sm rounded-2 border-success mb-4">
+  <div class="card-body">
+    <h5 class="card-title text-success mb-3">🧹 Очищення реєстру</h5>
+    <div class="row g-2">
+      <!-- 1) Зняти платника у поточному фільтрі -->
+      <div class="col-md-4">
+        <form method="post" action="{{ url_for('payer_allocation.audit_clear') }}"
+              onsubmit="return confirm('Зняти платника у всіх відфільтрованих рядках?');">
+          <input type="hidden" name="action" value="unassign">
+          <input type="hidden" name="scope"  value="filtered">
+          <input type="hidden" name="field_id" value="{{ field_id or '' }}">
+          <input type="hidden" name="payer_id" value="{{ payer_id or '' }}">
+          <button class="btn btn-outline-primary w-100">🧽 Зняти платника (за фільтром)</button>
+        </form>
+      </div>
+
+      <!-- 2) Видалити відфільтровані рядки -->
+      <div class="col-md-4">
+        <form method="post" action="{{ url_for('payer_allocation.audit_clear') }}"
+              onsubmit="return confirm('Видалити всі відфільтровані рядки? Дію не можна скасувати.');">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="scope"  value="filtered">
+          <input type="hidden" name="field_id" value="{{ field_id or '' }}">
+          <input type="hidden" name="payer_id" value="{{ payer_id or '' }}">
+          <button class="btn btn-outline-danger w-100">🗑️ Видалити (за фільтром)</button>
+        </form>
+      </div>
+
+      <!-- 3) Видалити лише "сироти" -->
+      <div class="col-md-4">
+        <form method="post" action="{{ url_for('payer_allocation.audit_clear') }}"
+              onsubmit="return confirm('Видалити всі «сироти» (field_id = NULL)?');">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="scope"  value="orphans">
+          <button class="btn btn-outline-warning w-100">🗂️ Видалити «сироти»</button>
+        </form>
+      </div>
+
+      <!-- 4) Повне очищення (ДУЖЕ ОБЕРЕЖНО) -->
+      <div class="col-12 mt-2">
+        <form method="post" action="{{ url_for('payer_allocation.audit_clear') }}"
+              onsubmit="return confirm('Ви впевнені, що хочете ВИДАЛИТИ УСІ ПРИЗНАЧЕННЯ? Це незворотно.');">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="scope"  value="all">
+          <button class="btn btn-outline-danger w-100">❌ Повне очищення всього реєстру</button>
+        </form>
+        <div class="text-muted small mt-1">
+          Підказка: якщо реєстр будується із планів, після очищення його можна відновити через «Синхронізацію».
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
