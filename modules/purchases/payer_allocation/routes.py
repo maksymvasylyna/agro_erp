@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from datetime import datetime
 from io import BytesIO
 import re
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, cast, String
 from sqlalchemy.orm import joinedload, selectinload
 from extensions import db
 from .models import PayerAllocation
@@ -327,10 +327,11 @@ def audit():
         alloc_q = alloc_q.filter(PayerAllocation.payer_id == payer_id)
 
     allocations = alloc_q.order_by(
-        func.coalesce(Field.name, func.cast(PayerAllocation.field_id, db.Integer)).asc(),
-        Product.name.asc(),
-        Payer.name.asc()
-    ).all()
+    func.coalesce(Field.name, cast(PayerAllocation.field_id, String)).asc(),
+    Product.name.asc(),
+    Payer.name.asc(),
+).all()
+
 
     # Конфлікти (лише якщо обрано поле)
     conflicts = []
