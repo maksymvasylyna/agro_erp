@@ -58,35 +58,81 @@ def create():
         company_id = _id(form.company.data)
         culture_id = _id(form.culture.data)
 
-        # Перевірка на існуюче поле (у межах компанії, якщо компанія є)
-        q = Field.query.filter(func.lower(Field.name) == func.lower(name))
-        if hasattr(Field, 'company_id') and company_id is not None:
-            q = q.filter(Field.company_id == company_id)
-        existing = q.first()
+        # 1) Перевіряємо на АКТИВНИЙ дубль у цільовій компанії
+        q_target = Field.query.filter(func.lower(Field.name) == func.lower(name))
+        if hasattr(Field, 'company_id'):
+            q_target = q_target.filter(Field.company_id == company_id)
 
-        if existing:
-            # Якщо запис архівний — відновлюємо його замість створення дубля
-            if getattr(existing, 'is_active', True) is False:
-                existing.is_active = True
-                existing.cluster_id = cluster_id
-                existing.company_id = company_id
-                existing.culture_id = culture_id
-                existing.area = form.area.data
-                try:
-                    db.session.commit()
-                except Exception:
-                    db.session.rollback()
-                    current_app.logger.exception("Unarchive Field failed")
-                    flash("Не вдалося відновити поле.", "danger")
-                    return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
-                flash('Архівне поле відновлено.', 'success')
-                return redirect(url_for('fields.index'))
-
-            # Активний дубль — показуємо помилку
+        existing_target_active = q_target.filter(getattr(Field, 'is_active', True) == True).first()
+        if existing_target_active:
             flash(f"Поле з назвою '{name}' вже існує!", "danger")
             return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
 
-        # Створення нового запису
+        # 2) Якщо в цільовій компанії є АРХІВНИЙ — відновлюємо його
+        existing_target_arch = q_target.filter(getattr(Field, 'is_active', True) == False).first()
+        if existing_target_arch:
+            existing_target_arch.is_active = True
+            existing_target_arch.cluster_id = cluster_id
+            existing_target_arch.culture_id = culture_id
+            existing_target_arch.area = form.area.data
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Не вдалося відновити поле: порушення унікальності.", "danger")
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception("Unarchive Field (target) failed")
+                flash("Не вдалося відновити поле.", "danger")
+            else:
+                flash('Архівне поле відновлено.', 'success')
+                return redirect(url_for('fields.index'))
+
+            # Якщо ми тут — значить щось пішло не так: повертаємо форму
+            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+
+        # 3) Пошукаємо БУДЬ-ЯКИЙ архівний запис з такою назвою в інших компаніях
+        existing_any_arch = (
+            Field.query
+            .filter(func.lower(Field.name) == func.lower(name))
+            .filter(getattr(Field, 'is_active', True) == False)
+            .first()
+        )
+        if existing_any_arch:
+            # Переконаймося, що в цільовій компанії немає активного дубля (ми вже перевірили вище, але лишимо надійність)
+            dup_active = (
+                Field.query
+                .filter(func.lower(Field.name) == func.lower(name))
+                .filter(getattr(Field, 'is_active', True) == True)
+                .filter(Field.company_id == company_id if hasattr(Field, 'company_id') else True)
+                .first()
+            )
+            if dup_active:
+                flash(f"Поле з назвою '{name}' вже існує в обраній компанії.", "danger")
+                return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+
+            # ♻️ Переназначаємо архівний запис на потрібну компанію і відновлюємо
+            existing_any_arch.is_active = True
+            existing_any_arch.company_id = company_id
+            existing_any_arch.cluster_id = cluster_id
+            existing_any_arch.culture_id = culture_id
+            existing_any_arch.area = form.area.data
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Не вдалося відновити поле (переназначення company): унікальність порушена.", "danger")
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception("Unarchive Field (reassign company) failed")
+                flash("Не вдалося відновити поле (переназначення company).", "danger")
+            else:
+                flash('Архівне поле відновлено і привʼязано до вибраної компанії.', 'success')
+                return redirect(url_for('fields.index'))
+
+            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+
+        # 4) Взагалі не існує — створюємо нове
         field = Field(
             name=name,
             cluster_id=cluster_id,
@@ -97,6 +143,10 @@ def create():
         db.session.add(field)
         try:
             db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Не вдалося створити поле: порушення унікальності (можливо, активний дублікат).", "danger")
+            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
         except Exception:
             db.session.rollback()
             current_app.logger.exception("Create Field failed")
@@ -107,8 +157,18 @@ def create():
         return redirect(url_for('fields.index'))
 
     # Якщо POST невалідний — залогуємо, щоб на проді не «мовчало»
-    if request.method == 'POST' and getattr(form, 'errors', None):
-        current_app.logger.warning("FieldForm errors: %s", form.errors)
+    if request.method == 'POST':
+        try:
+            payload = {
+                "name": getattr(form, 'name').data if hasattr(form, 'name') else None,
+                "company": _id(getattr(form, 'company').data) if hasattr(form, 'company') else None,
+                "cluster": _id(getattr(form, 'cluster').data) if hasattr(form, 'cluster') else None,
+                "culture": _id(getattr(form, 'culture').data) if hasattr(form, 'culture') else None,
+                "area": getattr(form, 'area').data if hasattr(form, 'area') else None,
+            }
+        except Exception:
+            payload = {}
+        current_app.logger.warning("FieldForm POST errors=%s payload=%s", dict(form.errors or {}), payload)
 
     return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
 
@@ -119,25 +179,31 @@ def edit(id):
     form = FieldForm(obj=field)
     if form.validate_on_submit():
         new_name = " ".join((form.name.data or "").split())
+        new_company_id = _id(form.company.data)
 
-        # Перевірка дубля, якщо змінюється назва (з урахуванням компанії)
-        if field.name.lower() != new_name.lower():
+        # Перевірка дубля ЛИШЕ серед активних у межах компанії
+        if field.name.lower() != new_name.lower() or getattr(field, 'company_id', None) != new_company_id:
             q = Field.query.filter(func.lower(Field.name) == func.lower(new_name))
             if hasattr(Field, 'company_id'):
-                q = q.filter(Field.company_id == _id(form.company.data))
-            existing = q.first()
-            if existing:
-                flash(f"Поле з назвою '{new_name}' вже існує!", "danger")
+                q = q.filter(Field.company_id == new_company_id)
+            q = q.filter(getattr(Field, 'is_active', True) == True)
+            existing_active = q.first()
+            if existing_active and existing_active.id != field.id:
+                flash(f"Поле з назвою '{new_name}' вже існує в обраній компанії.", "danger")
                 return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
 
         field.name = new_name
         field.cluster_id = _id(form.cluster.data)
-        field.company_id = _id(form.company.data)
+        field.company_id = new_company_id
         field.culture_id = _id(form.culture.data)
         field.area = form.area.data
 
         try:
             db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Не вдалося зберегти зміни: порушення унікальності (активний дублікат).", "danger")
+            return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
         except Exception:
             db.session.rollback()
             current_app.logger.exception("Update Field failed")
