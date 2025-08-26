@@ -3,6 +3,32 @@
 {% block title_text %}Поля{% endblock %}
 {% block header_text %}🌾 Поля{% endblock %}
 
+<!-- ❌ Повне очищення довідника -->
+<div class="card shadow-sm rounded-2 border-danger mb-4">
+  <div class="card-body">
+    <h5 class="card-title text-danger mb-2">❌ Повне очищення довідника «Поля»</h5>
+    <p class="text-muted small mb-3">
+      Обережно: незворотна дія. Без «форсу» очистка зупиниться, якщо знайде залежності у планах.
+    </p>
+    <form method="post" action="{{ url_for('fields.wipe_fields') }}"
+          class="row g-2"
+          onsubmit="return confirm('Стерти всі записи довідника «Поля»? Дію не можна скасувати.');">
+      {# якщо є Flask-WTF CSRFProtect #}
+      {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
+      <div class="col-md-4">
+        <input name="confirm" class="form-control" placeholder='Введіть: DELETE FIELDS' required>
+      </div>
+      <div class="col-md-3 form-check d-flex align-items-center">
+        <input class="form-check-input me-2" type="checkbox" id="force" name="force" value="1">
+        <label class="form-check-label" for="force">форс (прибрати залежності)</label>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-danger w-100">🗑️ Очистити довідник</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% block filter_form %}
 <form method="get" class="d-flex flex-wrap mb-3">
   {{ form.hidden_tag() }}
