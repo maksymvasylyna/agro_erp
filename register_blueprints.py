@@ -27,6 +27,7 @@ def register_blueprints(app):
     
     #Склад
     from modules.warehouse import warehouse_bp
+    from modules.reference.warehouses.routes import warehouses_bp
     
 
     app.register_blueprint(reference_bp)
@@ -60,3 +61,4 @@ def register_blueprints(app):
     app.register_blueprint(requests_bp, url_prefix='/requests')
     # Блок "Склад"
     app.register_blueprint(warehouse_bp)
+    app.register_blueprint(warehouses_bp)

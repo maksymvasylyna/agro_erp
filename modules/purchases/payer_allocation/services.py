@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, case
 from extensions import db
 from .models import PayerAllocation
 
@@ -629,11 +629,19 @@ def get_consolidated_with_remaining(
         payer_ids=list(payer_set) if payer_set else None,        # і до наявних платників
     )
 
+    # stock_map по (company_id, product_id, payer_id)
+    stock_map = _get_stock_map_by_company_product_payer(
+        company_id=company_id,
+        product_ids=list(prod_set) if prod_set else None,
+        payer_ids=list(payer_set) if payer_set else None,
+    )
+
     result: List[dict] = []
     for r in rows:
         total = float(r.total_qty or 0.0)
         already = float(ordered_map.get((r.company_id, r.product_id, r.payer_id), 0.0))
-        remaining = max(total - already, 0.0)
+        stock = float(stock_map.get((r.company_id, r.product_id, r.payer_id), 0.0))
+        remaining = max(total - already - stock, 0.0)
         result.append({
             "company_id": r.company_id,
             "product_id": r.product_id,
@@ -646,6 +654,8 @@ def get_consolidated_with_remaining(
             "qty_total": total,
             "qty_already": already,
             "qty_remaining": remaining,
+            # опціонально: для дебагу/виводу
+            "stock_qty": stock,
         })
 
     # Підстановка назв/тари
@@ -678,7 +688,7 @@ def get_consolidated_with_remaining(
         if not row["manufacturer_name"]:
             row["manufacturer_name"] = prod_mfg_txt.get(row.get("product_id")) or "—"
 
-        row["package"] = pkgmap.get(row.get("product_id")) or "—"
+        row["package"] = pkgmap.get(row["product_id"]) or "—"
 
     return result
 
@@ -715,6 +725,8 @@ def get_consolidated_allocations(
         }
         for r in rows
     ]
+
+
 def reconcile_allocations_against_plans(
     *,
     company_id: Optional[int] = None,
@@ -759,36 +771,85 @@ def reconcile_allocations_against_plans(
     if marked:
         db.session.commit()
     return marked
-def _mark_stale_scoped(
-    active_keys: set,
-    now: datetime,
-    company_id: Optional[int] = None,
-    field_ids: Optional[Sequence[int]] = None,
-    product_ids: Optional[Sequence[int]] = None,
-) -> int:
-    """
-    Позначає 'stale' лише для рядків у межах заданих фільтрів.
-    Якщо фільтри не задані — працює по всій таблиці.
-    """
-    qry = PayerAllocation.query.filter(PayerAllocation.status != "stale")
-    if company_id:
-        qry = qry.filter(PayerAllocation.company_id == company_id)
-    if field_ids:
-        qry = qry.filter(PayerAllocation.field_id.in_(list(field_ids)))
-    if product_ids:
-        qry = qry.filter(PayerAllocation.product_id.in_(list(product_ids)))
-
-    marked = 0
-    for row in qry.all():
-        key = AggKey(row.field_id, row.product_id)
-        if key not in active_keys:
-            row.status = "stale"
-            row.updated_at = now
-            marked += 1
-    return marked
 
 
 # ↓ Зворотна сумісність: старі виклики _mark_stale(active_keys, now) продовжують працювати
 def _mark_stale(active_keys: set, now: datetime) -> int:
     return _mark_stale_scoped(active_keys, now)
 
+
+def _get_stock_map_by_company_product_payer(
+    *,
+    company_id: Optional[int] = None,
+    product_ids: Optional[Sequence[int]] = None,
+    payer_ids: Optional[Sequence[int]] = None,
+) -> Dict[Tuple[int, int, Optional[int]], float]:
+    """
+    {(company_id, product_id, payer_id): stock_qty}
+    Баланс на складі з таблиці stock_transactions, звужений по product_ids/payer_ids/компанії.
+    Фільтруємо також по тарі продукту (беремо з products).
+    """
+    try:
+        st = _get_table("stock_transactions")
+    except Exception:
+        return {}
+
+    want_products = set(int(x) for x in (product_ids or []))
+    if not want_products:
+        return {}
+
+    company_ids = {int(company_id)} if company_id is not None else set()
+    payer_ids_set = set(int(x) for x in (payer_ids or []))
+
+    # id->name та зворотні мапи name->id
+    cmap = _fetch_names("companies", company_ids) if company_ids else {}
+    paymap = _fetch_names("payers", payer_ids_set) if payer_ids_set else {}
+    cname2id = {v: k for k, v in cmap.items()} if cmap else None
+    pname2id = {v: k for k, v in paymap.items()} if paymap else None
+
+    # тара продукту (текст)
+    pkg_by_product = _fetch_product_package(want_products)  # {pid: '10 л' | None}
+
+    qty_case = case((st.c.tx_type == "IN", st.c.qty), else_=-st.c.qty)
+    q = (
+        db.session.query(
+            st.c.product_id,
+            st.c.consumer_company_name,
+            st.c.payer_name,
+            st.c.package_text,
+            func.coalesce(func.sum(qty_case), 0.0).label("balance"),
+        )
+        .filter(st.c.product_id.in_(list(want_products)))
+        .group_by(st.c.product_id, st.c.consumer_company_name, st.c.payer_name, st.c.package_text)
+    )
+
+    if cname2id is not None:
+        q = q.filter(st.c.consumer_company_name.in_(list(cname2id.keys())))
+    if pname2id is not None:
+        q = q.filter(st.c.payer_name.in_(list(pname2id.keys())))
+
+    rows = q.all()
+    acc: Dict[Tuple[int, int, Optional[int]], float] = {}
+    for r in rows:
+        pid = int(r.product_id)
+        consumer_name = (r.consumer_company_name or "").strip() or None
+        payer_name = (r.payer_name or "").strip() or None
+        pkg = (r.package_text or "").strip() or None
+        expected_pkg = (pkg_by_product.get(pid) or "").strip() or None
+
+        # Віднімаємо лише той склад, що відповідає тарі продукту
+        if expected_pkg and pkg and expected_pkg != pkg:
+            continue
+
+        comp_id = cname2id.get(consumer_name) if (cname2id and consumer_name) else None
+        pay_id = pname2id.get(payer_name) if (pname2id and payer_name) else None
+
+        if company_id is not None and comp_id != company_id:
+            continue
+        if payer_ids_set and pay_id not in payer_ids_set:
+            continue
+
+        key = (comp_id if comp_id is not None else None, pid, pay_id if pay_id is not None else None)
+        acc[key] = acc.get(key, 0.0) + float(r.balance or 0.0)
+
+    return acc

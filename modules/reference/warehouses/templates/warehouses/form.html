@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ title or "Склад" }}{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">{{ header or "Склад" }}</h2>
+
+<form method="post" action="{{ action }}">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Підприємство <span class="text-danger">*</span></label>
+      <select class="form-select" name="company_id" required>
+        <option value="">— Оберіть підприємство —</option>
+        {% for c in companies %}
+          <option value="{{ c.id }}"
+                  {% if (warehouse and warehouse.company_id==c.id) or (company_id and company_id==c.id) %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Назва складу <span class="text-danger">*</span></label>
+      <input class="form-control" type="text" name="name" maxlength="255" required
+             value="{{ (warehouse.name if warehouse else '') }}">
+      <div class="form-text">Унікальна в межах підприємства.</div>
+    </div>
+    <div class="col-md-3">
+      <div class="form-check mt-4">
+        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+               {% if (warehouse and warehouse.is_active) or (warehouse is none) %}checked{% endif %}>
+        <label class="form-check-label" for="is_active">Активний</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 d-flex gap-2">
+    <a class="btn btn-secondary" href="{{ url_for('warehouses.index', company_id=(warehouse.company_id if warehouse else company_id)) }}">
+      Назад
+    </a>
+    <button class="btn btn-primary" type="submit">{{ submit_label or "Зберегти" }}</button>
+  </div>
+</form>
+{% endblock %}

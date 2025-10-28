@@ -1,7 +1,10 @@
+# modules/purchases/needs/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from io import BytesIO
 from sqlalchemy.orm import joinedload
 from extensions import db
+import re
+import math
 
 # Зведення (старе) залишаємо недоторканим для інших екранів
 from modules.purchases.needs.services import get_summary
@@ -31,6 +34,31 @@ needs_bp = Blueprint(
     url_prefix="/purchases/needs",
     template_folder="templates",
 )
+
+# --- Округлення до тари ---
+_pkg_number_re = re.compile(r"(\d+[\.,]?\d*)")
+
+def _parse_package_value(text: str | None) -> float | None:
+    if not text:
+        return None
+    m = _pkg_number_re.search(str(text))
+    if not m:
+        return None
+    try:
+        return float(m.group(1).replace(",", "."))
+    except Exception:
+        return None
+
+def _round_up_to_package(qty: float | int | None, package_value: float | None) -> float:
+    try:
+        q = float(qty or 0.0)
+    except Exception:
+        q = 0.0
+    if not package_value or package_value <= 0:
+        return q
+    packs = math.ceil(q / float(package_value))
+    return packs * float(package_value)
+
 
 # ---- helpers ----
 def _attach_labels(rows):
@@ -70,7 +98,7 @@ def _product_package(prod: Product | None) -> str | None:
     """
     if not prod:
         return None
-    for attr in ("container", "package", "packaging", "package_name", "pack_name", "package_size", "pack_size", "tare", "tare_name"):
+    for attr in ("container", "package", "packaging", "package_name", "pack", "pack_name", "package_size", "pack_size", "tare", "tare_name"):
         val = getattr(prod, attr, None)
         if val:
             return str(val)
@@ -102,72 +130,67 @@ def _attach_manufacturer_from_product(rows):
     # product_id -> manufacturer_id
     products = Product.query.with_entities(Product.id, Product.manufacturer_id)\
                             .filter(Product.id.in_(prod_ids)).all()
-    p2m = {p.id: p.manufacturer_id for p in products}
+    mid_map = {p.id: p.manufacturer_id for p in products if p}
 
-    man_ids = {mid for mid in p2m.values() if mid}
-    manmap = {m.id: m.name for m in (Manufacturer.query.filter(Manufacturer.id.in_(man_ids)).all() if man_ids else [])}
+    mids = {mid_map.get(r["product_id"]) for r in rows if mid_map.get(r["product_id"]) }
+    mans = Manufacturer.query.with_entities(Manufacturer.id, Manufacturer.name)\
+                             .filter(Manufacturer.id.in_(mids)).all() if mids else []
+    mname = {m.id: m.name for m in mans}
 
     for r in rows:
-        mid = r.get("manufacturer_id") or p2m.get(r.get("product_id"))
-        r["manufacturer_id"] = mid
-        r["manufacturer_name"] = r.get("manufacturer_name") or (manmap.get(mid, "—") if mid else "—")
-
+        pid = r.get("product_id")
+        mid = mid_map.get(pid)
+        r["manufacturer_id"] = r.get("manufacturer_id") or mid
+        r["manufacturer_name"] = r.get("manufacturer_name") or (mname.get(mid) if mid else None) or "—"
     return rows
 
 
-@needs_bp.after_request
 def _no_cache(resp):
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
     return resp
 
 
-# ---------- Зведення (як було) ----------
-
-@needs_bp.route("/summary", methods=["GET"])
+@needs_bp.route("/", methods=["GET"], endpoint="summary")
 def summary():
+    """
+    Старий екран "Зведена потреба" (для історичної сумісності).
+    """
     company_id = request.args.get("company_id", type=int)
     culture_id = request.args.get("culture_id", type=int)
     product_id = request.args.get("product_id", type=int)
 
     data = get_summary(company_id=company_id, culture_id=culture_id, product_id=product_id)
-
-    companies = Company.query.order_by(Company.name.asc()).all()
-    cultures  = Culture.query.order_by(Culture.name.asc()).all()
-    products  = Product.query.order_by(Product.name.asc()).all()
-
     return render_template(
         "needs/summary.html",
         data=data,
-        companies=companies,
-        cultures=cultures,
-        products=products,
-        company_id=company_id,
-        culture_id=culture_id,
-        product_id=product_id,
+        companies=Company.query.order_by(Company.name.asc()).all(),
+        cultures=Culture.query.order_by(Culture.name.asc()).all(),
+        products=Product.query.order_by(Product.name.asc()).all(),
+        company_id=company_id, culture_id=culture_id, product_id=product_id,
         title="Зведена потреба",
-        header="🧮 Зведена потреба (затверджені плани)",
+        header="📊 Зведена потреба",
     )
 
 
-@needs_bp.route("/summary/sync", methods=["POST"])
+@needs_bp.route("/sync", methods=["POST"], endpoint="summary_sync")
 def summary_sync():
-    company_id = request.form.get("company_id", type=int)
-    culture_id = request.form.get("culture_id", type=int)
-    product_id = request.form.get("product_id", type=int)
-    flash("Зведення оновлено з затверджених планів.", "success")
-    return redirect(
-        url_for(
-            "needs.summary",
-            company_id=company_id or "",
-            culture_id=culture_id or "",
-            product_id=product_id or "",
-        )
-    )
+    """
+    Запуск синхронізації payer_allocations із планів.
+    """
+    try:
+        reconcile_allocations_against_plans()
+        flash("Синхронізацію ініційовано (перевірте статуси пізніше).", "success")
+    except Exception as e:
+        flash(f"Помилка синхронізації: {e}", "danger")
+    return redirect(url_for("needs.summary"))
 
 
-@needs_bp.route("/summary/export_pdf", methods=["GET"])
+@needs_bp.route("/export/pdf", methods=["GET"], endpoint="summary_export_pdf")
 def summary_export_pdf():
+    """
+    Експорт PDF для зведення (залишаємо як було).
+    """
     company_id = request.args.get("company_id", type=int)
     culture_id = request.args.get("culture_id", type=int)
     product_id = request.args.get("product_id", type=int)
@@ -185,40 +208,39 @@ def summary_export_pdf():
 
     font_path = os.path.join('static', 'fonts', 'DejaVuSans.ttf')
     if os.path.exists(font_path):
-        pdfmetrics.registerFont(TTFont('DejaVu', font_path))
-        title_style = ParagraphStyle(name='DejaVuTitle', fontName='DejaVu', fontSize=16, leading=20)
-        cell_font = 'DejaVu'
-    else:
-        title_style = ParagraphStyle(name='BaseTitle', fontSize=16, leading=20)
-        cell_font = 'Helvetica'
+        pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
-    elements = []
 
-    elements.append(Paragraph("Зведена потреба (затверджені плани) — експорт", title_style))
-    elements.append(Spacer(1, 10))
+    style_title = ParagraphStyle(name='Title', fontName='DejaVuSans', fontSize=14, leading=16, spaceAfter=12)
+    style_cell  = ParagraphStyle(name='Cell',  fontName='DejaVuSans', fontSize=9,  leading=11)
 
-    data_rows = [["Продукт", "Культура", "Підприємство", "Кількість"]]
-    for r in data:
-        data_rows.append([r["product_name"], r["culture_name"], r["company_name"], f'{r["qty"]:.3f}'])
+    table_data = [["Компанія", "Культура", "Продукт", "Виробник", "Од.", "Кількість"]]
+    for row in data:
+        table_data.append([
+            Paragraph(row.get("company_name") or "—", style_cell),
+            Paragraph(row.get("culture_name") or "—", style_cell),
+            Paragraph(row.get("product_name") or "—", style_cell),
+            Paragraph(row.get("manufacturer_name") or "—", style_cell),
+            Paragraph(row.get("unit_name") or "—", style_cell),
+            Paragraph(f'{float(row.get("qty") or 0.0):.3f}', style_cell),
+        ])
 
-    table = Table(data_rows, repeatRows=1)
+    table = Table(table_data, repeatRows=1)
     table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), cell_font),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgreen),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (3, 1), (3, -1), 'RIGHT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
+        ('ALIGN', (5,1), (5,-1), 'RIGHT'),
     ]))
 
-    elements.append(table)
+    elements = [Paragraph("Зведена потреба", style_title), Spacer(1, 6), table]
     doc.build(elements)
+
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name="needs_summary.pdf", mimetype="application/pdf")
+    return send_file(buffer, as_attachment=True, mimetype='application/pdf',
+                     download_name='summary.pdf')
 
-
-# ---------- ЗАЯВКА З КОНСОЛІДОВАНОГО РОЗПОДІЛУ ----------
 
 @needs_bp.route("/request", methods=["GET"], endpoint="request_form")
 def request_form():
@@ -255,6 +277,9 @@ def request_form():
 
     rows = []
     for r in base:
+        pkg_val = _parse_package_value(r.get("package"))
+        avail_raw = float(r.get("qty_remaining") or 0.0)
+        avail = _round_up_to_package(avail_raw, pkg_val)
         rows.append({
             "company_id": r["company_id"],
             "company_name": r.get("company_name"),
@@ -267,7 +292,7 @@ def request_form():
             "package": r.get("package"),
             "payer_id": r.get("payer_id"),
             "payer_name": r.get("payer_name"),
-            "available": r.get("qty_remaining"),
+            "available": avail,  # ОКРУГЛЕНО ДО ТАРИ
         })
 
     # Добиваємо відсутні ярлики/виробника з продукту
@@ -308,32 +333,34 @@ def request_preview():
         flash("Оберіть підприємство (споживача).", "warning")
         return redirect(url_for("needs.request_form"))
 
-    # Базові консолідовані рядки з залишком
+    # розпарсимо вибірки з чекбоксів
+    selected = request.form.getlist("selected")
+    pairs = []
+    for s in selected:
+        try:
+            pid_str, pay_str = s.split("::", 1)
+            pid = int(pid_str)
+            pay = int(pay_str) if pay_str not in (None, "", "None", "0") else None
+            pairs.append((pid, pay))
+        except Exception:
+            continue
+
+    # знімемо кількості з форми
+    qty_map = {}
+    for pid, pay in pairs:
+        q = request.form.get(f"qty_{pid}_{pay or 0}", type=float)
+        qty_map[(pid, pay)] = float(q or 0.0)
+
     base = get_consolidated_with_remaining(
         company_id=company_id,
         product_id=product_id,
         payer_id=payer_id,
     )
-    # Індекс за (product_id, payer_id)
     idx = {(r["product_id"], r["payer_id"]): r for r in base}
 
-    selected = request.form.getlist("selected")
     chosen = []
-
-    for key in selected:
-        try:
-            prod_str, payer_str = key.split("::", 1)
-            pid = int(prod_str)
-            pay = _safe_int(payer_str, None)
-        except Exception:
-            continue
-
-        # Очікуємо qty_{pid}_{pay}
-        qty_key = f"qty_{pid}_{pay if pay is not None else 0}"
-        qty = request.form.get(qty_key, type=float) or 0.0
-        if qty <= 0:
-            continue
-
+    for pid, pay in pairs:
+        qty = float(qty_map.get((pid, pay), 0.0) or 0.0)
         row = idx.get((pid, pay))
         product = Product.query.get(pid)
 
@@ -357,8 +384,9 @@ def request_preview():
             })
             continue
 
-        available = float(row.get("qty_remaining") or row.get("available") or 0.0)
-        eff_qty   = min(qty, available)  # не більше залишку
+        pkg_val = _parse_package_value(row.get("package"))
+        available = _round_up_to_package(float(row.get("qty_remaining") or row.get("available") or 0.0), pkg_val)
+        eff_qty   = min(qty, available)  # не більше округленого залишку
 
         # виробник тільки з продукту (стале значення)
         mid = product.manufacturer_id if product else None
@@ -420,6 +448,11 @@ def request_submit():
 
     already_map = get_already_ordered_map(company_id=company_id)  # очікується ключ (company, product, payer)
 
+    # Базовий залишок (плани - уже замовлено - склад) по (product_id, payer_id)
+    remaining_rows = get_consolidated_with_remaining(company_id=company_id)
+    remaining_map = { (r["product_id"], r["payer_id"]): float(r.get("qty_remaining") or 0.0)
+                      for r in remaining_rows }
+
     # Пакетне підвантаження продуктів і виробників
     pids = { _safe_int(x) for x in product_ids if _safe_int(x) is not None }
     products = { p.id: p for p in (Product.query.filter(Product.id.in_(pids)).all() if pids else []) }
@@ -444,13 +477,16 @@ def request_submit():
         product = products.get(pid)
         package = _product_package(product)
 
-        # межа: total - already - locally_added
-        total     = total_map.get((pid, pay), 0.0)
-        already   = already_map.get((company_id, pid, pay), 0.0)
+        # межа: (план - уже замовлено - склад) - локально додане у цьому сабміті
+        base_remaining = remaining_map.get((pid, pay), max(total_map.get((pid, pay), 0.0) - already_map.get((company_id, pid, pay), 0.0), 0.0))
         added     = used_map.get((pid, pay), 0.0)
-        remaining = max(total - already - added, 0.0)
+        remaining = max(base_remaining - added, 0.0)
 
-        eff_qty = min(qty, remaining)
+        # округлення до тари
+        pkg_val_loop = _parse_package_value(package)
+        remaining_rounded = _round_up_to_package(remaining, pkg_val_loop)
+
+        eff_qty = min(qty, remaining_rounded)
         if eff_qty <= 0:
             continue
 
@@ -471,6 +507,9 @@ def request_submit():
             "package": package,
             "manufacturer_id": mid,
             "manufacturer_name": (m.name if m else None) or "—",
+            "unit": getattr(product, "unit", None).name if product and getattr(product, "unit", None) else None,
+            "payer_id": pay,
+            "payer_name": payer_name,
             "company_id": company_id,
             "company_name": Company.query.get(company_id).name if company_id else None,
             "payer_id": pay,
