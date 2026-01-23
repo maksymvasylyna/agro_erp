@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Склад · Заявки на відвантаження{% endblock %}
+{% block header %}🏬 Склад · Заявки на відвантаження{% endblock %}
+
+{% block content %}
+
+<div class="d-flex gap-2 mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">🏠 На головну</a>
+</div>
+
+<!-- ===================== 1) SUBMITTED: На погодження ===================== -->
+<div class="card mb-4 border-0 shadow-sm">
+  <div class="card-body">
+    <h5 class="mb-3 text-warning">🟡 На погодження (submitted)</h5>
+
+    {% if to_approve and to_approve|length %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover align-middle">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th style="width: 70px;">ID</th>
+              <th style="width: 160px;">Номер</th>
+              <th style="width: 220px;">Створено</th>
+              <th>Коментар</th>
+              <th style="width: 260px;">Дії</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in to_approve %}
+              <tr>
+                <td class="text-center">{{ req.id }}</td>
+                <td class="text-center fw-semibold">{{ req.number }}</td>
+                <td class="text-center small">{{ req.created_at }}</td>
+                <td class="small">{{ req.comment or '' }}</td>
+                <td class="text-center">
+                  <a class="btn btn-outline-primary btn-sm"
+                     href="{{ url_for('warehouse_requests.view', request_id=req.id) }}">
+                    👁 Перегляд
+                  </a>
+
+                  <form method="POST"
+                        action="{{ url_for('warehouse_requests.approve', request_id=req.id) }}"
+                        class="d-inline">
+                    <button type="submit" class="btn btn-success btn-sm">
+                      ✅ Погодити
+                    </button>
+                  </form>
+
+                  <a class="btn btn-outline-secondary btn-sm"
+                     href="{{ url_for('warehouse_requests.execute', request_id=req.id) }}">
+                    ⚙️ Виконати
+                  </a>
+
+                  <form method="POST"
+                        action="{{ url_for('warehouse_requests.delete', request_id=req.id) }}"
+                        class="d-inline"
+                        onsubmit="return confirm('Видалити заявку {{ req.number }}? Дія незворотна!');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                      🗑 Видалити
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-muted">Немає заявок на погодження.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===================== 2) APPROVED: До виконання ===================== -->
+<div class="card mb-4 border-0 shadow-sm">
+  <div class="card-body">
+    <h5 class="mb-3 text-success">🟢 Погоджені · до виконання (approved)</h5>
+
+    {% if to_execute and to_execute|length %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover align-middle">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th style="width: 70px;">ID</th>
+              <th style="width: 160px;">Номер</th>
+              <th style="width: 220px;">Створено</th>
+              <th>Коментар</th>
+              <th style="width: 260px;">Дії</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in to_execute %}
+              <tr>
+                <td class="text-center">{{ req.id }}</td>
+                <td class="text-center fw-semibold">{{ req.number }}</td>
+                <td class="text-center small">{{ req.created_at }}</td>
+                <td class="small">{{ req.comment or '' }}</td>
+                <td class="text-center">
+                  <a class="btn btn-outline-primary btn-sm"
+                     href="{{ url_for('warehouse_requests.view', request_id=req.id) }}">
+                    👁 Перегляд
+                  </a>
+
+                  <a class="btn btn-success btn-sm"
+                     href="{{ url_for('warehouse_requests.execute', request_id=req.id) }}">
+                    🚚 Виконати
+                  </a>
+
+                  <form method="POST"
+                        action="{{ url_for('warehouse_requests.delete', request_id=req.id) }}"
+                        class="d-inline"
+                        onsubmit="return confirm('Видалити заявку {{ req.number }}? Дія незворотна!');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                      🗑 Видалити
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-muted">Немає погоджених заявок, які очікують виконання.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

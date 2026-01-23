@@ -9,6 +9,9 @@ from .models import StockTransaction
 from modules.purchases.payments.models import PaymentInbox
 from modules.reference.products.models import Product
 from modules.reference.units.models import Unit
+from modules.reference.payers.models import Payer
+from modules.reference.manufacturers.models import Manufacturer
+
 
 
 # ---------- ХЕЛПЕРИ ----------
@@ -395,7 +398,6 @@ def in_journal():
 
 @warehouse_bp.route("/receive/<int:inbox_id>", methods=["GET", "POST"])
 def receive(inbox_id: int):
-    # ... без змін повністю ...
     inbox = PaymentInbox.query.get_or_404(inbox_id)
     if not _is_paid(inbox):
         flash("Приймання дозволено лише після статусу «Оплачено».", "warning")
@@ -406,6 +408,39 @@ def receive(inbox_id: int):
         flash("У заявці немає валідних позицій.", "warning")
         return redirect(url_for("warehouse.in_journal"))
 
+    # --- МАПІНГ ДОВІДНИКІВ ДЛЯ СТРОГОГО СКЛАДСЬКОГО КЛЮЧА (ID) ---
+    payer_names = {
+        it.get("payer_name")
+        for it in items
+        if it.get("payer_name") and it.get("payer_name") != "—"
+    }
+    manufacturer_names = {
+        it.get("manufacturer_name")
+        for it in items
+        if it.get("manufacturer_name") and it.get("manufacturer_name") != "—"
+    }
+
+    payer_map = {}
+    if payer_names:
+        payer_rows = (
+            db.session.query(Payer)
+            .filter(Payer.name.in_(list(payer_names)))
+            .all()
+        )
+        payer_map = {p.name: p.id for p in payer_rows}
+
+    manufacturer_map = {}
+    if manufacturer_names:
+        man_rows = (
+            db.session.query(Manufacturer)
+            .filter(Manufacturer.name.in_(list(manufacturer_names)))
+            .all()
+        )
+        manufacturer_map = {m.name: m.id for m in man_rows}
+
+    consumer_company_id = getattr(inbox, "company_id", None)
+
+    # --- Завантаження продуктів/одиниць ---
     pids = list({it["product_id"] for it in items})
     prod_rows = (
         db.session.query(Product, Unit)
@@ -422,9 +457,11 @@ def receive(inbox_id: int):
         p, u = prod_map.get(it["product_id"], (None, None))
         if p is None or u is None:
             continue
+
         ordered = it["qty"]
         received = received_per_line.get(idx, 0.0)
         remaining = max(0.0, ordered - received)
+
         unit_text = _unit_text(u)
         rows.append({
             "idx": idx,
@@ -445,13 +482,14 @@ def receive(inbox_id: int):
 
     if request.method == "POST":
         created = 0
-        consumer = getattr(getattr(inbox, "company", None), "name", None) or "—"
+        consumer_name = getattr(getattr(inbox, "company", None), "name", None) or "—"
 
         for r in rows:
             field = f"receive_now_{r['idx']}"
             raw_val = (request.form.get(field) or "").strip()
             if raw_val == "":
                 continue
+
             try:
                 receive_now = float(raw_val.replace(",", "."))
             except ValueError:
@@ -467,21 +505,46 @@ def receive(inbox_id: int):
                 return render_template("warehouse/receive_form.html", inbox=inbox, rows=rows)
 
             if receive_now > 0:
+                payer_name = r["payer_name"]
+                manufacturer_name = r["manufacturer_name"]
+
+                payer_id = payer_map.get(payer_name) if payer_name and payer_name != "—" else None
+                manufacturer_id = manufacturer_map.get(manufacturer_name) if manufacturer_name and manufacturer_name != "—" else None
+
+                # 🔴 Жорстка перевірка — щоб не було "NULL-кошика" і плутанини в бухгалтерії
+                if payer_name and payer_name != "—" and payer_id is None:
+                    flash(f"Платник «{payer_name}» не знайдений у довіднику.", "danger")
+                    return render_template("warehouse/receive_form.html", inbox=inbox, rows=rows)
+
+                if manufacturer_name and manufacturer_name != "—" and manufacturer_id is None:
+                    flash(f"Виробник «{manufacturer_name}» не знайдений у довіднику.", "danger")
+                    return render_template("warehouse/receive_form.html", inbox=inbox, rows=rows)
+
                 st = StockTransaction(
                     product_id=r["product"].id,
                     unit_id=r["product"].unit_id,
                     qty=receive_now,
                     tx_type="IN",
                     warehouse_id=1,
+
                     source_kind="payment_inbox",
                     source_id=inbox_id,
                     source_line_idx=r["idx"],
+
+                    # ✅ КЛЮЧІ ДЛЯ СТРОГОГО ЗБІГУ (ID)
+                    consumer_company_id=consumer_company_id,
+                    payer_id=payer_id,
+                    manufacturer_id=manufacturer_id,
+                    package_value=None,  # поки що (бо в items_json у тебе package як текст)
+
+                    # 📝 Тексти для UI/аудиту
                     product_name=r["product_name_src"],
                     unit_text=r["unit_text"],
-                    consumer_company_name=consumer,
-                    payer_name=r["payer_name"],
+                    consumer_company_name=consumer_name,
+                    payer_name=payer_name,
                     package_text=r["package"],
-                    manufacturer_name=r["manufacturer_name"],
+                    manufacturer_name=manufacturer_name,
+
                     note=f"PaymentInbox #{inbox_id}, line #{r['idx']}",
                 )
                 db.session.add(st)
@@ -496,6 +559,7 @@ def receive(inbox_id: int):
         return redirect(url_for("warehouse.in_journal"))
 
     return render_template("warehouse/receive_form.html", inbox=inbox, rows=rows)
+
 
 
 @warehouse_bp.post("/stock/clear", endpoint="stock_clear")

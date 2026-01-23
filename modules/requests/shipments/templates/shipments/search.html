@@ -1,0 +1,163 @@
+{# templates/shipments/search.html #}
+{% extends "base.html" %}
+
+{% block title %}Заявки на відвантаження — вибір позицій{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Заявки на відвантаження — виберіть позиції</h3>
+    <div class="btn-group">
+      <a class="btn btn-outline-secondary" href="{{ url_for('shipments_requests.index') }}">⬅️ Назад до фільтрів</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('index') }}">🏠 На головну</a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'warning' if category=='warning' else ('success' if category=='success' else 'info') }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('shipments_requests.preview_new') }}">
+    {% if csrf_token is defined %}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+
+    {% if balances and balances|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-bordered align-middle" id="balancesTable">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th style="width: 36px;">✓</th>
+              <th>Підприємство</th>
+              <th>Платник</th>
+              <th>Продукт</th>
+              <th>Виробник</th>
+              <th>Одиниця</th>
+              <th>Тара</th>
+              <th class="text-end">Залишок</th>
+              <th class="text-end">Кількість до відвантаження</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in balances %}
+            {% set i = loop.index0 %}
+            <tr>
+              <td class="text-center">
+                <input class="form-check-input pick" type="checkbox" name="pick[]" value="{{ i }}">
+              </td>
+
+              <td>
+                {{ row.company_name or '—' }}
+                <input type="hidden" name="rows[{{ i }}][company_id]" value="{{ row.company_id if row.company_id is not none else '' }}">
+                <input type="hidden" name="rows[{{ i }}][company_name]" value="{{ row.company_name|default('') }}">
+              </td>
+
+              <td>
+                {{ row.payer_name or '—' }}
+                <input type="hidden" name="rows[{{ i }}][payer_id]" value="{{ row.payer_id if row.payer_id is not none else '' }}">
+                <input type="hidden" name="rows[{{ i }}][payer_name]" value="{{ row.payer_name|default('') }}">
+              </td>
+
+              <td>
+                {{ row.product_name or '—' }}
+                <input type="hidden" name="rows[{{ i }}][product_id]" value="{{ row.product_id if row.product_id is not none else '' }}">
+                <input type="hidden" name="rows[{{ i }}][product_name]" value="{{ row.product_name|default('') }}">
+              </td>
+
+              <td>
+                {{ row.manufacturer_name or '—' }}
+                <input type="hidden" name="rows[{{ i }}][manufacturer_id]" value="{{ row.manufacturer_id if row.manufacturer_id is not none else '' }}">
+                <input type="hidden" name="rows[{{ i }}][manufacturer_name]" value="{{ row.manufacturer_name|default('') }}">
+              </td>
+
+              <td class="text-center">
+                {{ row.unit_text or '—' }}
+                <input type="hidden" name="rows[{{ i }}][unit_id]" value="{{ row.unit_id if row.unit_id is not none else '' }}">
+                <input type="hidden" name="rows[{{ i }}][unit_text]" value="{{ row.unit_text|default('') }}">
+              </td>
+
+              <td class="text-center">
+                {# Пріоритет: готовий текст → зліпити з value+unit → тире #}
+                {% if row.package_text %}
+                  {{ row.package_text }}
+                {% elif row.package_value and row.unit_text %}
+                  {{ ('%g' % (row.package_value|float)) ~ ' ' ~ row.unit_text }}
+                {% else %}
+                  —
+                {% endif %}
+                <input type="hidden" name="rows[{{ i }}][package_value]" value="{{ row.package_value if row.package_value is not none else '' }}">
+                <input type="hidden" name="rows[{{ i }}][package_text]" value="{% if row.package_text %}{{ row.package_text }}{% elif row.package_value and row.unit_text %}{{ ('%g' % (row.package_value|float)) ~ ' ' ~ row.unit_text }}{% else %}{% endif %}">
+              </td>
+
+              <td class="text-end">
+                <span class="qty-available">{{ row.qty_available|default(0) }}</span>
+                <input type="hidden" name="rows[{{ i }}][qty_available]" value="{{ row.qty_available if row.qty_available is not none else '' }}">
+              </td>
+
+              <td class="text-end" style="min-width: 180px;">
+                <input
+                  type="number"
+                  class="form-control form-control-sm text-end qty-requested"
+                  name="rows[{{ i }}][qty_requested]"
+                  step="0.0001"
+                  min="0"
+                  placeholder="Введіть кількість"
+                  value="">
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between mt-3">
+        <div class="text-muted small">
+          Щоб значення поїхали у бекенд — не використовуй <code>disabled</code>. Для вигляду — <code>readonly</code> або приховані інпути.
+        </div>
+        <button type="submit" class="btn btn-success">
+          Перейти до попереднього перегляду →
+        </button>
+      </div>
+    {% else %}
+      <div class="alert alert-info">
+        За вибраними фільтрами немає рядків. Поверніться до фільтра або змініть умови.
+      </div>
+    {% endif %}
+  </form>
+</div>
+
+{# Автопідстановка qty_requested = qty_available при позначенні чекбоксу #}
+<script>
+  (function() {
+    const table = document.getElementById('balancesTable');
+    if (!table) return;
+
+    table.addEventListener('change', function(e) {
+      const cb = e.target.closest('input.pick');
+      if (!cb) return;
+
+      const tr = cb.closest('tr');
+      const qtyAvailEl = tr.querySelector('.qty-available');
+      const qtyInput = tr.querySelector('.qty-requested');
+      if (!qtyAvailEl || !qtyInput) return;
+
+      const avail = parseFloat((qtyAvailEl.textContent || '').replace(',', '.')) || 0;
+
+      if (cb.checked) {
+        const cur = parseFloat((qtyInput.value || '').replace(',', '.')) || 0;
+        if (!cur) qtyInput.value = avail ? avail : '';
+      } else {
+        const cur = parseFloat((qtyInput.value || '').replace(',', '.')) || 0;
+        if (cur === avail) qtyInput.value = '';
+      }
+    });
+  })();
+</script>
+{% endblock %}

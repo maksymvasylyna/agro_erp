@@ -24,15 +24,18 @@
 
     <!-- Заявка на відвантаження (плейсхолдер) -->
     <div class="col-md-4">
-      <a href="#" class="text-decoration-none">
+      <a href="{{ url_for('shipments_requests.index') }}" class="text-decoration-none">
         <div class="card shadow-sm rounded-2 border-success">
           <div class="card-body text-center">
             <h5 class="card-title text-success mb-1">🚚 Заявка на відвантаження</h5>
-            <div class="text-muted small">Незабаром</div>
+            <div class="text-muted small">
+              Створення заявки на відвантаження
+            </div>
           </div>
         </div>
       </a>
     </div>
+    
 
     <!-- Заявка на повернення (плейсхолдер) -->
     <div class="col-md-4">

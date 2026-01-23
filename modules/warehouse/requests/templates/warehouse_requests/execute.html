@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Виконання заявки {{ req.number }}{% endblock %}
+{% block header %}📦 Виконання заявки {{ req.number }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('warehouse_requests.list_submitted') }}" class="btn btn-outline-secondary">⬅️ До списку</a>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="mb-2">
+  <span class="badge bg-secondary">Статус: {{ req.status }}</span>
+</div>
+
+<form method="post" action="{{ url_for('warehouse_requests.execute', request_id=req.id) }}">
+  {{ csrf_token() if csrf_token else '' }}
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover table-bordered align-middle">
+      <thead class="table-success">
+        <tr class="text-center">
+          <th>#</th>
+          <th>Компанія</th>
+          <th>Продукт</th>
+          <th>Платник</th>
+          <th>Виробник</th>
+          <th>Одиниця</th>
+          <th>Запитано</th>
+          <th>Виконано</th>
+          <th>Залишок у заявці</th>
+          <th>Доступно на складі</th>
+          <th>Виконати (к-сть)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="text-center">{{ loop.index }}</td>
+          <td>{{ r.item.consumer_company.name if r.item.consumer_company_id else '—' }}</td>
+          <td>{{ r.item.product.name }}</td>
+          <td>{{ r.item.payer.name if r.item.payer_id else '—' }}</td>
+          <td>{{ r.item.manufacturer.name if r.item.manufacturer_id else '—' }}</td>
+          <td class="text-center">{{ r.item.unit.name }}</td>
+          <td class="text-end">{{ "%.3f"|format(r.item.qty_requested) }}</td>
+          <td class="text-end">{{ "%.3f"|format(r.item.qty_executed or 0) }}</td>
+          <td class="text-end">{{ "%.3f"|format(r.remain) }}</td>
+          <td class="text-end">{{ "%.3f"|format(r.available) }}</td>
+          <td style="max-width:140px;">
+            <input type="number" step="0.001" min="0" max="{{ r.remain }}" class="form-control"
+                   name="qty_to_execute[{{ r.item.id }}]" placeholder="0.000">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-end">
+    <button class="btn btn-success">Зберегти виконання</button>
+  </div>
+</form>
+
+{% endblock %}

@@ -28,6 +28,9 @@ def register_blueprints(app):
     #Склад
     from modules.warehouse import warehouse_bp
     from modules.reference.warehouses.routes import warehouses_bp
+    from modules.warehouse.requests import warehouse_requests_bp
+
+    from modules.requests.shipments import shipments_requests_bp
     
 
     app.register_blueprint(reference_bp)
@@ -59,6 +62,8 @@ def register_blueprints(app):
 
     # Блок "Заявки"
     app.register_blueprint(requests_bp, url_prefix='/requests')
+    app.register_blueprint(shipments_requests_bp)
     # Блок "Склад"
     app.register_blueprint(warehouse_bp)
     app.register_blueprint(warehouses_bp)
+    app.register_blueprint(warehouse_requests_bp)
