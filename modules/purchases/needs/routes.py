@@ -1,5 +1,5 @@
 # modules/purchases/needs/routes.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app
 from io import BytesIO
 from sqlalchemy.orm import joinedload
 from extensions import db
@@ -428,107 +428,121 @@ def request_submit():
     УВАГА: manufacturer_id форсується з Product і НЕ береться з форми.
     Тара — автоматично з продукту. Після сабміту повертаємося на форму.
     """
-    company_id = request.form.get("company_id", type=int)
-    if not company_id:
-        flash("Не вказано підприємство (споживача).", "warning")
-        return redirect(url_for("needs.request_form"))
+    try:
+        company_id = request.form.get("company_id", type=int)
+        if not company_id:
+            flash("Не вказано підприємство (споживача).", "warning")
+            return redirect(url_for("needs.request_form"))
 
-    product_ids = request.form.getlist("item_product_id[]")
-    payer_ids   = request.form.getlist("item_payer_id[]")
-    qtys        = request.form.getlist("item_qty[]")
+        product_ids = request.form.getlist("item_product_id[]")
+        payer_ids   = request.form.getlist("item_payer_id[]")
+        qtys        = request.form.getlist("item_qty[]")
 
-    if not product_ids:
-        flash("Немає позицій для відправки.", "warning")
+        if not product_ids:
+            flash("Немає позицій для відправки.", "warning")
+            return redirect(url_for("needs.request_form", company_id=company_id or ""))
+
+        # Побудуємо мапи для антидублювання й обмеження за залишком
+        totals_rows = get_consolidated_with_remaining(company_id=company_id)
+        total_map = {
+            (r["product_id"], r["payer_id"]): float(r.get("qty_total") or r.get("total_qty") or 0.0)
+            for r in totals_rows
+        }
+
+        already_map = get_already_ordered_map(company_id=company_id)  # (company, product, payer) -> already
+
+        # Базовий залишок (плани - уже замовлено - склад) по (product_id, payer_id)
+        remaining_rows = get_consolidated_with_remaining(company_id=company_id)
+        remaining_map = {
+            (r["product_id"], r["payer_id"]): float(r.get("qty_remaining") or 0.0)
+            for r in remaining_rows
+        }
+
+        # Пакетне підвантаження продуктів і виробників
+        pids = {_safe_int(x) for x in product_ids if _safe_int(x) is not None}
+        products = {p.id: p for p in (Product.query.filter(Product.id.in_(pids)).all() if pids else [])}
+
+        man_ids = {p.manufacturer_id for p in products.values() if p and p.manufacturer_id}
+        manmap = {m.id: m for m in (Manufacturer.query.filter(Manufacturer.id.in_(man_ids)).all() if man_ids else [])}
+
+        items = []
+        used_map = {}  # локально додане у цьому сабміті: (pid, pay) -> added_qty
+
+        n = len(product_ids)
+        for i in range(n):
+            pid = _safe_int(product_ids[i])
+            pay = _safe_int(payer_ids[i])
+            try:
+                qty = float(qtys[i] or 0)
+            except Exception:
+                qty = 0.0
+
+            if not pid or qty <= 0:
+                continue
+
+            product = products.get(pid)
+            package = _product_package(product)
+
+            # межа: (план - уже замовлено - склад) - локально додане у цьому сабміті
+            base_remaining = remaining_map.get(
+                (pid, pay),
+                max(total_map.get((pid, pay), 0.0) - already_map.get((company_id, pid, pay), 0.0), 0.0)
+            )
+            added = used_map.get((pid, pay), 0.0)
+            remaining = max(base_remaining - added, 0.0)
+
+            # округлення до тари
+            pkg_val_loop = _parse_package_value(package)
+            remaining_rounded = _round_up_to_package(remaining, pkg_val_loop)
+
+            eff_qty = min(qty, remaining_rounded)
+            if eff_qty <= 0:
+                continue
+
+            # ВИРОБНИК: тільки з продукту
+            mid = product.manufacturer_id if product else None
+            m = manmap.get(mid) if mid else None
+
+            # ім'я платника (для зручності відображення)
+            payer_name = None
+            if pay:
+                payer = Payer.query.get(pay)
+                payer_name = payer.name if payer else None
+
+            items.append({
+                "product_id": pid,
+                "product_name": product.name if product else f"#{pid}",
+                "qty": eff_qty,
+                "package": package,
+                "manufacturer_id": mid,
+                "manufacturer_name": (m.name if m else None) or "—",
+                "unit": getattr(product, "unit", None).name if product and getattr(product, "unit", None) else None,
+                "payer_id": pay,
+                "payer_name": payer_name,
+                "company_id": company_id,
+                "company_name": Company.query.get(company_id).name if company_id else None,
+            })
+
+            used_map[(pid, pay)] = added + eff_qty
+
+        if not items:
+            flash("Нічого не відправлено: перевірте кількості/залишок.", "warning")
+            return redirect(url_for("needs.request_form", company_id=company_id or ""))
+
+        inbox = PaymentInbox(
+            company_id=company_id,
+            status="submitted",
+            items_json=items,
+        )
+        db.session.add(inbox)
+        db.session.commit()
+
+        flash("Заявку відправлено в «Проплати». Ви повернуті до форми створення.", "success")
         return redirect(url_for("needs.request_form", company_id=company_id or ""))
 
-    # Побудуємо мапи для антидублювання й обмеження за залишком
-    totals_rows = get_consolidated_with_remaining(company_id=company_id)
-    total_map = { (r["product_id"], r["payer_id"]): float(r.get("qty_total") or r.get("total_qty") or 0.0)
-                  for r in totals_rows }
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception("request_submit failed")
+        flash(f"Помилка відправки заявки: {e}", "danger")
+        return redirect(url_for("needs.request_form", company_id=request.form.get("company_id") or ""))
 
-    already_map = get_already_ordered_map(company_id=company_id)  # очікується ключ (company, product, payer)
-
-    # Базовий залишок (плани - уже замовлено - склад) по (product_id, payer_id)
-    remaining_rows = get_consolidated_with_remaining(company_id=company_id)
-    remaining_map = { (r["product_id"], r["payer_id"]): float(r.get("qty_remaining") or 0.0)
-                      for r in remaining_rows }
-
-    # Пакетне підвантаження продуктів і виробників
-    pids = { _safe_int(x) for x in product_ids if _safe_int(x) is not None }
-    products = { p.id: p for p in (Product.query.filter(Product.id.in_(pids)).all() if pids else []) }
-    man_ids = { p.manufacturer_id for p in products.values() if p and p.manufacturer_id }
-    manmap = { m.id: m for m in (Manufacturer.query.filter(Manufacturer.id.in_(man_ids)).all() if man_ids else []) }
-
-    items = []
-    used_map = {}  # локально додане у цьому сабміті: (pid, pay) -> added_qty
-
-    n = len(product_ids)
-    for i in range(n):
-        pid = _safe_int(product_ids[i])
-        pay = _safe_int(payer_ids[i])
-        try:
-            qty = float(qtys[i] or 0)
-        except Exception:
-            qty = 0.0
-
-        if not pid or qty <= 0:
-            continue
-
-        product = products.get(pid)
-        package = _product_package(product)
-
-        # межа: (план - уже замовлено - склад) - локально додане у цьому сабміті
-        base_remaining = remaining_map.get((pid, pay), max(total_map.get((pid, pay), 0.0) - already_map.get((company_id, pid, pay), 0.0), 0.0))
-        added     = used_map.get((pid, pay), 0.0)
-        remaining = max(base_remaining - added, 0.0)
-
-        # округлення до тари
-        pkg_val_loop = _parse_package_value(package)
-        remaining_rounded = _round_up_to_package(remaining, pkg_val_loop)
-
-        eff_qty = min(qty, remaining_rounded)
-        if eff_qty <= 0:
-            continue
-
-        # ВИРОБНИК: тільки з продукту (форсуємо незалежно від форми)
-        mid = product.manufacturer_id if product else None
-        m   = manmap.get(mid) if mid else None
-
-        # ім'я платника (для зручності відображення)
-        payer_name = None
-        if pay:
-            payer = Payer.query.get(pay)
-            payer_name = payer.name if payer else None
-
-        items.append({
-            "product_id": pid,
-            "product_name": product.name if product else f"#{pid}",
-            "qty": eff_qty,
-            "package": package,
-            "manufacturer_id": mid,
-            "manufacturer_name": (m.name if m else None) or "—",
-            "unit": getattr(product, "unit", None).name if product and getattr(product, "unit", None) else None,
-            "payer_id": pay,
-            "payer_name": payer_name,
-            "company_id": company_id,
-            "company_name": Company.query.get(company_id).name if company_id else None,
-            "payer_id": pay,
-            "payer_name": payer_name,
-        })
-
-        used_map[(pid, pay)] = added + eff_qty
-
-    if not items:
-        flash("Нічого не відправлено: перевірте кількості/залишок.", "warning")
-        return redirect(url_for("needs.request_form", company_id=company_id or ""))
-
-    inbox = PaymentInbox(
-        company_id=company_id,
-        status="submitted",
-        items_json=items,
-    )
-    db.session.add(inbox)
-    db.session.commit()
-
-    flash("Заявку відправлено в «Проплати». Ви повернуті до форми створення.", "success")
-    return redirect(url_for("needs.request_form", company_id=company_id or ""))
