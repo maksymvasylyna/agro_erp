@@ -74,48 +74,54 @@
 </template>
 
 <script>
-let treatmentIndex = 0;
-document.getElementById('add-treatment').addEventListener('click', function () {
-  const tableBody = document.querySelector('#treatments-table tbody');
-  const template = document.getElementById('treatment-row-template').innerHTML;
-  const rowHtml = template.replace(/__index__/g, treatmentIndex);
-  const tempDiv = document.createElement('tbody');
-  tempDiv.innerHTML = rowHtml;
-  const newRow = tempDiv.firstElementChild;
-  tableBody.appendChild(newRow);
-  treatmentIndex++;
+  let treatmentIndex = 0;
 
-  const productSelect = newRow.querySelector('.product-select');
-  const manufacturerInput = newRow.querySelector('.manufacturer-field');
-  const unitInput = newRow.querySelector('.unit-field');
-  const rateInput = newRow.querySelector('.rate-field');
-  const quantityInput = newRow.querySelector('.quantity-field');
+  document.getElementById('add-treatment').addEventListener('click', function () {
+    const tableBody = document.querySelector('#treatments-table tbody');
+    const template = document.getElementById('treatment-row-template').innerHTML;
+    const rowHtml = template.replace(/__index__/g, treatmentIndex);
 
-  function updateQuantity() {
-    const avg_area = {{ fields|map(attribute='area')|sum / fields|length }};
-    const rate = parseFloat(rateInput.value);
-    if (!isNaN(rate)) {
-      const quantity = avg_area * rate;
-      quantityInput.value = quantity.toFixed(1);
-    } else {
-      quantityInput.value = '';
+    const tempDiv = document.createElement('tbody');
+    tempDiv.innerHTML = rowHtml;
+
+    const newRow = tempDiv.firstElementChild;
+    tableBody.appendChild(newRow);
+
+    treatmentIndex++;
+
+    const productSelect = newRow.querySelector('.product-select');
+    const manufacturerInput = newRow.querySelector('.manufacturer-field');
+    const unitInput = newRow.querySelector('.unit-field');
+    const rateInput = newRow.querySelector('.rate-field');
+    const quantityInput = newRow.querySelector('.quantity-field');
+
+    function updateQuantity() {
+      const total_area = {{ fields|map(attribute='area')|sum }};
+      const rate = parseFloat((rateInput.value || '').replace(',', '.'));
+
+      if (!isNaN(rate)) {
+        const quantity = total_area * rate;
+        quantityInput.value = quantity.toFixed(3);
+      } else {
+        quantityInput.value = '';
+      }
     }
-  }
 
-  productSelect.addEventListener('change', function () {
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    manufacturerInput.value = selectedOption.dataset.manufacturer || '';
-    unitInput.value = selectedOption.dataset.unit || '';
-    updateQuantity();
+    productSelect.addEventListener('change', function () {
+      const selectedOption = productSelect.options[productSelect.selectedIndex];
+      manufacturerInput.value = selectedOption.dataset.manufacturer || '';
+      unitInput.value = selectedOption.dataset.unit || '';
+      updateQuantity();
+    });
+
+    rateInput.addEventListener('input', updateQuantity);
   });
 
-  rateInput.addEventListener('input', updateQuantity);
-});
-document.querySelector('#treatments-table tbody').addEventListener('click', function (e) {
-  if (e.target.classList.contains('delete-row')) {
-    e.target.closest('tr').remove();
-  }
-});
+  document.querySelector('#treatments-table tbody').addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-row')) {
+      e.target.closest('tr').remove();
+    }
+  });
 </script>
 
 {% endblock %}
