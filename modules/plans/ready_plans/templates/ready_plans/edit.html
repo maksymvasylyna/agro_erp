@@ -21,23 +21,31 @@
         <th>Од.</th>
         <th>Виробник</th>
         <th>Кількість</th>
+        <th style="width: 80px;">Дія</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="treatments-body">
       {% for subform in form.treatments %}
-      <tr>
-        <td>{{ subform.treatment_type_id(class="form-select") }}</td>
-        <td>
-          {{ subform.product_id(class="form-select product-select", data_index=loop.index0) }}
-        </td>
+      <tr class="treatment-row">
+        <td>{{ subform.treatment_type_id(class="form-select treatment-type") }}</td>
+        <td>{{ subform.product_id(class="form-select product-select") }}</td>
         <td>{{ subform.rate(class="form-control rate-field") }}</td>
         <td>{{ subform.unit(class="form-control unit-field", readonly=True) }}</td>
         <td>{{ subform.manufacturer(class="form-control manufacturer-field", readonly=True) }}</td>
         <td>{{ subform.quantity(class="form-control quantity-field", readonly=True) }}</td>
+        <td>
+          <button type="button" class="btn btn-sm btn-danger remove-row-btn">❌</button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <div class="mb-3">
+    <button type="button" class="btn btn-outline-primary" id="add-treatment-btn">
+      ➕ Додати обробіток
+    </button>
+  </div>
 
   <button type="submit" class="btn btn-success">💾 Зберегти зміни</button>
 </form>
@@ -45,27 +53,149 @@
 <script>
   const products = {{ products_data | tojson }};
   const fieldArea = {{ plan.field.area | round(2) }};
+  const treatmentTypeChoices = {{ (form.treatments[0].treatment_type_id.choices if form.treatments|length > 0 else []) | tojson }};
+  const productChoices = {{ (form.treatments[0].product_id.choices if form.treatments|length > 0 else []) | tojson }};
 
-  document.querySelectorAll('.product-select').forEach((select, idx) => {
-    const unitInput = document.querySelectorAll('.unit-field')[idx];
-    const manufacturerInput = document.querySelectorAll('.manufacturer-field')[idx];
-    const rateInput = document.querySelectorAll('.rate-field')[idx];
-    const quantityInput = document.querySelectorAll('.quantity-field')[idx];
+  const tbody = document.getElementById('treatments-body');
+  const addBtn = document.getElementById('add-treatment-btn');
 
-    function updateFields() {
-      const selected = products.find(p => p.id == select.value);
-      if (selected) {
-        unitInput.value = selected.unit || '';
-        manufacturerInput.value = selected.manufacturer || '';
-        const rate = parseFloat(rateInput.value || 0);
-        quantityInput.value = (rate * fieldArea).toFixed(1);
-      }
+  function buildSelectOptions(choices, selectedValue = '') {
+    let html = '<option value="">--- Оберіть ---</option>';
+    choices.forEach(([value, label]) => {
+      const selected = String(value) === String(selectedValue) ? 'selected' : '';
+      html += `<option value="${value}" ${selected}>${label}</option>`;
+    });
+    return html;
+  }
+
+  function updateRowFields(row) {
+    const productSelect = row.querySelector('.product-select');
+    const rateInput = row.querySelector('.rate-field');
+    const unitInput = row.querySelector('.unit-field');
+    const manufacturerInput = row.querySelector('.manufacturer-field');
+    const quantityInput = row.querySelector('.quantity-field');
+
+    const selected = products.find(p => String(p.id) === String(productSelect.value));
+
+    if (selected) {
+      unitInput.value = selected.unit || '';
+      manufacturerInput.value = selected.manufacturer || '';
+    } else {
+      unitInput.value = '';
+      manufacturerInput.value = '';
     }
 
-    select.addEventListener('change', updateFields);
-    rateInput.addEventListener('input', updateFields);
+    const rate = parseFloat(rateInput.value || 0);
+    quantityInput.value = !isNaN(rate) ? (rate * fieldArea).toFixed(1) : '';
+  }
 
-    updateFields();  // initial
+  function bindRowEvents(row) {
+    const productSelect = row.querySelector('.product-select');
+    const rateInput = row.querySelector('.rate-field');
+    const removeBtn = row.querySelector('.remove-row-btn');
+
+    productSelect.addEventListener('change', function() {
+      updateRowFields(row);
+    });
+
+    rateInput.addEventListener('input', function() {
+      updateRowFields(row);
+    });
+
+    removeBtn.addEventListener('click', function() {
+      const rows = document.querySelectorAll('.treatment-row');
+      if (rows.length > 1) {
+        row.remove();
+        reindexRows();
+      } else {
+        row.querySelector('.treatment-type').value = '';
+        row.querySelector('.product-select').value = '';
+        row.querySelector('.rate-field').value = '';
+        row.querySelector('.unit-field').value = '';
+        row.querySelector('.manufacturer-field').value = '';
+        row.querySelector('.quantity-field').value = '';
+      }
+    });
+
+    updateRowFields(row);
+  }
+
+  function reindexRows() {
+    const rows = document.querySelectorAll('.treatment-row');
+
+    rows.forEach((row, index) => {
+      const treatmentType = row.querySelector('.treatment-type');
+      const product = row.querySelector('.product-select');
+      const rate = row.querySelector('.rate-field');
+      const unit = row.querySelector('.unit-field');
+      const manufacturer = row.querySelector('.manufacturer-field');
+      const quantity = row.querySelector('.quantity-field');
+
+      treatmentType.name = `treatments-${index}-treatment_type_id`;
+      treatmentType.id = `treatments-${index}-treatment_type_id`;
+
+      product.name = `treatments-${index}-product_id`;
+      product.id = `treatments-${index}-product_id`;
+
+      rate.name = `treatments-${index}-rate`;
+      rate.id = `treatments-${index}-rate`;
+
+      unit.name = `treatments-${index}-unit`;
+      unit.id = `treatments-${index}-unit`;
+
+      manufacturer.name = `treatments-${index}-manufacturer`;
+      manufacturer.id = `treatments-${index}-manufacturer`;
+
+      quantity.name = `treatments-${index}-quantity`;
+      quantity.id = `treatments-${index}-quantity`;
+    });
+  }
+
+  function addNewRow() {
+    const rowCount = document.querySelectorAll('.treatment-row').length;
+
+    const tr = document.createElement('tr');
+    tr.classList.add('treatment-row');
+
+    tr.innerHTML = `
+      <td>
+        <select name="treatments-${rowCount}-treatment_type_id" id="treatments-${rowCount}-treatment_type_id" class="form-select treatment-type">
+          ${buildSelectOptions(treatmentTypeChoices)}
+        </select>
+      </td>
+      <td>
+        <select name="treatments-${rowCount}-product_id" id="treatments-${rowCount}-product_id" class="form-select product-select">
+          ${buildSelectOptions(productChoices)}
+        </select>
+      </td>
+      <td>
+        <input type="number" step="any" name="treatments-${rowCount}-rate" id="treatments-${rowCount}-rate" class="form-control rate-field">
+      </td>
+      <td>
+        <input type="text" name="treatments-${rowCount}-unit" id="treatments-${rowCount}-unit" class="form-control unit-field" readonly>
+      </td>
+      <td>
+        <input type="text" name="treatments-${rowCount}-manufacturer" id="treatments-${rowCount}-manufacturer" class="form-control manufacturer-field" readonly>
+      </td>
+      <td>
+        <input type="number" step="any" name="treatments-${rowCount}-quantity" id="treatments-${rowCount}-quantity" class="form-control quantity-field" readonly>
+      </td>
+      <td>
+        <button type="button" class="btn btn-sm btn-danger remove-row-btn">❌</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+    bindRowEvents(tr);
+    reindexRows();
+  }
+
+  document.querySelectorAll('.treatment-row').forEach(row => {
+    bindRowEvents(row);
+  });
+
+  addBtn.addEventListener('click', function() {
+    addNewRow();
   });
 </script>
 {% endblock %}
