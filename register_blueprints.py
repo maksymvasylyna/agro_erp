@@ -31,6 +31,8 @@ def register_blueprints(app):
     from modules.warehouse.requests import warehouse_requests_bp
 
     from modules.requests.shipments import shipments_requests_bp
+
+    from modules.plans.summary import summary_bp
     
 
     app.register_blueprint(reference_bp)
@@ -67,3 +69,5 @@ def register_blueprints(app):
     app.register_blueprint(warehouse_bp)
     app.register_blueprint(warehouses_bp)
     app.register_blueprint(warehouse_requests_bp)
+
+    app.register_blueprint(summary_bp)

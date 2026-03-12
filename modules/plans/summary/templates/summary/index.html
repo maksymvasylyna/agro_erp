@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Зведена таблиця{% endblock %}
+{% block header %}📊 Зведена таблиця по планах{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <a href="/plans" class="btn btn-outline-secondary">⬅️ Назад</a>
+  <a href="/" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="container mt-4">
+  <div class="card shadow-sm rounded-2 border-success">
+    <div class="card-body">
+      <h4 class="text-success text-center mb-4">Зведена таблиця по затверджених планах</h4>
+
+      <form method="get" class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label for="company_id" class="form-label">Підприємство</label>
+          <select name="company_id" id="company_id" class="form-select">
+            <option value="">Усі</option>
+            {% for company in companies %}
+              <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>
+                {{ company.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label for="culture_id" class="form-label">Культура</label>
+          <select name="culture_id" id="culture_id" class="form-select">
+            <option value="">Усі</option>
+            {% for culture in cultures %}
+              <option value="{{ culture.id }}" {% if selected_culture == culture.id %}selected{% endif %}>
+                {{ culture.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label for="product_id" class="form-label">Продукт</label>
+          <select name="product_id" id="product_id" class="form-select">
+            <option value="">Усі</option>
+            {% for product in products %}
+              <option value="{{ product.id }}" {% if selected_product == product.id %}selected{% endif %}>
+                {{ product.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-success">🔍 Застосувати</button>
+          <a href="{{ url_for('summary.index') }}" class="btn btn-outline-secondary">Скинути</a>
+
+          <a
+            href="{{ url_for('summary.export_pdf', company_id=selected_company, culture_id=selected_culture, product_id=selected_product) }}"
+            class="btn btn-danger"
+          >
+            📄 Експорт PDF
+          </a>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover align-middle text-center">
+          <thead class="table-success">
+            <tr>
+              <th>Підприємство</th>
+              <th>Культура</th>
+              <th>Продукт</th>
+              <th>Кількість</th>
+              <th>Одиниця</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in summary_rows %}
+            <tr>
+              <td>{{ row.company_name }}</td>
+              <td>{{ row.culture_name or '-' }}</td>
+              <td>{{ row.product_name }}</td>
+              <td>{{ "%.2f"|format(row.total_quantity or 0) }}</td>
+              <td>{{ row.unit_name }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-muted">Немає даних для відображення</td>
+            </tr>
+            {% endfor %}
+          
+            {% if summary_rows %}
+            <tr class="table-warning fw-bold">
+              <td colspan="3" class="text-end">Разом</td>
+              <td>{{ "%.2f"|format(total_quantity or 0) }}</td>
+              <td></td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
