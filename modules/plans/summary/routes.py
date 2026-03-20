@@ -51,6 +51,7 @@ def build_summary_query(selected_company=None, selected_culture=None, selected_p
         .outerjoin(Culture, Field.culture_id == Culture.id)
         .join(Product, Treatment.product_id == Product.id)
         .join(Unit, Product.unit_id == Unit.id)
+        .filter(Plan.is_approved == True)
     )
 
     if selected_company:
