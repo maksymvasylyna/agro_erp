@@ -1,14 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Зведена площа — структура посівів{% endblock %}
-{% block header %}📊 Загальна структура посівних площ{% endblock %}
+{% block title %}Загальна структура посівів — {{ season.year if season else '—' }}{% endblock %}
+{% block header %}📊 Загальна структура посівних площ — урожай {{ season.year if season else '—' }}{% endblock %}
 {% block content %}
 <style>
   .area-report { font-variant-numeric: tabular-nums; font-size: 0.93rem; }
   .area-report thead th { background: #d9d9d9; text-align: center; white-space: nowrap; }
   .area-report .company-title { min-width: 250px; }
-  .area-report .year-cell { min-width: 115px; text-align: right; white-space: nowrap; }
-  .area-report .selected-season { background-color: #fff4cc !important; }
-  .area-report .selected-season-header { background-color: #e3bc46 !important; color: #1c293b; }
+  .area-report .area-cell { min-width: 115px; text-align: right; white-space: nowrap; }
   .area-report .cluster-header td { background: #e8eef6 !important; color: #12385c; font-weight: 700; }
   .area-report .cluster-total td { background: #edf2f8 !important; font-weight: 700; }
   .area-report .grand-total td { background: #d9d9d9 !important; font-weight: 700; }
@@ -27,84 +25,46 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-auto"><noscript><button class="btn btn-success" type="submit">Застосувати</button></noscript></div>
+  <div class="col-auto">
+    <noscript><button class="btn btn-success" type="submit">Застосувати</button></noscript>
+  </div>
 </form>
-<h4>Зведена площа за підприємствами та роками</h4>
-<p class="text-secondary small mb-2">Формат основного файлу: підприємства в рядках, роки урожаю в колонках. Вибраний сезон {{ season.year if season else '—' }} виділено жовтим.</p>
+<h4>Структура посівів за культурами — урожай {{ season.year if season else '—' }}</h4>
 <div class="table-responsive">
   <table class="table table-bordered table-sm area-report align-middle">
-    <thead><tr>
-      <th scope="col" class="company-title text-start">Підприємство</th>
-      {% for year in years %}<th scope="col" class="year-cell {% if season and year == season.year %}selected-season-header{% endif %}">{{ year }}</th>{% endfor %}
-    </tr></thead>
+    <thead>
+      <tr>
+        <th class="company-title text-start" scope="col">Підприємство</th>
+        {% for crop in crops %}<th class="area-cell" scope="col">{{ crop }}</th>{% endfor %}
+        <th class="area-cell" scope="col">Разом, га</th>
+      </tr>
+    </thead>
     <tbody>
       {% for cluster, companies in matrix.items() %}
-        {% if not selected_cluster %}
-          <tr class="cluster-header"><td colspan="{{ years|length + 1 }}">{{ cluster }}</td></tr>
-        {% endif %}
-        {% for company, values in companies.items() %}
+        <tr class="cluster-header"><td colspan="{{ crops|length + 2 }}">{{ cluster }}</td></tr>
+        {% for company, areas in companies.items() %}
           <tr>
             <td>{{ company }}</td>
-            {% for year in years %}
-              <td class="year-cell {% if season and year == season.year %}selected-season{% endif %}">{{ values[year]|ua_area }}</td>
-            {% endfor %}
+            {% for crop in crops %}<td class="area-cell">{{ areas.get(crop, 0)|ua_area }}</td>{% endfor %}
+            <td class="area-cell fw-semibold">{{ (areas.values()|sum)|ua_area }}</td>
           </tr>
         {% endfor %}
         <tr class="cluster-total">
           <td>Разом — {{ cluster }}</td>
-          {% for year in years %}
-            <td class="year-cell {% if season and year == season.year %}selected-season{% endif %}">{{ cluster_totals[cluster][year]|ua_area }}</td>
-          {% endfor %}
+          {% for crop in crops %}<td class="area-cell">{{ cluster_totals[cluster][crop]|ua_area }}</td>{% endfor %}
+          <td class="area-cell">{{ (cluster_totals[cluster].values()|sum)|ua_area }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="{{ years|length + 1 }}" class="text-center text-muted">Історичних структур за вибраним фільтром поки немає.</td></tr>
+        <tr><td colspan="{{ crops|length + 2 }}" class="text-center text-muted">У вибраному сезоні немає посівів для цього фільтра.</td></tr>
       {% endfor %}
       {% if matrix %}
         <tr class="grand-total">
           <td>Разом{% if selected_cluster %} у вибраному кластері{% endif %}</td>
-          {% for year in years %}
-            <td class="year-cell {% if season and year == season.year %}selected-season{% endif %}">{{ year_totals[year]|ua_area }}</td>
-          {% endfor %}
+          {% for crop in crops %}<td class="area-cell">{{ grand_totals[crop]|ua_area }}</td>{% endfor %}
+          <td class="area-cell">{{ (grand_totals.values()|sum)|ua_area }}</td>
         </tr>
       {% endif %}
     </tbody>
   </table>
 </div>
-{% if crop_matrix %}
-<details class="mt-4">
-  <summary class="h5" style="cursor: pointer;">Деталізація за культурами — урожай {{ season.year }} <span class="text-secondary small">(розгорнути)</span></summary>
-  <div class="table-responsive mt-3">
-    <table class="table table-bordered table-sm area-report align-middle">
-      <thead>
-        <tr><th class="company-title text-start">Підприємство</th>
-          {% for crop in crops %}<th class="year-cell">{{ crop }}</th>{% endfor %}
-          <th class="year-cell">Разом, га</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cluster, companies in crop_matrix.items() %}
-          <tr class="cluster-header"><td colspan="{{ crops|length + 2 }}">{{ cluster }}</td></tr>
-          {% for company, areas in companies.items() %}
-            <tr>
-              <td>{{ company }}</td>
-              {% for crop in crops %}<td class="year-cell">{{ areas.get(crop, 0)|ua_area }}</td>{% endfor %}
-              <td class="year-cell fw-semibold">{{ (areas.values()|sum)|ua_area }}</td>
-            </tr>
-          {% endfor %}
-          <tr class="cluster-total">
-            <td>Разом — {{ cluster }}</td>
-            {% for crop in crops %}<td class="year-cell">{{ crop_cluster_totals[cluster][crop]|ua_area }}</td>{% endfor %}
-            <td class="year-cell">{{ (crop_cluster_totals[cluster].values()|sum)|ua_area }}</td>
-          </tr>
-        {% endfor %}
-        <tr class="grand-total">
-          <td>Разом</td>
-          {% for crop in crops %}<td class="year-cell">{{ crop_year_totals[crop]|ua_area }}</td>{% endfor %}
-          <td class="year-cell">{{ (crop_year_totals.values()|sum)|ua_area }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</details>
-{% endif %}
 {% endblock %}
