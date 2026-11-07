@@ -20,6 +20,17 @@ def create_app():
     db.init_app(app)
     register_blueprints(app)
 
+    @app.context_processor
+    def inject_harvest_seasons():
+        # Shared year selector on every page, not only seasonal blueprint routes.
+        from flask import session
+        from modules.structure.seasons.models import Season
+        years = Season.query.order_by(Season.year.desc()).all()
+        active = session.get("harvest_year")
+        if active not in {s.year for s in years}:
+            active = years[0].year if years else None
+        return {"available_seasons": years, "active_harvest_year": active}
+
     # Імпорт моделей (зв’язки)
     from modules.reference.products.models import Product
     from modules.reference.categories.models import Category
