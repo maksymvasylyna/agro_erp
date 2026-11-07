@@ -71,6 +71,9 @@ def create_app():
 
         @app.before_request
         def require_staging_access():
+            # In-memory CI tests set TESTING=True after create_app(); never gate them.
+            if app.config.get("TESTING") is True:
+                return None
             if request.endpoint == "staging_login":
                 return None
             password = os.getenv("STAGING_VIEW_PASSWORD", "")
