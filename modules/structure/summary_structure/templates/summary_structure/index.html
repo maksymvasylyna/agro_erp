@@ -13,7 +13,6 @@
 </style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div class="d-flex flex-wrap align-items-center gap-2">
-    <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary">← Структура</a>
     <a href="{{ url_for('summary_structure.export_pdf', cluster_id=selected_cluster) }}"
        class="btn btn-success" id="download-summary-pdf" download>Завантажити PDF</a>
   </div>
