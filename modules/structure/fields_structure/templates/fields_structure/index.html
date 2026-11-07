@@ -27,7 +27,16 @@
 </style>
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-  <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary">← Назад</a>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary">← Назад</a>
+    <button type="button" class="btn btn-outline-secondary" id="reset-all-filters">
+      Скинути всі фільтри
+    </button>
+    <a class="btn btn-success" id="download-fields-pdf"
+       href="{{ url_for('fields_structure.export_pdf') }}" download>
+      Завантажити PDF
+    </a>
+  </div>
   <span id="filter-status" class="text-muted small" role="status" aria-live="polite"></span>
 </div>
 <p class="small text-muted mb-2">Фільтри розташовані над назвами колонок. Значення наступних фільтрів залежать від попереднього вибору. Зміни застосовуються автоматично.</p>
@@ -43,6 +52,16 @@
   const keys = [...filterKeys, "area"];
   const status = document.getElementById("filter-status");
   const endpoint = {{ url_for('fields_structure.index')|tojson }};
+  const pdfEndpoint = {{ url_for('fields_structure.export_pdf')|tojson }};
+  const resetButton = document.getElementById("reset-all-filters");
+  const downloadButton = document.getElementById("download-fields-pdf");
+
+  function syncDownloadURL(current) {
+    const pdf = new URL(pdfEndpoint, window.location.href);
+    pdf.search = current.search;
+    downloadButton.href = pdf.toString();
+  }
+  syncDownloadURL(new URL(window.location.href));
   const panels = {};
   const triggers = {};
   let activeKey = null;
@@ -254,6 +273,7 @@
       updateAreaLabel();
       const canonicalURL = buildURL();
       window.history.replaceState(null, "", canonicalURL.pathname + canonicalURL.search);
+      syncDownloadURL(canonicalURL);
       status.textContent = "";
     } catch (error) {
       if (error.name === "AbortError") return;
@@ -301,6 +321,25 @@
     clearTimeout(areaTimer);
     updateAreaLabel();
     updateResults("area");
+  });
+
+  resetButton.addEventListener("click", function () {
+    closePanel();
+    clearTimeout(areaTimer);
+    for (const key of filterKeys) {
+      const panel = panels[key];
+      panel.querySelector("[data-filter-search]").value = "";
+      choicesFor(key).forEach(function (input) {
+        input.checked = true;
+        input.closest(".filter-item").hidden = false;
+      });
+      updateLabel(key);
+    }
+    const area = areaInputs();
+    area.min.value = "";
+    area.max.value = "";
+    updateAreaLabel();
+    updateResults("clusters");
   });
 
   filterKeys.forEach(function (key) { updateLabel(key); });
