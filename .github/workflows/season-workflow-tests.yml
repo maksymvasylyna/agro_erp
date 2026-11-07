@@ -1,0 +1,27 @@
+name: Season workflow tests
+
+on:
+  pull_request:
+    paths:
+      - "modules/structure/**"
+      - "modules/reference/fields/**"
+      - "app.py"
+      - "register_blueprints.py"
+      - "templates/base.html"
+      - "tests/test_season_workflow.py"
+      - ".github/workflows/season-workflow-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test-seasons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run isolated SQLite test suite
+        run: python -m unittest discover -s tests -p "test_season_workflow.py" -v

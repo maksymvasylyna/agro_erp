@@ -23,6 +23,27 @@
     <a href="{{ url_for('fields.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
   </div>
 
+  {% if staging_edit %}
+    <div class="alert alert-info" id="permanent-field-notice">
+      Тут редагуються постійні реквізити поля. Культура і площа для вибраного року
+      зберігаються окремо в <a href="{{ url_for('seasonal.index') }}">керуванні сезонами</a>.
+      {% if season_entry %}
+        <div class="mt-2">
+          <strong>Площа поля в сезоні:</strong>
+          {{ ('%.2f'|format(season_entry.area))|replace('.', ',') }} га.
+          <strong>Культури:</strong>
+          {% for planting in season_entry.plantings %}
+            {{ planting.culture.name }} — {{ ('%.2f'|format(planting.area))|replace('.', ',') }} га{% if not loop.last %};{% endif %}
+          {% else %}
+            не розподілено
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="mt-2">Цього поля немає у вибраному сезоні.</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <div class="card shadow-sm rounded-2">
     <div class="card-body">
       <form method="post" action="{{ request.path }}" novalidate>
@@ -69,6 +90,7 @@
             {% endfor %}
           </div>
 
+          {% if not staging_edit %}
           <div class="col-md-4">
             {{ form.culture.label(class="form-label") }}
             {{ form.culture(
@@ -78,8 +100,10 @@
               <div class="invalid-feedback d-block">{{ e }}</div>
             {% endfor %}
           </div>
+          {% endif %}
         </div>
 
+        {% if not staging_edit %}
         <div class="mt-3">
           {{ form.area.label(class="form-label") }}
           {{ form.area(
@@ -92,6 +116,7 @@
             <div class="invalid-feedback d-block">{{ e }}</div>
           {% endfor %}
         </div>
+        {% endif %}
 
         <div class="mt-4 d-flex gap-2">
           <button class="btn btn-success">💾 Зберегти</button>

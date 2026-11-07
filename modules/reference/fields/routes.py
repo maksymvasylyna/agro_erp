@@ -1,5 +1,7 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+import os
+from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app, session
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from extensions import db
 from modules.reference.fields.field_models import Field
@@ -30,8 +32,53 @@ def _id(x):
 @fields_bp.route('/fields')
 def index():
     form = FieldFilterForm(request.args)
-    query = Field.query
 
+    # Staging keeps the historical crop/area in FieldSeason + FieldPlanting.
+    # Never rewrite legacy Field.area or Field.culture_id on season changes.
+    if os.getenv("AGROERP_ENV") == "staging":
+        from modules.structure.seasons.models import Season, FieldSeason, FieldPlanting
+
+        year = session.get("harvest_year")
+        season = Season.query.filter_by(year=year).first() if year else None
+        if season is None:
+            season = Season.query.order_by(Season.year.desc()).first()
+        if season is not None:
+            session["harvest_year"] = season.year
+
+        query = (
+            FieldSeason.query.options(
+                joinedload(FieldSeason.field),
+                joinedload(FieldSeason.cluster),
+                joinedload(FieldSeason.company),
+                joinedload(FieldSeason.plantings).joinedload(FieldPlanting.culture),
+            )
+            .filter(FieldSeason.season_id == season.id)
+            if season is not None
+            else FieldSeason.query.filter(False)
+        )
+        if form.cluster.data:
+            query = query.filter(FieldSeason.cluster_id == _id(form.cluster.data))
+        if form.company.data:
+            query = query.filter(FieldSeason.company_id == _id(form.company.data))
+        if form.culture.data:
+            query = query.filter(
+                FieldSeason.plantings.any(
+                    FieldPlanting.culture_id == _id(form.culture.data)
+                )
+            )
+
+        rows = query.order_by(FieldSeason.company_id, FieldSeason.field_id).all()
+        return render_template(
+            'fields/index.html',
+            form=form,
+            items=rows,
+            season=season,
+            season_view=True,
+            create_url=url_for('fields.create'),
+        )
+
+    # Legacy/production behaviour remains unchanged.
+    query = Field.query
     if form.cluster.data:
         query = query.filter_by(cluster_id=_id(form.cluster.data))
     if form.company.data:
@@ -177,6 +224,24 @@ def create():
 def edit(id):
     field = Field.query.get_or_404(id)
     form = FieldForm(obj=field)
+
+    # Editing the permanent field card must not rewrite year-specific plantings.
+    staging_edit = os.getenv("AGROERP_ENV") == "staging"
+    season_entry = None
+    if staging_edit:
+        from modules.structure.seasons.models import Season, FieldSeason
+        year = session.get("harvest_year")
+        chosen = Season.query.filter_by(year=year).first() if year else None
+        if chosen is None:
+            chosen = Season.query.order_by(Season.year.desc()).first()
+        if chosen:
+            season_entry = FieldSeason.query.filter_by(
+                season_id=chosen.id, field_id=field.id
+            ).first()
+    edit_context = {
+        "form": form, "title": "Редагувати поле", "header": "✏️ Редагувати поле",
+        "staging_edit": staging_edit, "season_entry": season_entry,
+    }
     if form.validate_on_submit():
         new_name = " ".join((form.name.data or "").split())
         new_company_id = _id(form.company.data)
@@ -190,30 +255,31 @@ def edit(id):
             existing_active = q.first()
             if existing_active and existing_active.id != field.id:
                 flash(f"Поле з назвою '{new_name}' вже існує в обраній компанії.", "danger")
-                return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
+                return render_template('fields/form.html', **edit_context)
 
         field.name = new_name
         field.cluster_id = _id(form.cluster.data)
         field.company_id = new_company_id
-        field.culture_id = _id(form.culture.data)
-        field.area = form.area.data
+        if not staging_edit:
+            field.culture_id = _id(form.culture.data)
+            field.area = form.area.data
 
         try:
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
             flash("Не вдалося зберегти зміни: порушення унікальності (активний дублікат).", "danger")
-            return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
+            return render_template('fields/form.html', **edit_context)
         except Exception:
             db.session.rollback()
             current_app.logger.exception("Update Field failed")
             flash('Помилка збереження змін.', 'danger')
-            return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
+            return render_template('fields/form.html', **edit_context)
 
         flash('Поле оновлено!', 'success')
         return redirect(url_for('fields.index'))
 
-    return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
+    return render_template('fields/form.html', **edit_context)
 
 
 @fields_bp.route('/fields/<int:id>/delete', methods=['POST'])

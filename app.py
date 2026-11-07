@@ -20,6 +20,17 @@ def create_app():
     db.init_app(app)
     register_blueprints(app)
 
+    @app.context_processor
+    def inject_harvest_seasons():
+        # Shared year selector on every page, not only seasonal blueprint routes.
+        from flask import session
+        from modules.structure.seasons.models import Season
+        years = Season.query.order_by(Season.year.desc()).all()
+        active = session.get("harvest_year")
+        if active not in {s.year for s in years}:
+            active = years[0].year if years else None
+        return {"available_seasons": years, "active_harvest_year": active}
+
     # Імпорт моделей (зв’язки)
     from modules.reference.products.models import Product
     from modules.reference.categories.models import Category
@@ -32,9 +43,64 @@ def create_app():
     from modules.reference.cultures.models import Culture
     from modules.reference.companies.models import Company
     from modules.reference.fields.field_models import Field
+    from modules.structure.seasons.models import Season, FieldSeason, FieldPlanting
 
     with app.app_context():
         db.create_all()
+
+    # Only staging hosts historical source data and requires a viewer password.
+    # Production behavior is unchanged when AGROERP_ENV is not staging.
+    if os.getenv("AGROERP_ENV") == "staging":
+        from datetime import timedelta
+        from hmac import compare_digest
+        from flask import session
+        from flask_wtf import FlaskForm
+        from wtforms import PasswordField, SubmitField
+        from wtforms.validators import DataRequired
+
+        app.config.update(
+            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE="Lax",
+            PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+        )
+
+        class StagingAccessForm(FlaskForm):
+            password = PasswordField("Пароль доступу", validators=[DataRequired()])
+            submit = SubmitField("Увійти")
+
+        @app.before_request
+        def require_staging_access():
+            # In-memory CI tests set TESTING=True after create_app(); never gate them.
+            if app.config.get("TESTING") is True:
+                return None
+            if request.endpoint == "staging_login":
+                return None
+            password = os.getenv("STAGING_VIEW_PASSWORD", "")
+            if len(password) < 16:
+                return "Test site access is disabled: viewer password not configured.", 503
+            if session.get("staging_view") is True:
+                return None
+            return redirect(url_for("staging_login", next=request.path))
+
+        @app.route("/staging-login", methods=["GET", "POST"])
+        def staging_login():
+            form = StagingAccessForm()
+            if form.validate_on_submit():
+                expected = os.getenv("STAGING_VIEW_PASSWORD", "")
+                if len(expected) >= 16 and compare_digest(
+                    form.password.data.encode("utf-8"), expected.encode("utf-8")
+                ):
+                    session.clear()
+                    session.permanent = True
+                    session["staging_view"] = True
+                    destination = request.args.get("next", "")
+                    if not (destination.startswith("/") and not destination.startswith("//")
+                            and "\\\\" not in destination):
+                        destination = url_for("seasonal.index")
+                    return redirect(destination)
+                flash("Невірний пароль.", "danger")
+            return render_template("staging_login.html", form=form)
 
     @app.route('/')
     def index():

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Сезони та посівна структура{% endblock %}
+{% block header %}🌾 Посівна структура за сезонами{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  {% if can_edit %}
+    <form action="{{ url_for('seasonal.logout') }}" method="post">{{ logout_form.hidden_tag() }}<button class="btn btn-outline-secondary">Вийти з режиму редагування</button></form>
+  {% elif editor_enabled %}
+    <a class="btn btn-outline-primary" href="{{ url_for('seasonal.login') }}">Увійти для редагування</a>
+  {% else %}
+    <span class="text-muted">Редагування вимкнене до конфігурації адміністратора</span>
+  {% endif %}
+</div>
+{% if season %}
+  <div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card card-body">Фізична площа: <strong>{{ '%.2f'|format(total) }} га</strong></div></div>
+    <div class="col-md-4"><div class="card card-body">Під культурами: <strong>{{ '%.2f'|format(planted) }} га</strong></div></div>
+    <div class="col-md-4"><div class="card card-body">Не розподілено: <strong>{{ '%.2f'|format(total-planted) }} га</strong></div></div>
+  </div>
+  {% if can_edit %}
+    <div class="card card-body mb-3">
+      <h5>Додати поле до сезону {{ season.year }}</h5>
+      <form method="post" action="{{ url_for('seasonal.add_field', year=season.year) }}" class="row g-2">
+        {{ field_form.hidden_tag() }}
+        <div class="col-md-7">{{ field_form.field_id(class="form-select") }}</div>
+        <div class="col-md-3">{{ field_form.area(class="form-control", placeholder="Площа, га") }}</div>
+        <div class="col-md-2">{{ field_form.submit(class="btn btn-success w-100") }}</div>
+      </form>
+    </div>
+    {% if not rows and (season.year - 1) in seasons|map(attribute='year')|list %}
+      <form method="post" action="{{ url_for('seasonal.copy_previous', year=season.year) }}" class="mb-3">
+        {{ copy_form.hidden_tag() }}
+        <button class="btn btn-outline-primary">Скопіювати структуру {{ season.year - 1 }} (без зміни джерела)</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  <div class="table-responsive"><table class="table table-bordered table-hover align-middle">
+    <thead><tr><th>Поле</th><th>Підприємство</th><th>Кластер</th><th class="text-end">Площа поля</th><th>Посіви (культура / площа)</th><th class="text-end">Залишок</th></tr></thead>
+    <tbody>
+    {% for row in rows %}
+      <tr id="season-field-{{ row.field_id }}">
+        <td>{{ row.field.name }}</td><td>{{ row.company.name }}</td><td>{{ row.cluster.name }}</td>
+        <td class="text-end">
+          {% if can_edit and not season.is_closed %}
+            <form method="post" action="{{ url_for('seasonal.update_field_area', field_season_id=row.id) }}">
+              {{ action_form.hidden_tag() }}
+              <input type="number" min="0.01" step="0.01" class="form-control form-control-sm text-end" name="area" value="{{ '%.2f'|format(row.area) }}" aria-label="Площа поля, га">
+              <button class="btn btn-sm btn-outline-secondary mt-1">Змінити площу</button>
+            </form>
+          {% else %}{{ '%.2f'|format(row.area) }}{% endif %}
+        </td>
+        <td>
+          {% for planting in row.plantings %}
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <span>{{ planting.culture.name }} — {{ '%.2f'|format(planting.area) }} га{% if planting.note %} ({{ planting.note }}){% endif %}</span>
+              {% if can_edit and not season.is_closed %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('seasonal.edit_planting', planting_id=planting.id) }}">Редагувати</a>
+                <form method="post" action="{{ url_for('seasonal.delete_planting', planting_id=planting.id) }}" onsubmit="return confirm('Вилучити цей посів?')">
+                  {{ action_form.hidden_tag() }}<button class="btn btn-sm btn-outline-danger">Видалити</button>
+                </form>
+              {% endif %}
+            </div>
+          {% else %}<span class="text-muted">Посівів немає</span>{% endfor %}
+          {% if can_edit and not season.is_closed %}
+            <form class="row g-1 mt-2" method="post" action="{{ url_for('seasonal.add_planting', field_season_id=row.id) }}">
+              {{ planting_form.hidden_tag() }}
+              <div class="col-md-5">{{ planting_form.culture_id(class="form-select form-select-sm") }}</div>
+              <div class="col-md-3">{{ planting_form.area(class="form-control form-control-sm", placeholder="Га") }}</div>
+              <div class="col-md-4"><button class="btn btn-outline-success btn-sm">Додати посів</button></div>
+            </form>
+          {% endif %}
+        </td>
+        <td class="text-end">{{ '%.2f'|format(row.unallocated_area) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="text-center text-muted">Для цього сезону поки немає полів.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+{% else %}
+  <p class="text-muted">Сезони ще не створені.</p>
+{% endif %}
+{% if can_edit %}
+  <div class="card card-body mt-4">
+    <h5>Новий сезон</h5>
+    <form class="row g-2" method="post" action="{{ url_for('seasonal.create') }}">
+      {{ new_form.hidden_tag() }}
+      <div class="col-md-4">{{ new_form.year(class="form-control", placeholder="Рік урожаю") }}</div>
+      <div class="col-md-3">{{ new_form.submit(class="btn btn-success") }}</div>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

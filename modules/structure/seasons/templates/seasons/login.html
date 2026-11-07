@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Адміністрування сезонів{% endblock %}
+{% block content %}
+<div class="card card-body mx-auto" style="max-width: 440px">
+  <h3>Доступ до редагування сезонів</h3>
+  <p class="text-muted">Введіть пароль адміністратора. Якщо пароль не налаштований, операції запису недоступні.</p>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.password.label(class="form-label") }}{{ form.password(class="form-control", autocomplete="current-password") }}</div>
+    {{ form.submit(class="btn btn-success") }}
+  </form>
+</div>
+{% endblock %}

@@ -12,6 +12,7 @@ def register_blueprints(app):
     from modules.reference.products.routes import products_bp
     from modules.reference.fields.routes import fields_bp
     from modules.structure.routes import structure_bp
+    from modules.structure.seasons import seasonal_bp
     from modules.structure.fields_structure.routes import fields_structure_bp
     from modules.structure.summary_structure.routes import bp as summary_structure_bp
     from modules.plans.routes import plans_bp
@@ -48,6 +49,7 @@ def register_blueprints(app):
     app.register_blueprint(products_bp)
     app.register_blueprint(fields_bp)
     app.register_blueprint(structure_bp)
+    app.register_blueprint(seasonal_bp)
     app.register_blueprint(fields_structure_bp)
     app.register_blueprint(summary_structure_bp)
     app.register_blueprint(plans_bp, url_prefix='/plans')
