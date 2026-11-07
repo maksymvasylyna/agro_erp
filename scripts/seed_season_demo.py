@@ -85,4 +85,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if os.getenv("AGROERP_IMPORT_N"):
+        # Private historical data supplied through Render secrets, never Git.
+        from import_historical_staging import main as import_history
+        import_history()
+    else:
+        main()
