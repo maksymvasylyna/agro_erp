@@ -12,16 +12,6 @@
   {% endif %}
 </div>
 {% if season %}
-  <form method="get" action="{{ url_for('seasonal.select') }}" class="d-flex flex-wrap gap-2 align-items-center mb-3">
-    <label for="season-page-select" class="fw-semibold">Рік урожаю:</label>
-    <select id="season-page-select" name="year" class="form-select w-auto"
-            aria-label="Обрати рік урожаю" onchange="this.form.submit()">
-      {% for item in seasons %}
-        <option value="{{ item.year }}" {% if item.id == season.id %}selected{% endif %}>{{ item.year }}</option>
-      {% endfor %}
-    </select>
-    <noscript><button type="submit" class="btn btn-success">Обрати</button></noscript>
-  </form>
   <div class="row g-3 mb-3">
     <div class="col-md-4"><div class="card card-body">Фізична площа: <strong>{{ '%.2f'|format(total) }} га</strong></div></div>
     <div class="col-md-4"><div class="card card-body">Під культурами: <strong>{{ '%.2f'|format(planted) }} га</strong></div></div>
