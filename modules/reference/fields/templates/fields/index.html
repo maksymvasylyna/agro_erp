@@ -1,7 +1,7 @@
 {% extends 'reference/_index_base.html' %}
 
 {% block title_text %}Поля{% endblock %}
-{% block header_text %}🌾 Поля{% endblock %}
+{% block header_text %}🌾 Поля{% if season_view and season %} — урожай {{ season.year }}{% endif %}{% endblock %}
 
 <!-- ❌ Повне очищення довідника -->
 <div class="card shadow-sm rounded-2 border-danger mb-4">
@@ -30,6 +30,18 @@
 </div>
 
 {% block filter_form %}
+{% if season_view %}
+  <div class="alert alert-info py-2" role="status" id="reference-season-info">
+    {% if season %}
+      Показані поля, культури та площі <strong>врожаю {{ season.year }}</strong>.
+      Площа поля — фізична площа за сезон; якщо культур кілька, нижче вказано площу кожного посіву.
+      Для редагування сезонних культур і площ користуйся
+      <a href="{{ url_for('seasonal.index') }}">керуванням сезонами</a>.
+    {% else %}
+      Сезони ще не створені. Додай сезон у розділі керування сезонами.
+    {% endif %}
+  </div>
+{% endif %}
 <form method="get" class="d-flex flex-wrap mb-3">
   {{ form.hidden_tag() }}
   <div class="me-2">
@@ -55,30 +67,57 @@
   <th>Назва</th>
   <th>Кластер</th>
   <th>Підприємство</th>
-  <th>Культура</th>
-  <th>Площа</th>
+  <th>{% if season_view %}Культури сезону{% else %}Культура{% endif %}</th>
+  <th>{% if season_view %}Площа поля, га{% else %}Площа{% endif %}</th>
   <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
-  {% for field in items %}
-  <tr>
-    <td>{{ field.id }}</td>
-    <td>{{ field.name }}</td>
-    <td>{{ field.cluster.name if field.cluster else '' }}</td>
-    <td>{{ field.company.name if field.company else '' }}</td>
-    <td>{{ field.culture.name if field.culture else '' }}</td>
-    <td>{{ field.area }}</td>
-    <td>
-      <a href="{{ url_for('fields.edit', id=field.id) }}" class="btn btn-sm btn-primary">✏️</a>
-      <form action="{{ url_for('fields.delete', id=field.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
-        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
-      </form>
-    </td>
-  </tr>
+  {% if season_view %}
+    {% for entry in items %}
+    <tr>
+      <td>{{ entry.field.id }}</td>
+      <td>{{ entry.field.name }}</td>
+      <td>{{ entry.cluster.name if entry.cluster else '—' }}</td>
+      <td>{{ entry.company.name if entry.company else '—' }}</td>
+      <td>
+        {% for planting in entry.plantings|sort(attribute='culture.name') %}
+          <div class="mb-1">
+            {{ planting.culture.name }} — {{ ('%.2f'|format(planting.area))|replace('.', ',') }} га
+          </div>
+        {% else %}
+          <span class="text-muted">Не розподілено</span>
+        {% endfor %}
+      </td>
+      <td class="text-end">{{ ('%.2f'|format(entry.area))|replace('.', ',') }}</td>
+      <td>
+        <a href="{{ url_for('fields.edit', id=entry.field.id) }}"
+           class="btn btn-sm btn-outline-secondary" title="Базова картка поля, не сезонні посіви">Картка</a>
+        <a href="{{ url_for('seasonal.index') }}#season-field-{{ entry.field.id }}"
+           class="btn btn-sm btn-outline-primary" title="Редагувати сезонні культури та площі">Сезон</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">Немає полів за вибраним сезоном або фільтрами.</td></tr>
+    {% endfor %}
   {% else %}
-  <tr>
-    <td colspan="7">Даних немає</td>
-  </tr>
-  {% endfor %}
+    {% for field in items %}
+    <tr>
+      <td>{{ field.id }}</td>
+      <td>{{ field.name }}</td>
+      <td>{{ field.cluster.name if field.cluster else '' }}</td>
+      <td>{{ field.company.name if field.company else '' }}</td>
+      <td>{{ field.culture.name if field.culture else '' }}</td>
+      <td>{{ field.area }}</td>
+      <td>
+        <a href="{{ url_for('fields.edit', id=field.id) }}" class="btn btn-sm btn-primary">✏️</a>
+        <form action="{{ url_for('fields.delete', id=field.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+          <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">Даних немає</td></tr>
+    {% endfor %}
+  {% endif %}
 {% endblock %}
