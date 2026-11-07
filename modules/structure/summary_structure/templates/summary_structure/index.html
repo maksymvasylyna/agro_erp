@@ -12,7 +12,12 @@
   .area-report .grand-total td { background: #d9d9d9 !important; font-weight: 700; }
 </style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary">← Структура</a>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary">← Структура</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-primary" id="summary-main-menu">🏠 Головне меню</a>
+    <a href="{{ url_for('summary_structure.export_pdf', cluster_id=selected_cluster) }}"
+       class="btn btn-success" id="download-summary-pdf" download>Завантажити PDF</a>
+  </div>
   <a href="{{ url_for('fields_structure.index') }}" class="btn btn-outline-primary">Структура по полях</a>
 </div>
 <form method="get" action="{{ url_for('summary_structure.index') }}" class="row align-items-end g-2 mb-3">
