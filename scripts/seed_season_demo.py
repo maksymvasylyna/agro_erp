@@ -91,3 +91,7 @@ if __name__ == "__main__":
         import_history()
     else:
         main()
+
+    if os.getenv("AGROERP_CLUSTER_MAP_JSON"):
+        from assign_staging_clusters import main as assign_clusters
+        assign_clusters()
