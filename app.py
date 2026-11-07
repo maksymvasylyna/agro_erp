@@ -32,6 +32,7 @@ def create_app():
     from modules.reference.cultures.models import Culture
     from modules.reference.companies.models import Company
     from modules.reference.fields.field_models import Field
+    from modules.structure.seasons.models import Season, FieldSeason, FieldPlanting
 
     with app.app_context():
         db.create_all()
