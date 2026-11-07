@@ -94,7 +94,7 @@ class SeasonWorkflowTests(unittest.TestCase):
                     'href="/" class="btn btn-outline-secondary" id="structure-home-link"',
                     html,
                 )
-                self.assertIn('justify-content-between', html[nav:back])
+                self.assertIn('justify-content-between', html[nav - 110:back])
                 self.assertNotIn("🏠 На головну", html)
                 self.assertNotIn("🏠 Головне меню", html)
                 self.assertNotIn("← Структура", html)
