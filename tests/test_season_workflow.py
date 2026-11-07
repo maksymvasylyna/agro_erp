@@ -106,6 +106,118 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertNotIn('id="structure-navigation"', home_html)
         self.assertNotIn('id="structure-home-link"', home_html)
 
+    def test_reference_fields_follow_selected_season_without_mutating_legacy(self):
+        """Reference table must use year-specific field area and ALL crop plantings."""
+        from unittest.mock import patch
+
+        field = db.session.get(Field, self.field_id)
+        company = field.company
+        cluster = field.cluster
+        legacy_area = field.area
+        legacy_culture = field.culture_id
+
+        first = Season(year=2024)
+        second = Season(year=2025)
+        db.session.add_all([first, second])
+        db.session.flush()
+        older = FieldSeason(
+            season_id=first.id, field_id=field.id,
+            company_id=company.id, cluster_id=cluster.id,
+            area=Decimal("80.25"),
+        )
+        newer = FieldSeason(
+            season_id=second.id, field_id=field.id,
+            company_id=company.id, cluster_id=cluster.id,
+            area=Decimal("120.00"),
+        )
+        only_older_field = Field(
+            name="ONLY-2024", is_active=True, company_id=company.id,
+            cluster_id=cluster.id, culture_id=self.culture_a, area=35.00,
+        )
+        db.session.add_all([older, newer, only_older_field])
+        db.session.flush()
+        only_older = FieldSeason(
+            season_id=first.id, field_id=only_older_field.id,
+            company_id=company.id, cluster_id=cluster.id,
+            area=Decimal("35.00"),
+        )
+        db.session.add(only_older)
+        db.session.flush()
+        db.session.add_all([
+            FieldPlanting(field_season_id=older.id, culture_id=self.culture_a,
+                          area=Decimal("60.00")),
+            FieldPlanting(field_season_id=older.id, culture_id=self.culture_b,
+                          area=Decimal("20.25")),
+            FieldPlanting(field_season_id=newer.id, culture_id=self.culture_b,
+                          area=Decimal("120.00")),
+            FieldPlanting(field_season_id=only_older.id, culture_id=self.culture_a,
+                          area=Decimal("35.00")),
+        ])
+        db.session.commit()
+
+        # The production/legacy listing is not changed by the staging feature.
+        legacy_page = self.client.get("/fields")
+        self.assertEqual(legacy_page.status_code, 200)
+        self.assertIn("<td>100.0</td>", legacy_page.get_data(as_text=True))
+
+        with patch.dict(os.environ, {"AGROERP_ENV": "staging"}):
+            response = self.client.get("/seasons/select", query_string={
+                "year": 2024, "next": "/fields"
+            }, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            table = html.split('<tbody class="text-center">', 1)[1].split("</tbody>", 1)[0]
+            self.assertIn("Поля — урожай 2024", html)
+            self.assertIn("60,00 га", table)
+            self.assertIn("20,25 га", table)
+            self.assertIn("80,25", table)
+            self.assertIn("ONLY-2024", table)
+            self.assertEqual(table.count(f'href="/fields/{field.id}/edit"'), 1)
+            self.assertIn(f'#season-field-{field.id}', table)
+            self.assertNotIn("120,00", table)
+
+            # QuerySelectField must filter using seasonal plantings, not Field.culture_id.
+            wheat = self.client.get("/fields", query_string={"culture": self.culture_a})
+            self.assertEqual(wheat.status_code, 200)
+            self.assertIn("TEST-001", wheat.get_data(as_text=True))
+
+            response = self.client.get("/seasons/select", query_string={
+                "year": 2025, "next": "/fields"
+            }, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            table = html.split('<tbody class="text-center">', 1)[1].split("</tbody>", 1)[0]
+            self.assertIn("Поля — урожай 2025", html)
+            self.assertIn("120,00", table)
+            self.assertIn("Соняшник — 120,00 га", table)
+            self.assertNotIn("80,25", table)
+            self.assertNotIn("ONLY-2024", table)
+            self.assertNotIn("Пшениця —", table)
+
+            wheat = self.client.get("/fields", query_string={"culture": self.culture_a})
+            self.assertEqual(wheat.status_code, 200)
+            self.assertIn("Немає полів за вибраним сезоном", wheat.get_data(as_text=True))
+            self.assertNotIn("TEST-001</td>", wheat.get_data(as_text=True))
+
+            # Permanent field editor shows the selected year read-only and cannot
+            # overwrite legacy crop/area while editing metadata.
+            edit = self.client.get(f"/fields/{field.id}/edit")
+            self.assertEqual(edit.status_code, 200)
+            form_html = edit.get_data(as_text=True)
+            self.assertIn('id="permanent-field-notice"', form_html)
+            self.assertIn("120,00 га", form_html)
+            self.assertNotIn('name="area"', form_html)
+            self.assertNotIn('name="culture"', form_html)
+
+            updated = self.client.post(f"/fields/{field.id}/edit", data={
+                "name": "TEST-001",
+                "company": company.id, "cluster": cluster.id
+            })
+            self.assertEqual(updated.status_code, 302)
+            db.session.refresh(field)
+            self.assertEqual(field.area, legacy_area)
+            self.assertEqual(field.culture_id, legacy_culture)
+
     def test_writes_require_login(self):
         response = self.client.post("/seasons/create", data={"new-year": 2026})
         self.assertEqual(response.status_code, 403)
