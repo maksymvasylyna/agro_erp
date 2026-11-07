@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Редагувати посів{% endblock %}
+{% block header %}Редагувати посів — урожай {{ planting.field_season.season.year }}{% endblock %}
+{% block content %}
+<p><strong>Поле:</strong> {{ planting.field_season.field.name }} · <strong>Площа поля:</strong> {{ '%.2f'|format(planting.field_season.area) }} га</p>
+<p class="text-muted">Посівна площа цього поля не може перевищувати його фізичну площу.</p>
+<form method="post" class="card card-body" style="max-width: 540px">
+  {{ form.hidden_tag() }}
+  <div class="mb-3">{{ form.culture_id.label(class="form-label") }}{{ form.culture_id(class="form-select") }}</div>
+  <div class="mb-3">{{ form.area.label(class="form-label") }}{{ form.area(class="form-control") }}</div>
+  <div class="mb-3">{{ form.note.label(class="form-label") }}{{ form.note(class="form-control") }}</div>
+  {{ form.submit(class="btn btn-success") }}
+  <a class="btn btn-outline-secondary mt-2" href="{{ url_for('seasonal.index', year=planting.field_season.season.year) }}">Скасувати</a>
+</form>
+{% endblock %}
