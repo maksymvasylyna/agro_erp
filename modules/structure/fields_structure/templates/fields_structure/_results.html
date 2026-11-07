@@ -1,0 +1,40 @@
+<section id="field-results" aria-live="polite" aria-busy="false">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <span class="text-muted">Знайдено посівів: <strong>{{ count }}</strong></span>
+    <span class="text-muted">Площа вибірки: <strong>{{ '%.2f'|format(total_area) }} га</strong></span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Поле</th>
+          <th scope="col">Кластер</th>
+          <th scope="col">Підприємство</th>
+          <th scope="col">Культура</th>
+          <th scope="col" class="text-end">Площа посіву, га</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in items %}
+          <tr>
+            <td>{{ row.field_season.field.name }}</td>
+            <td>{{ row.field_season.cluster.name }}</td>
+            <td>{{ row.field_season.company.name }}</td>
+            <td>{{ row.culture.name }}</td>
+            <td class="text-end">{{ '%.2f'|format(row.area) }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">За вибраними фільтрами посівів немає.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="4" class="text-end">Разом посівів</th>
+          <th class="text-end">{{ '%.2f'|format(total_area) }}</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
