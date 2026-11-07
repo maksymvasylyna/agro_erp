@@ -140,12 +140,13 @@ class SeasonWorkflowTests(unittest.TestCase):
         summary = self.client.get(target)
         self.assertEqual(summary.status_code, 200)
         text = summary.get_data(as_text=True)
-        self.assertIn("Зведена площа за підприємствами та роками", text)
-        self.assertIn("2024", text)
-        self.assertIn("2025", text)
+        self.assertIn("Структура посівів за культурами — урожай 2024", text)
+        self.assertIn('scope="col">Пшениця</th>', text)
+        self.assertNotIn('scope="col">Соняшник</th>', text)
         self.assertIn("100,00", text)
-        self.assertIn("90,00", text)
-        self.assertNotIn("Структура по полях — урожай", text)
+        self.assertNotIn("90,00", text)
+        self.assertNotIn("Зведена площа за підприємствами та роками", text)
+        self.assertNotIn("<details", text)
 
         next_year = self.client.get(
             "/seasons/select", query_string={"year": 2025, "next": target},
@@ -153,8 +154,12 @@ class SeasonWorkflowTests(unittest.TestCase):
         )
         self.assertEqual(next_year.status_code, 200)
         text = next_year.get_data(as_text=True)
-        self.assertIn("Зведена площа за підприємствами та роками", text)
-        self.assertIn("Вибраний сезон 2025", text)
+        self.assertIn("Структура посівів за культурами — урожай 2025", text)
+        self.assertIn('scope="col">Соняшник</th>', text)
+        self.assertNotIn('scope="col">Пшениця</th>', text)
+        self.assertIn("90,00", text)
+        self.assertNotIn("100,00", text)
+        self.assertNotIn("<details", text)
 
     def test_season_redirect_rejects_external_urls(self):
         db.session.add(Season(year=2026))
