@@ -8,6 +8,12 @@
 </head>
 <body>
   <div class="container mt-4">
+    {# Unified top-left return link for every Structure and Seasons page. #}
+    {% if request.blueprint in ['structure', 'fields_structure', 'summary_structure', 'seasonal'] %}
+      <div class="mb-3">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary" id="structure-home-link">До головного меню</a>
+      </div>
+    {% endif %}
     <h1 class="text-success mb-3">{% block header %}Agro ERP{% endblock %}</h1>
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
       <form method="get" action="{{ url_for('seasonal.select') }}" class="d-flex align-items-center gap-2">
