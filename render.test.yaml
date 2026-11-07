@@ -1,0 +1,32 @@
+# ISOLATED TEST ENVIRONMENT ONLY.
+# This file is intentionally separate from the production render.yaml.
+databases:
+  - name: agro-erp-test-db
+    databaseName: agro_erp_test
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: agro-erp-test
+    runtime: python
+    plan: free
+    region: oregon
+    repo: https://github.com/maksymvasylyna/agro_erp
+    branch: feature/seasonal-structure-v1
+    autoDeployTrigger: off
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -p "test_season_workflow.py" -v
+    startCommand: python scripts/seed_season_demo.py && gunicorn wsgi:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agro-erp-test-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SEASON_ADMIN_PASSWORD
+        generateValue: true
+      - key: AGROERP_ENV
+        value: staging
+      - key: ALLOW_SEED_DEMO
+        value: yes
