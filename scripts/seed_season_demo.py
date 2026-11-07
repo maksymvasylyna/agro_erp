@@ -4,6 +4,12 @@ This script is idempotent. It refuses to run unless the target database is
 explicitly the demo database, and never imports real data.
 """
 import os
+import sys
+from pathlib import Path
+
+# When launched as python scripts/seed_season_demo.py, add repo root for app import.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from decimal import Decimal
 from urllib.parse import urlparse
 
