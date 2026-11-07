@@ -350,6 +350,8 @@ class SeasonWorkflowTests(unittest.TestCase):
 
         # UI reset/export controls are present beside the field table.
         self.assertIn('id="reset-all-filters"', html)
+        self.assertIn('id="back-to-main-menu"', html)
+        self.assertIn('href="/">🏠 Головне меню</a>', html)
         self.assertIn('id="download-fields-pdf"', html)
         self.assertIn("Скинути всі фільтри", html)
 
