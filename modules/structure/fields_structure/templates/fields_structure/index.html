@@ -2,29 +2,165 @@
 {% block title %}Структура по полях{% endblock %}
 {% block header %}🌾 Структура по полях — урожай {{ season.year if season else '—' }}{% endblock %}
 {% block content %}
+<style>
+  .field-filter .dropdown-menu {
+    min-width: 265px;
+    max-width: min(360px, 92vw);
+    max-height: 340px;
+    overflow-y: auto;
+    z-index: 1100;
+  }
+  .field-filter .dropdown-toggle {
+    min-width: 205px;
+    text-align: left;
+  }
+  .field-filter .filter-option:hover {
+    background-color: #f0f5f3;
+  }
+  .field-filter .filter-option {
+    border-radius: 0.3rem;
+    cursor: pointer;
+  }
+  .field-filter .form-check-input { cursor: pointer; }
+  .field-filter .filter-option .form-check-label { cursor: pointer; }
+  .field-filter .filter-option-group { border-top: 1px solid #dee2e6; }
+</style>
 <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary mb-3">← Назад</a>
-<form method="get" class="row g-2 mb-3">
-  {{ filter_form.hidden_tag() }}
-  <div class="col-md-3">{{ filter_form.cluster.label }}{{ filter_form.cluster(class="form-select") }}</div>
-  <div class="col-md-3">{{ filter_form.company.label }}{{ filter_form.company(class="form-select") }}</div>
-  <div class="col-md-3">{{ filter_form.culture.label }}{{ filter_form.culture(class="form-select") }}</div>
-  <div class="col-md-3 align-self-end">{{ filter_form.submit(class="btn btn-success") }}</div>
+
+<form method="get" action="{{ url_for('fields_structure.index') }}"
+      id="field-filter-form" class="d-flex flex-wrap align-items-end gap-3 mb-3" autocomplete="off">
+  {% for key, title in [('clusters', 'Кластери'), ('companies', 'Підприємства'), ('cultures', 'Культури')] %}
+  {% set entries = options[key] %}
+  {% set chosen = checked[key] %}
+  <div class="field-filter dropdown" data-filter-key="{{ key }}">
+    <label class="form-label mb-1 d-block" for="filter-button-{{ key }}">{{ title }}</label>
+    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center justify-content-between gap-2"
+            type="button" id="filter-button-{{ key }}" data-bs-toggle="dropdown"
+            data-bs-auto-close="outside" aria-expanded="false" {% if not entries %}disabled{% endif %}>
+      <span data-selection-label>
+        {% if chosen|length == entries|length %}Усі
+        {% elif chosen|length == 0 %}Нічого не обрано
+        {% else %}Обрано {{ chosen|length }} із {{ entries|length }}{% endif %}
+      </span>
+    </button>
+    <div class="dropdown-menu p-3 shadow-sm" aria-labelledby="filter-button-{{ key }}">
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="filter-{{ key }}-all"
+               data-select-all {% if chosen|length == entries|length %}checked{% endif %}>
+        <label class="form-check-label fw-semibold" for="filter-{{ key }}-all">Обрати все</label>
+      </div>
+      <div class="filter-option-group pt-2">
+      {% for entry in entries %}
+        <div class="form-check filter-option p-1 ps-4">
+          <input class="form-check-input" type="checkbox" name="{{ key }}" value="{{ entry.id }}"
+                 id="filter-{{ key }}-{{ entry.id }}" data-filter-option
+                 {% if entry.id in chosen %}checked{% endif %}>
+          <label class="form-check-label d-block" for="filter-{{ key }}-{{ entry.id }}">{{ entry.name }}</label>
+        </div>
+      {% else %}
+        <div class="text-muted small">У цьому сезоні варіантів немає.</div>
+      {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <span class="text-muted small pb-2" id="filter-status" role="status" aria-live="polite"></span>
 </form>
-<div class="table-responsive">
-  <table class="table table-bordered table-striped table-hover align-middle">
-    <thead><tr><th>Поле</th><th>Кластер</th><th>Підприємство</th><th>Культура</th><th class="text-end">Площа посіву, га</th></tr></thead>
-    <tbody>
-      {% for row in items %}
-      <tr>
-        <td>{{ row.field_season.field.name }}</td>
-        <td>{{ row.field_season.cluster.name }}</td>
-        <td>{{ row.field_season.company.name }}</td>
-        <td>{{ row.culture.name }}</td>
-        <td class="text-end">{{ '%.2f'|format(row.area) }}</td>
-      </tr>
-      {% else %}<tr><td colspan="5" class="text-center text-muted">Немає посівів для обраного сезону.</td></tr>{% endfor %}
-    </tbody>
-    <tfoot><tr><th colspan="4" class="text-end">Разом посівів</th><th class="text-end">{{ '%.2f'|format(total_area) }}</th></tr></tfoot>
-  </table>
-</div>
+<noscript><p class="text-muted small">Для автоматичного оновлення фільтрів увімкни JavaScript у браузері.</p></noscript>
+{% include 'fields_structure/_results.html' %}
+
+<script>
+(function () {
+  "use strict";
+  const form = document.getElementById("field-filter-form");
+  const status = document.getElementById("filter-status");
+  if (!form) return;
+
+  const groups = Array.from(form.querySelectorAll("[data-filter-key]"));
+  let controller = null;
+  let revision = 0;
+
+  function optionsFor(group) {
+    return Array.from(group.querySelectorAll("[data-filter-option]"));
+  }
+
+  function refreshLabel(group) {
+    const entries = optionsFor(group);
+    const chosen = entries.filter(entry => entry.checked).length;
+    const all = group.querySelector("[data-select-all]");
+    const label = group.querySelector("[data-selection-label]");
+    all.checked = entries.length > 0 && chosen === entries.length;
+    all.indeterminate = chosen > 0 && chosen < entries.length;
+    if (chosen === entries.length) {
+      label.textContent = "Усі";
+    } else if (chosen === 0) {
+      label.textContent = "Нічого не обрано";
+    } else {
+      label.textContent = "Обрано " + chosen + " із " + entries.length;
+    }
+  }
+
+  function urlForSelection() {
+    const target = new URL(form.action, window.location.href);
+    for (const group of groups) {
+      const key = group.dataset.filterKey;
+      const entries = optionsFor(group);
+      const chosen = entries.filter(entry => entry.checked);
+      if (chosen.length === entries.length) continue; // all = no restriction
+      if (!chosen.length) {
+        target.searchParams.append(key, "__none__"); // explicit empty selection
+      } else {
+        chosen.forEach(entry => target.searchParams.append(key, entry.value));
+      }
+    }
+    return target;
+  }
+
+  async function updateResults() {
+    const target = urlForSelection();
+    if (controller) controller.abort();
+    controller = new AbortController();
+    const current = ++revision;
+    status.textContent = "Оновлення…";
+    try {
+      const response = await fetch(target.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {"X-Requested-With": "XMLHttpRequest"},
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const markup = await response.text();
+      if (current !== revision) return;
+      const fragment = new DOMParser().parseFromString(markup, "text/html");
+      const next = fragment.querySelector("#field-results");
+      const currentTable = document.getElementById("field-results");
+      if (!next || !currentTable) throw new Error("Table response missing");
+      currentTable.replaceWith(next);
+      window.history.replaceState(null, "", target.pathname + target.search);
+      status.textContent = "";
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      status.textContent = "Помилка оновлення — відкриваємо результати.";
+      window.location.assign(target.toString());
+    }
+  }
+
+  form.addEventListener("change", function (event) {
+    const group = event.target.closest("[data-filter-key]");
+    if (!group) return;
+    if (event.target.matches("[data-select-all]")) {
+      const checked = event.target.checked;
+      optionsFor(group).forEach(input => { input.checked = checked; });
+    }
+    refreshLabel(group);
+    updateResults();
+  });
+
+  groups.forEach(refreshLabel);
+
+  // Preserve a URL with checkbox filters when returning via browser history.
+  window.addEventListener("popstate", () => window.location.reload());
+})();
+</script>
 {% endblock %}
