@@ -161,6 +161,106 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertNotIn("100,00", text)
         self.assertNotIn("<details", text)
 
+    def test_fields_multi_filters_combine_or_within_and_across_dimensions(self):
+        """Two clusters, multiple companies and crops, and split-field hectares."""
+        from urllib.parse import urlencode
+
+        cluster_a = Cluster.query.one()
+        company_a = Company.query.one()
+        cluster_b = Cluster(name="Інший кластер")
+        db.session.add(cluster_b)
+        db.session.flush()
+        company_b = Company(name="Підприємство Б", cluster_id=cluster_b.id)
+        company_c = Company(name="Підприємство В", cluster_id=cluster_a.id)
+        company_d = Company(name="Підприємство Г", cluster_id=cluster_b.id)
+        db.session.add_all([company_b, company_c, company_d])
+        db.session.flush()
+
+        season = Season(year=2026)
+        db.session.add(season)
+        db.session.flush()
+
+        def add_field(code, company, cluster, area, crops):
+            field = Field(name=code, company_id=company.id,
+                          cluster_id=cluster.id, area=float(area),
+                          is_active=True, culture_id=crops[0][0])
+            db.session.add(field)
+            db.session.flush()
+            fs = FieldSeason(season_id=season.id, field_id=field.id,
+                             company_id=company.id, cluster_id=cluster.id,
+                             area=Decimal(str(area)))
+            db.session.add(fs)
+            db.session.flush()
+            for crop, ha in crops:
+                db.session.add(FieldPlanting(field_season_id=fs.id,
+                                             culture_id=crop, area=Decimal(str(ha))))
+
+        add_field("A", company_a, cluster_a, 100,
+                  [(self.culture_a, 40), (self.culture_b, 60)])
+        add_field("B", company_b, cluster_b, 75,
+                  [(self.culture_a, 50), (self.culture_b, 25)])
+        add_field("C", company_c, cluster_a, 35, [(self.culture_b, 35)])
+        add_field("D", company_d, cluster_b, 15, [(self.culture_a, 15)])
+        db.session.commit()
+
+        # Default is all values, including multiple crop rows on a split field.
+        all_response = self.client.get("/structure/fields")
+        html = all_response.get_data(as_text=True)
+        self.assertEqual(all_response.status_code, 200)
+        self.assertIn("Знайдено посівів: <strong>6</strong>", html)
+        self.assertIn("225.00 га", html)
+        self.assertIn("Обрати все", html)
+        self.assertIn('data-filter-key="clusters"', html)
+        self.assertIn('data-filter-key="companies"', html)
+        self.assertIn('data-filter-key="cultures"', html)
+        self.assertNotIn("Фільтрувати</button>", html)
+
+        # OR inside companies; AND with culture; independent of cluster.
+        query = [
+            ("companies", str(company_a.id)),
+            ("companies", str(company_b.id)),
+            ("cultures", str(self.culture_a)),
+        ]
+        response = self.client.get("/structure/fields", query_string=query)
+        text = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Знайдено посівів: <strong>2</strong>", text)
+        self.assertIn("90.00 га", text)
+        self.assertNotIn("225.00 га", text)
+
+        # Add one cluster: only company A remains selected.
+        query.append(("clusters", str(cluster_a.id)))
+        response = self.client.get("/structure/fields", query_string=query)
+        self.assertIn("40.00 га", response.get_data(as_text=True))
+        self.assertIn("Знайдено посівів: <strong>1</strong>",
+                      response.get_data(as_text=True))
+
+        # Two cultures selected explicitly are equivalent to all crops.
+        both_crops = self.client.get("/structure/fields", query_string=[
+            ("cultures", str(self.culture_a)),
+            ("cultures", str(self.culture_b)),
+        ])
+        self.assertIn("225.00 га", both_crops.get_data(as_text=True))
+
+        # Explicit zero or an invalid id must never mean 'all'.
+        for value in ("__none__", "9999999999", "not-a-number"):
+            response = self.client.get("/structure/fields", query_string={
+                "cultures": value
+            })
+            self.assertIn("Знайдено посівів: <strong>0</strong>",
+                          response.get_data(as_text=True))
+
+        # AJAX returns only the live-updated table, not a full page.
+        response = self.client.get(
+            "/structure/fields", query_string=query,
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        markup = response.get_data(as_text=True)
+        self.assertIn('id="field-results"', markup)
+        self.assertNotIn("<html", markup)
+        self.assertIn("40.00 га", markup)
+
     def test_season_redirect_rejects_external_urls(self):
         db.session.add(Season(year=2026))
         db.session.commit()
