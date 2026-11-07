@@ -109,6 +109,64 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertEqual(self.client.post("/seasons/2027/copy").status_code, 409)
         self.assertEqual(FieldSeason.query.count(), 2)
 
+    def test_summary_year_switch_keeps_report_layout_and_filters(self):
+        self.login()
+        for year in (2024, 2025):
+            self.assertEqual(self.client.post(
+                "/seasons/create", data={"new-year": year}
+            ).status_code, 302)
+        for year, area, crop in (
+            (2024, "100.00", self.culture_a),
+            (2025, "90.00", self.culture_b),
+        ):
+            self.client.post(
+                f"/seasons/{year}/fields",
+                data={"field-field_id": self.field_id, "field-area": area},
+            )
+            field_season = FieldSeason.query.join(Season).filter(Season.year == year).one()
+            self.client.post(
+                f"/seasons/fields/{field_season.id}/plantings",
+                data={"plant-culture_id": crop, "plant-area": area},
+            )
+
+        cluster_id = Cluster.query.one().id
+        target = f"/summary_structure/?cluster_id={cluster_id}"
+        change = self.client.get(
+            "/seasons/select", query_string={"year": 2024, "next": target}
+        )
+        self.assertEqual(change.status_code, 302)
+        self.assertEqual(change.location, target)
+
+        summary = self.client.get(target)
+        self.assertEqual(summary.status_code, 200)
+        text = summary.get_data(as_text=True)
+        self.assertIn("Зведена площа за підприємствами та роками", text)
+        self.assertIn("2024", text)
+        self.assertIn("2025", text)
+        self.assertIn("100,00", text)
+        self.assertIn("90,00", text)
+        self.assertNotIn("Структура по полях — урожай", text)
+
+        next_year = self.client.get(
+            "/seasons/select", query_string={"year": 2025, "next": target},
+            follow_redirects=True,
+        )
+        self.assertEqual(next_year.status_code, 200)
+        text = next_year.get_data(as_text=True)
+        self.assertIn("Зведена площа за підприємствами та роками", text)
+        self.assertIn("Вибраний сезон 2025", text)
+
+    def test_season_redirect_rejects_external_urls(self):
+        db.session.add(Season(year=2026))
+        db.session.commit()
+        response = self.client.get(
+            "/seasons/select", query_string={
+                "year": 2026, "next": "https://example.com/fake"
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/seasons/"))
+
 
 if __name__ == "__main__":
     unittest.main()
