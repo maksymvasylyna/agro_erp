@@ -321,6 +321,38 @@ class SeasonWorkflowTests(unittest.TestCase):
         invalid = self.client.get("/structure/fields?area_min=not-a-number")
         self.assertEqual(invalid.status_code, 400)
 
+        # The PDF endpoint shares the same year, cascading selections and area range.
+        pdf_all = self.client.get("/structure/fields/pdf")
+        self.assertEqual(pdf_all.status_code, 200)
+        self.assertEqual(pdf_all.mimetype, "application/pdf")
+        self.assertTrue(pdf_all.data.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_all.data), 4000)
+        self.assertIn("struktura_poliv_2026.pdf", pdf_all.headers["Content-Disposition"])
+        self.assertIn("no-store", pdf_all.headers.get("Cache-Control", ""))
+
+        pdf_filtered = self.client.get("/structure/fields/pdf", query_string=[
+            ("clusters", str(cluster_a.id)),
+            ("companies", str(company_a.id)),
+            ("cultures", str(self.culture_a)),
+            ("area_min", "30"),
+            ("area_max", "50"),
+        ])
+        self.assertEqual(pdf_filtered.status_code, 200)
+        self.assertTrue(pdf_filtered.data.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_filtered.data), 3000)
+
+        pdf_empty = self.client.get("/structure/fields/pdf?clusters=__none__")
+        self.assertEqual(pdf_empty.status_code, 200)
+        self.assertTrue(pdf_empty.data.startswith(b"%PDF-"))
+        self.assertEqual(
+            self.client.get("/structure/fields/pdf?area_min=bad").status_code, 400
+        )
+
+        # UI reset/export controls are present beside the field table.
+        self.assertIn('id="reset-all-filters"', html)
+        self.assertIn('id="download-fields-pdf"', html)
+        self.assertIn("Скинути всі фільтри", html)
+
     def test_season_redirect_rejects_external_urls(self):
         db.session.add(Season(year=2026))
         db.session.commit()
