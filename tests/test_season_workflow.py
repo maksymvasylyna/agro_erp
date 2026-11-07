@@ -52,6 +52,16 @@ class SeasonWorkflowTests(unittest.TestCase):
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
+    def test_structure_menu_contains_only_main_reports(self):
+        response = self.client.get("/structure")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Структура по полях", html)
+        self.assertIn("Загальна структура", html)
+        self.assertNotIn("🌱 Сезони та посівна структура", html)
+        # Editing seasons remains accessible from the global navigation.
+        self.assertIn("Керувати сезонами", html)
+
     def test_writes_require_login(self):
         response = self.client.post("/seasons/create", data={"new-year": 2026})
         self.assertEqual(response.status_code, 403)
