@@ -3,164 +3,309 @@
 {% block header %}🌾 Структура по полях — урожай {{ season.year if season else '—' }}{% endblock %}
 {% block content %}
 <style>
-  .field-filter .dropdown-menu {
-    min-width: 265px;
-    max-width: min(360px, 92vw);
-    max-height: 340px;
-    overflow-y: auto;
-    z-index: 1100;
+  .field-column-filter { min-width: 144px; }
+  .column-filter-button {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    gap: .35rem; text-align: left; white-space: nowrap; font-weight: 500;
   }
-  .field-filter .dropdown-toggle {
-    min-width: 205px;
-    text-align: left;
+  .filter-controls-row th { background: #f3f6fa; padding: .6rem !important; vertical-align: middle; }
+  .field-column-titles th { white-space: nowrap; font-weight: 700; }
+  .field-filter-panel {
+    position: fixed; z-index: 1200; padding: .9rem; background: #fff;
+    border: 1px solid #ccd6e0; border-radius: .55rem; max-height: calc(100vh - 18px);
+    overflow-y: auto; color: #222; min-width: 230px; box-sizing: border-box;
   }
-  .field-filter .filter-option:hover {
-    background-color: #f0f5f3;
-  }
-  .field-filter .filter-option {
-    border-radius: 0.3rem;
-    cursor: pointer;
-  }
-  .field-filter .form-check-input { cursor: pointer; }
-  .field-filter .filter-option .form-check-label { cursor: pointer; }
-  .field-filter .filter-option-group { border-top: 1px solid #dee2e6; }
+  .field-filter-panel[hidden] { display: none !important; }
+  .filter-select-all { padding-bottom: .5rem; border-bottom: 1px solid #d8dee6; cursor: pointer; }
+  .filter-options-list { overflow-y: auto; max-height: 270px; }
+  .filter-item { display: flex; border-radius: .2rem; padding: .3rem .25rem; cursor: pointer; font-weight: 400; }
+  .filter-item:hover { background-color: #eef5f2; }
+  .filter-item .form-check-input { flex: 0 0 auto; cursor: pointer; }
+  .filter-item span { overflow-wrap: anywhere; }
+  #field-table { font-variant-numeric: tabular-nums; }
+  #field-table .text-end { white-space: nowrap; }
 </style>
-<a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary mb-3">← Назад</a>
 
-<form method="get" action="{{ url_for('fields_structure.index') }}"
-      id="field-filter-form" class="d-flex flex-wrap align-items-end gap-3 mb-3" autocomplete="off">
-  {% for key, title in [('clusters', 'Кластери'), ('companies', 'Підприємства'), ('cultures', 'Культури')] %}
-  {% set entries = options[key] %}
-  {% set chosen = checked[key] %}
-  <div class="field-filter dropdown" data-filter-key="{{ key }}">
-    <label class="form-label mb-1 d-block" for="filter-button-{{ key }}">{{ title }}</label>
-    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center justify-content-between gap-2"
-            type="button" id="filter-button-{{ key }}" data-bs-toggle="dropdown"
-            data-bs-auto-close="outside" aria-expanded="false" {% if not entries %}disabled{% endif %}>
-      <span data-selection-label>
-        {% if chosen|length == entries|length %}Усі
-        {% elif chosen|length == 0 %}Нічого не обрано
-        {% else %}Обрано {{ chosen|length }} із {{ entries|length }}{% endif %}
-      </span>
-    </button>
-    <div class="dropdown-menu p-3 shadow-sm" aria-labelledby="filter-button-{{ key }}">
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="checkbox" id="filter-{{ key }}-all"
-               data-select-all {% if chosen|length == entries|length %}checked{% endif %}>
-        <label class="form-check-label fw-semibold" for="filter-{{ key }}-all">Обрати все</label>
-      </div>
-      <div class="filter-option-group pt-2">
-      {% for entry in entries %}
-        <div class="form-check filter-option p-1 ps-4">
-          <input class="form-check-input" type="checkbox" name="{{ key }}" value="{{ entry.id }}"
-                 id="filter-{{ key }}-{{ entry.id }}" data-filter-option
-                 {% if entry.id in chosen %}checked{% endif %}>
-          <label class="form-check-label d-block" for="filter-{{ key }}-{{ entry.id }}">{{ entry.name }}</label>
-        </div>
-      {% else %}
-        <div class="text-muted small">У цьому сезоні варіантів немає.</div>
-      {% endfor %}
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-  <span class="text-muted small pb-2" id="filter-status" role="status" aria-live="polite"></span>
-</form>
-<noscript><p class="text-muted small">Для автоматичного оновлення фільтрів увімкни JavaScript у браузері.</p></noscript>
-{% include 'fields_structure/_results.html' %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <a href="{{ url_for('structure.index') }}" class="btn btn-outline-secondary">← Назад</a>
+  <span id="filter-status" class="text-muted small" role="status" aria-live="polite"></span>
+</div>
+<p class="small text-muted mb-2">Фільтри розташовані над назвами колонок. Значення наступних фільтрів залежать від попереднього вибору. Зміни застосовуються автоматично.</p>
+<noscript><p class="text-danger">Для динамічної фільтрації потрібно увімкнути JavaScript.</p></noscript>
+
+{% include "fields_structure/_results.html" %}
 
 <script>
 (function () {
   "use strict";
-  const form = document.getElementById("field-filter-form");
+
+  const filterKeys = ["clusters", "companies", "cultures", "fields"];
+  const keys = [...filterKeys, "area"];
   const status = document.getElementById("filter-status");
-  if (!form) return;
+  const endpoint = {{ url_for('fields_structure.index')|tojson }};
+  const panels = {};
+  const triggers = {};
+  let activeKey = null;
+  let fetchController = null;
+  let requestSerial = 0;
+  let areaTimer = null;
 
-  const groups = Array.from(form.querySelectorAll("[data-filter-key]"));
-  let controller = null;
-  let revision = 0;
+  keys.forEach(function (key) {
+    const button = document.querySelector('[data-filter-trigger="' + key + '"]');
+    const panel = document.querySelector('[data-filter-panel="' + key + '"]');
+    if (!button || !panel) return;
+    triggers[key] = button;
+    panels[key] = panel;
+    // Portal to body: menus are not clipped by a horizontally scrolling table.
+    document.body.appendChild(panel);
+    panel.hidden = true;
+    button.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (activeKey === key) {
+        closePanel();
+      } else {
+        closePanel();
+        activeKey = key;
+        panel.hidden = false;
+        button.setAttribute("aria-expanded", "true");
+        positionPanel(key);
+      }
+    });
+  });
 
-  function optionsFor(group) {
-    return Array.from(group.querySelectorAll("[data-filter-option]"));
+  function closePanel() {
+    if (activeKey && panels[activeKey]) {
+      panels[activeKey].hidden = true;
+      triggers[activeKey].setAttribute("aria-expanded", "false");
+    }
+    activeKey = null;
   }
 
-  function refreshLabel(group) {
-    const entries = optionsFor(group);
-    const chosen = entries.filter(entry => entry.checked).length;
-    const all = group.querySelector("[data-select-all]");
-    const label = group.querySelector("[data-selection-label]");
-    all.checked = entries.length > 0 && chosen === entries.length;
-    all.indeterminate = chosen > 0 && chosen < entries.length;
-    if (chosen === entries.length) {
+  function positionPanel(key) {
+    const panel = panels[key];
+    const button = triggers[key];
+    if (!panel || !button || panel.hidden) return;
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(key === "fields" ? 360 : 310, window.innerWidth - 16);
+    panel.style.width = Math.max(220, width) + "px";
+    const height = panel.getBoundingClientRect().height;
+    let top = rect.bottom + 5;
+    if (top + height > window.innerHeight - 8 && rect.top > height + 8) {
+      top = rect.top - height - 5;
+    }
+    top = Math.max(8, Math.min(top, window.innerHeight - height - 8));
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+    panel.style.top = top + "px";
+    panel.style.left = left + "px";
+  }
+
+  document.addEventListener("click", function (event) {
+    if (activeKey && !panels[activeKey].contains(event.target) &&
+        !triggers[activeKey].contains(event.target)) {
+      closePanel();
+    }
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && activeKey) {
+      const previous = activeKey;
+      closePanel();
+      triggers[previous].focus();
+    }
+  });
+  window.addEventListener("resize", function () { if (activeKey) positionPanel(activeKey); });
+  window.addEventListener("scroll", function () { if (activeKey) positionPanel(activeKey); }, {passive: true});
+  const tableWrap = document.querySelector("#field-results .table-responsive");
+  if (tableWrap) tableWrap.addEventListener("scroll", function () {
+    if (activeKey) positionPanel(activeKey);
+  }, {passive: true});
+
+  function choicesFor(key) {
+    return Array.from(panels[key].querySelectorAll("[data-filter-option]"));
+  }
+
+  function updateLabel(key) {
+    const choices = choicesFor(key);
+    const count = choices.filter(function (input) { return input.checked; }).length;
+    const all = panels[key].querySelector("[data-select-all]");
+    const label = triggers[key].querySelector("[data-selection-label]");
+    all.checked = choices.length > 0 && count === choices.length;
+    all.indeterminate = count > 0 && count < choices.length;
+    all.disabled = choices.length === 0;
+    if (count === choices.length) {
       label.textContent = "Усі";
-    } else if (chosen === 0) {
+    } else if (count === 0) {
       label.textContent = "Нічого не обрано";
     } else {
-      label.textContent = "Обрано " + chosen + " із " + entries.length;
+      label.textContent = "Обрано " + count + " із " + choices.length;
     }
+    triggers[key].disabled = choices.length === 0;
   }
 
-  function urlForSelection() {
-    const target = new URL(form.action, window.location.href);
-    for (const group of groups) {
-      const key = group.dataset.filterKey;
-      const entries = optionsFor(group);
-      const chosen = entries.filter(entry => entry.checked);
-      if (chosen.length === entries.length) continue; // all = no restriction
-      if (!chosen.length) {
-        target.searchParams.append(key, "__none__"); // explicit empty selection
+  function searchOptions(key) {
+    const search = panels[key].querySelector("[data-filter-search]");
+    const term = (search.value || "").trim().toLocaleLowerCase("uk");
+    choicesFor(key).forEach(function (input) {
+      const item = input.closest(".filter-item");
+      item.hidden = !item.textContent.toLocaleLowerCase("uk").includes(term);
+    });
+  }
+
+  function renderFacet(key, entries, selected) {
+    const list = panels[key].querySelector("[data-filter-options]");
+    const selectedIds = new Set((selected || []).map(String));
+    const preservedSearch = panels[key].querySelector("[data-filter-search]").value;
+    list.replaceChildren();
+
+    if (!entries.length) {
+      const empty = document.createElement("span");
+      empty.className = "small text-muted";
+      empty.textContent = "Немає доступних варіантів.";
+      list.appendChild(empty);
+    }
+
+    entries.forEach(function (entry) {
+      const label = document.createElement("label");
+      label.className = "filter-item d-flex align-items-center gap-2";
+      const input = document.createElement("input");
+      input.className = "form-check-input mt-0";
+      input.type = "checkbox";
+      input.name = key;
+      input.value = String(entry.id);
+      input.dataset.filterOption = "";
+      input.checked = selectedIds.has(String(entry.id));
+      const name = document.createElement("span");
+      name.textContent = entry.name;
+      label.append(input, name);
+      list.appendChild(label);
+    });
+
+    panels[key].querySelector("[data-filter-search]").value = preservedSearch;
+    updateLabel(key);
+    searchOptions(key);
+    if (activeKey === key) positionPanel(key);
+  }
+
+  function areaInputs() {
+    return {
+      min: panels.area.querySelector("[data-area-min]"),
+      max: panels.area.querySelector("[data-area-max]")
+    };
+  }
+
+  function updateAreaLabel() {
+    const area = areaInputs();
+    triggers.area.querySelector("[data-area-label]").textContent =
+      (area.min.value || area.max.value) ? "Діапазон" : "Уся площа";
+  }
+
+  function buildURL(changedFilter) {
+    const target = new URL(endpoint, window.location.href);
+    const resetAfter = filterKeys.indexOf(changedFilter);
+    for (let i = 0; i < filterKeys.length; i++) {
+      const key = filterKeys[i];
+      // Upstream change clears dependent filters, so options are rebuilt
+      // from the narrowed selection rather than stale checkbox values.
+      if (resetAfter !== -1 && i > resetAfter) continue;
+      const inputs = choicesFor(key);
+      const checked = inputs.filter(function (item) { return item.checked; });
+      if (checked.length === inputs.length) continue;
+      if (!checked.length) {
+        target.searchParams.append(key, "__none__");
       } else {
-        chosen.forEach(entry => target.searchParams.append(key, entry.value));
+        checked.forEach(function (item) {
+          target.searchParams.append(key, item.value);
+        });
       }
     }
+    const area = areaInputs();
+    if (area.min.value !== "") target.searchParams.set("area_min", area.min.value);
+    if (area.max.value !== "") target.searchParams.set("area_max", area.max.value);
     return target;
   }
 
-  async function updateResults() {
-    const target = urlForSelection();
-    if (controller) controller.abort();
-    controller = new AbortController();
-    const current = ++revision;
-    status.textContent = "Оновлення…";
+  async function updateResults(changedFilter) {
+    const url = buildURL(changedFilter);
+    if (fetchController) fetchController.abort();
+    fetchController = new AbortController();
+    const thisRequest = ++requestSerial;
+    status.textContent = "Оновлюємо вибірку…";
+
     try {
-      const response = await fetch(target.toString(), {
-        method: "GET",
-        credentials: "same-origin",
-        headers: {"X-Requested-With": "XMLHttpRequest"},
-        signal: controller.signal
+      const response = await fetch(url.toString(), {
+        method: "GET", credentials: "same-origin",
+        headers: {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        signal: fetchController.signal
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
-      const markup = await response.text();
-      if (current !== revision) return;
-      const fragment = new DOMParser().parseFromString(markup, "text/html");
-      const next = fragment.querySelector("#field-results");
-      const currentTable = document.getElementById("field-results");
-      if (!next || !currentTable) throw new Error("Table response missing");
-      currentTable.replaceWith(next);
-      window.history.replaceState(null, "", target.pathname + target.search);
+      const data = await response.json();
+      if (thisRequest !== requestSerial) return;
+
+      const parsed = new DOMParser().parseFromString(data.html, "text/html");
+      for (const id of ["field-summary", "field-table-body", "field-table-footer"]) {
+        const oldNode = document.getElementById(id);
+        const newNode = parsed.getElementById(id);
+        if (!oldNode || !newNode) throw new Error("Missing result fragment: " + id);
+        oldNode.replaceWith(newNode);
+      }
+
+      for (const key of filterKeys) {
+        renderFacet(key, data.options[key] || [], data.checked[key] || []);
+      }
+      updateAreaLabel();
+      const canonicalURL = buildURL();
+      window.history.replaceState(null, "", canonicalURL.pathname + canonicalURL.search);
       status.textContent = "";
     } catch (error) {
       if (error.name === "AbortError") return;
-      status.textContent = "Помилка оновлення — відкриваємо результати.";
-      window.location.assign(target.toString());
+      status.textContent = "Не вдалося оновити таблицю. Відкриваємо результати…";
+      window.location.assign(url.toString());
     }
   }
 
-  form.addEventListener("change", function (event) {
-    const group = event.target.closest("[data-filter-key]");
-    if (!group) return;
+  document.addEventListener("change", function (event) {
+    const panel = event.target.closest("[data-filter-panel]");
+    if (!panel || panel.dataset.filterPanel === "area") return;
+    const key = panel.dataset.filterPanel;
     if (event.target.matches("[data-select-all]")) {
       const checked = event.target.checked;
-      optionsFor(group).forEach(input => { input.checked = checked; });
+      choicesFor(key).forEach(function (input) { input.checked = checked; });
+    } else if (!event.target.matches("[data-filter-option]")) {
+      return;
     }
-    refreshLabel(group);
-    updateResults();
+    updateLabel(key);
+    updateResults(key);
   });
 
-  groups.forEach(refreshLabel);
+  document.addEventListener("input", function (event) {
+    const searchKey = event.target.dataset.filterSearch;
+    if (searchKey) {
+      searchOptions(searchKey);
+      return;
+    }
+    if (event.target.matches("[data-area-min], [data-area-max]")) {
+      updateAreaLabel();
+      clearTimeout(areaTimer);
+      const area = areaInputs();
+      if (!area.min.checkValidity() || !area.max.checkValidity()) {
+        status.textContent = "Перевір значення площі.";
+        return;
+      }
+      areaTimer = setTimeout(function () { updateResults("area"); }, 350);
+    }
+  });
 
-  // Preserve a URL with checkbox filters when returning via browser history.
-  window.addEventListener("popstate", () => window.location.reload());
+  panels.area.querySelector("[data-area-reset]").addEventListener("click", function () {
+    const area = areaInputs();
+    area.min.value = "";
+    area.max.value = "";
+    clearTimeout(areaTimer);
+    updateAreaLabel();
+    updateResults("area");
+  });
+
+  filterKeys.forEach(function (key) { updateLabel(key); });
+  updateAreaLabel();
+  window.addEventListener("popstate", function () { window.location.reload(); });
 })();
 </script>
 {% endblock %}
