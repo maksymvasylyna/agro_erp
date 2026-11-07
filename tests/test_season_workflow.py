@@ -156,7 +156,9 @@ class SeasonWorkflowTests(unittest.TestCase):
         db.session.commit()
 
         # The production/legacy listing is not changed by the staging feature.
-        legacy_page = self.client.get("/fields")
+        # CI on Render inherits AGROERP_ENV=staging; override explicitly here.
+        with patch.dict(os.environ, {"AGROERP_ENV": "production"}):
+            legacy_page = self.client.get("/fields")
         self.assertEqual(legacy_page.status_code, 200)
         self.assertIn("<td>100.0</td>", legacy_page.get_data(as_text=True))
 
