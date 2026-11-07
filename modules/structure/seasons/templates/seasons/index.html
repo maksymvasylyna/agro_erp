@@ -38,7 +38,7 @@
     <thead><tr><th>Поле</th><th>Підприємство</th><th>Кластер</th><th class="text-end">Площа поля</th><th>Посіви (культура / площа)</th><th class="text-end">Залишок</th></tr></thead>
     <tbody>
     {% for row in rows %}
-      <tr>
+      <tr id="season-field-{{ row.field_id }}">
         <td>{{ row.field.name }}</td><td>{{ row.company.name }}</td><td>{{ row.cluster.name }}</td>
         <td class="text-end">
           {% if can_edit and not season.is_closed %}
