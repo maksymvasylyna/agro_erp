@@ -153,9 +153,9 @@ def index():
                 "html": html,
                 "options": {
                     key: [{"id": item.id, "name": item.name} for item in entries]
-                    for key, entries in options.items()
+                    for key, entries in context["options"].items()
                 },
-                "checked": checked,
+                "checked": context["checked"],
             })
         return html
 
