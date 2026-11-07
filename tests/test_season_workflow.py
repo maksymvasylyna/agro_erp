@@ -147,6 +147,18 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertNotIn("90,00", text)
         self.assertNotIn("Зведена площа за підприємствами та роками", text)
         self.assertNotIn("<details", text)
+        self.assertIn('id="summary-main-menu"', text)
+        self.assertIn('href="/" class="btn btn-outline-primary" id="summary-main-menu"', text)
+        self.assertIn('id="download-summary-pdf"', text)
+        self.assertIn(f'/summary_structure/pdf?cluster_id={cluster_id}', text)
+
+        pdf_2024 = self.client.get("/summary_structure/pdf", query_string={"cluster_id": cluster_id})
+        self.assertEqual(pdf_2024.status_code, 200)
+        self.assertEqual(pdf_2024.mimetype, "application/pdf")
+        self.assertTrue(pdf_2024.data.startswith(b"%PDF-"))
+        self.assertGreater(len(pdf_2024.data), 4500)
+        self.assertIn("zagalna_struktura_2024.pdf", pdf_2024.headers["Content-Disposition"])
+        self.assertIn("private, no-store", pdf_2024.headers["Cache-Control"])
 
         next_year = self.client.get(
             "/seasons/select", query_string={"year": 2025, "next": target},
@@ -160,6 +172,18 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertIn("90,00", text)
         self.assertNotIn("100,00", text)
         self.assertNotIn("<details", text)
+
+        pdf_2025 = self.client.get("/summary_structure/pdf", query_string={"cluster_id": cluster_id})
+        self.assertEqual(pdf_2025.status_code, 200)
+        self.assertTrue(pdf_2025.data.startswith(b"%PDF-"))
+        self.assertIn("zagalna_struktura_2025.pdf", pdf_2025.headers["Content-Disposition"])
+        self.assertNotEqual(pdf_2024.data, pdf_2025.data)
+
+        # Invalid cluster IDs match the 'all clusters' HTML behavior.
+        self.assertEqual(
+            self.client.get("/summary_structure/pdf", query_string={"cluster_id": "bad"}).status_code,
+            200,
+        )
 
     def test_fields_multi_filters_combine_or_within_and_across_dimensions(self):
         """Two clusters, multiple companies and crops, and split-field hectares."""
