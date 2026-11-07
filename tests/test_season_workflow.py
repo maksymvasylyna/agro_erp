@@ -260,6 +260,66 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertIn('id="field-results"', markup)
         self.assertNotIn("<html", markup)
         self.assertIn("40.00 га", markup)
+        self.assertIn('data-filter-key="fields"', html)
+        self.assertIn('data-filter-panel="area"', html)
+        self.assertIn('name="area_min"', html)
+        self.assertIn('name="area_max"', html)
+        header = html.split('class="field-column-titles"', 1)[1].split("</tr>", 1)[0]
+        positions = [header.index('>' + title + '</th>') for title in (
+            "Кластер", "Підприємство", "Культура", "Номер поля", "Площа, га"
+        )]
+        self.assertEqual(positions, sorted(positions))
+
+        headers = {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json",
+        }
+
+        # Selecting a cluster narrows the company and field choices.
+        cascade = self.client.get("/structure/fields", query_string={
+            "clusters": str(cluster_a.id)
+        }, headers=headers)
+        self.assertEqual(cascade.status_code, 200)
+        payload = cascade.get_json()
+        company_names = {o["name"] for o in payload["options"]["companies"]}
+        self.assertEqual(company_names, {company_a.name, company_c.name})
+        field_names = {o["name"] for o in payload["options"]["fields"]}
+        self.assertEqual(field_names, {"A", "C"})
+        self.assertEqual(len(payload["options"]["cultures"]), 2)
+        self.assertEqual(len(payload["checked"]["companies"]), 2)
+
+        # Company selection, then crop selection, narrow the field numbers.
+        cascade = self.client.get("/structure/fields", query_string=[
+            ("clusters", str(cluster_a.id)),
+            ("companies", str(company_a.id)),
+            ("cultures", str(self.culture_a)),
+        ], headers=headers)
+        payload = cascade.get_json()
+        self.assertEqual({o["name"] for o in payload["options"]["fields"]}, {"A"})
+        self.assertEqual({o["name"] for o in payload["options"]["companies"]},
+                         {company_a.name, company_c.name})
+        self.assertIn("40.00 га", payload["html"])
+        self.assertNotIn("60.00 га", payload["html"])
+
+        # Multi-selection of distinct field numbers is supported.
+        field_a = Field.query.filter_by(name="A").one()
+        field_c = Field.query.filter_by(name="C").one()
+        field_subset = self.client.get("/structure/fields", query_string=[
+            ("fields", str(field_a.id)), ("fields", str(field_c.id)),
+        ])
+        self.assertIn("135.00 га", field_subset.get_data(as_text=True))
+
+        # Area is filtered by the planting area; inclusive endpoints.
+        area_subset = self.client.get("/structure/fields", query_string={
+            "area_min": "30", "area_max": "50"
+        })
+        area_markup = area_subset.get_data(as_text=True)
+        self.assertIn("Знайдено посівів: <strong>3</strong>", area_markup)
+        self.assertIn("125.00 га", area_markup)
+
+        # Invalid range values should be rejected, not silently broadened.
+        invalid = self.client.get("/structure/fields?area_min=not-a-number")
+        self.assertEqual(invalid.status_code, 400)
 
     def test_season_redirect_rejects_external_urls(self):
         db.session.add(Season(year=2026))
