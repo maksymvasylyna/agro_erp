@@ -8,7 +8,15 @@
 </head>
 <body>
   <div class="container mt-4">
-    <h1 class="text-success mb-4">{% block header %}Agro ERP{% endblock %}</h1>
+    <h1 class="text-success mb-3">{% block header %}Agro ERP{% endblock %}</h1>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span class="text-muted">Сезон урожаю:</span>
+      {% for item in available_seasons|default([]) %}
+        <a class="btn btn-sm {{ 'btn-success' if item.year == active_harvest_year else 'btn-outline-success' }}"
+           href="{{ url_for('seasonal.select', year=item.year) }}">{{ item.year }}</a>
+      {% endfor %}
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('seasonal.index') }}">Керувати сезонами</a>
+    </div>
 
     {# 🔔 Глобальні flash-повідомлення: видно на всіх сторінках #}
     {% with messages = get_flashed_messages(with_categories=true) %}
