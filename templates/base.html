@@ -8,28 +8,49 @@
 </head>
 <body>
   <div class="container mt-4">
-    {# Unified top-left return link for every Structure and Seasons page. #}
-    {% if request.blueprint in ['structure', 'fields_structure', 'summary_structure', 'seasonal'] %}
-      <div class="mb-3">
-        <a href="{{ url_for('index') }}" class="btn btn-outline-primary" id="structure-home-link">До головного меню</a>
+    {# Centralized navigation: keeps the Structure module consistent on every nested page. #}
+    {% set structure_page = request.blueprint in ['structure', 'fields_structure', 'summary_structure', 'seasonal'] %}
+
+    {% macro season_controls() %}
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="season-navigation">
+        <form method="get" action="{{ url_for('seasonal.select') }}" class="d-flex align-items-center gap-2">
+          <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+          <label for="global-season-select" class="text-muted mb-0">Сезон урожаю:</label>
+          <select id="global-season-select" name="year" class="form-select form-select-sm w-auto"
+                  aria-label="Обрати сезон урожаю" onchange="this.form.submit()" {% if not available_seasons %}disabled{% endif %}>
+            {% if not available_seasons %}<option>Немає сезонів</option>{% endif %}
+            {% for item in available_seasons|default([]) %}
+              <option value="{{ item.year }}" {% if item.year == active_harvest_year %}selected{% endif %}>{{ item.year }}</option>
+            {% endfor %}
+          </select>
+          <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Обрати</button></noscript>
+        </form>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('seasonal.index') }}">Керувати сезонами</a>
       </div>
+    {% endmacro %}
+
+    {% if structure_page %}
+      {{ season_controls() }}
     {% endif %}
+
     <h1 class="text-success mb-3">{% block header %}Agro ERP{% endblock %}</h1>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-      <form method="get" action="{{ url_for('seasonal.select') }}" class="d-flex align-items-center gap-2">
-        <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
-        <label for="global-season-select" class="text-muted mb-0">Сезон урожаю:</label>
-        <select id="global-season-select" name="year" class="form-select form-select-sm w-auto"
-                aria-label="Обрати сезон урожаю" onchange="this.form.submit()" {% if not available_seasons %}disabled{% endif %}>
-          {% if not available_seasons %}<option>Немає сезонів</option>{% endif %}
-          {% for item in available_seasons|default([]) %}
-            <option value="{{ item.year }}" {% if item.year == active_harvest_year %}selected{% endif %}>{{ item.year }}</option>
-          {% endfor %}
-        </select>
-        <noscript><button type="submit" class="btn btn-sm btn-success">Обрати</button></noscript>
-      </form>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('seasonal.index') }}">Керувати сезонами</a>
-    </div>
+
+    {% if structure_page %}
+      {# Back follows the menu hierarchy; Home always goes to the application root. #}
+      {% if request.blueprint == 'structure' %}
+        {% set structure_back_url = url_for('index') %}
+      {% elif request.endpoint in ['seasonal.login', 'seasonal.edit_planting'] %}
+        {% set structure_back_url = url_for('seasonal.index') %}
+      {% else %}
+        {% set structure_back_url = url_for('structure.index') %}
+      {% endif %}
+      <nav class="d-flex justify-content-between align-items-center gap-2 mb-3" id="structure-navigation" aria-label="Навігація розділу структури">
+        <a href="{{ structure_back_url }}" class="btn btn-outline-secondary" id="structure-back-link">← Назад</a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary" id="structure-home-link">До головного меню</a>
+      </nav>
+    {% else %}
+      {{ season_controls() }}
+    {% endif %}
 
     {# 🔔 Глобальні flash-повідомлення: видно на всіх сторінках #}
     {% with messages = get_flashed_messages(with_categories=true) %}
