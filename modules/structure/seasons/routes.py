@@ -145,7 +145,7 @@ def index():
         "seasons/index.html", seasons=seasons, season=season, rows=rows,
         total=total, planted=planted, new_form=new_form,
         field_form=field_form, planting_form=planting_form,
-        copy_form=CopyForm(), logout_form=FlaskForm(),
+        copy_form=CopyForm(), logout_form=FlaskForm(), action_form=FlaskForm(),
         can_edit=_is_admin(), editor_enabled=_valid_configuration(),
     )
 
@@ -239,3 +239,64 @@ def copy_previous(year):
     db.session.commit()
     flash(f"Структуру {year-1} скопійовано в {year}. Змініть культури за потреби.", "success")
     return redirect(url_for("seasonal.index", year=year))
+
+
+@seasonal_bp.route("/plantings/<int:planting_id>/edit", methods=["GET", "POST"])
+def edit_planting(planting_id):
+    _require_admin()
+    planting = FieldPlanting.query.get_or_404(planting_id)
+    fs = planting.field_season
+    if fs.season.is_closed:
+        abort(409)
+    form = PlantingForm(prefix="plant", obj=planting)
+    form.culture_id.choices = [(c.id, c.name) for c in Culture.query.order_by(Culture.name).all()]
+    if form.validate_on_submit():
+        other_area = fs.planted_area - planting.area
+        if other_area + form.area.data > fs.area:
+            flash("Сума посівів перевищить площу поля.", "danger")
+        else:
+            planting.culture_id = form.culture_id.data
+            planting.area = form.area.data
+            planting.note = (form.note.data or "").strip() or None
+            db.session.commit()
+            flash("Посів оновлено.", "success")
+            return redirect(url_for("seasonal.index", year=fs.season.year))
+    elif request.method == "GET":
+        form.culture_id.data = planting.culture_id
+    return render_template("seasons/edit_planting.html", form=form, planting=planting)
+
+
+@seasonal_bp.route("/plantings/<int:planting_id>/delete", methods=["POST"])
+def delete_planting(planting_id):
+    _require_admin()
+    if not FlaskForm().validate_on_submit():
+        abort(400)
+    planting = FieldPlanting.query.get_or_404(planting_id)
+    year = planting.field_season.season.year
+    if planting.field_season.season.is_closed:
+        abort(409)
+    db.session.delete(planting)
+    db.session.commit()
+    flash("Посів вилучено із сезону.", "success")
+    return redirect(url_for("seasonal.index", year=year))
+
+
+@seasonal_bp.route("/fields/<int:field_season_id>/area", methods=["POST"])
+def update_field_area(field_season_id):
+    _require_admin()
+    fs = FieldSeason.query.get_or_404(field_season_id)
+    if fs.season.is_closed:
+        abort(409)
+    if not FlaskForm().validate_on_submit():
+        abort(400)
+    try:
+        new_area = Decimal((request.form.get("area") or "").replace(",", ".")).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        abort(400)
+    if not new_area.is_finite() or new_area <= 0 or new_area < fs.planted_area:
+        flash("Площа має бути додатною та не меншою за суму посівів.", "danger")
+    else:
+        fs.area = new_area
+        db.session.commit()
+        flash("Площу поля в сезоні оновлено.", "success")
+    return redirect(url_for("seasonal.index", year=fs.season.year))
