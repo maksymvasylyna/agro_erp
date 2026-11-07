@@ -6,6 +6,7 @@ are configured. All mutating forms use Flask-WTF CSRF validation.
 import os
 from decimal import Decimal, InvalidOperation
 from hmac import compare_digest
+from urllib.parse import urlsplit
 
 from flask import abort, current_app, flash, redirect, render_template, request, session, url_for
 from flask_wtf import FlaskForm
@@ -87,8 +88,20 @@ def select():
     if not Season.query.filter_by(year=year).first():
         abort(404)
     session["harvest_year"] = year
-    # Never redirect to an arbitrary external URL.
-    return redirect(url_for("seasonal.index", year=year))
+
+    # Keep the current report and its filters when changing seasons.
+    # Only a local path is accepted to prevent open redirects.
+    next_path = request.args.get("next", "", type=str)
+    target = urlsplit(next_path)
+    is_safe = (
+        target.scheme == "" and target.netloc == "" and target.fragment == ""
+        and target.path.startswith("/") and not target.path.startswith("//")
+        and "\\\\" not in next_path and "\\x00" not in next_path
+        and target.path != url_for("seasonal.select")
+    )
+    if is_safe:
+        return redirect(next_path)
+    return redirect(url_for("seasonal.index"))
 
 
 @seasonal_bp.route("/login", methods=["GET", "POST"])
