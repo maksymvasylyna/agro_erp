@@ -96,7 +96,7 @@ def select():
     is_safe = (
         target.scheme == "" and target.netloc == "" and target.fragment == ""
         and target.path.startswith("/") and not target.path.startswith("//")
-        and "\\\\" not in next_path and "\\x00" not in next_path
+        and chr(92) not in next_path and chr(0) not in next_path
         and target.path != url_for("seasonal.select")
     )
     if is_safe:
