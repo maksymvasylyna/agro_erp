@@ -62,6 +62,33 @@ class SeasonWorkflowTests(unittest.TestCase):
         # Editing seasons remains accessible from the global navigation.
         self.assertIn("Керувати сезонами", html)
 
+    def test_structure_pages_have_one_consistent_top_left_home_link(self):
+        """All Structure and Seasons screens share one canonical home action."""
+        for path in (
+            "/structure", "/structure/fields", "/summary_structure/",
+            "/seasons/", "/seasons/login",
+        ):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                self.assertEqual(html.count('id="structure-home-link"'), 1)
+                self.assertEqual(html.count("До головного меню"), 1)
+                self.assertIn(
+                    'href="/" class="btn btn-outline-primary" id="structure-home-link"',
+                    html,
+                )
+                self.assertLess(
+                    html.index('id="structure-home-link"'),
+                    html.index('<h1 class="text-success mb-3">'),
+                )
+                self.assertNotIn("🏠 На головну", html)
+                self.assertNotIn("🏠 Головне меню", html)
+
+        # Global navigation must not be duplicated on unrelated pages.
+        home_html = self.client.get("/").get_data(as_text=True)
+        self.assertNotIn('id="structure-home-link"', home_html)
+
     def test_writes_require_login(self):
         response = self.client.post("/seasons/create", data={"new-year": 2026})
         self.assertEqual(response.status_code, 403)
@@ -84,6 +111,11 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertEqual(target_fs.area, Decimal("100.00"))
         self.assertEqual(target_fs.planted_area, Decimal("65.00"))
         target_crop = target_fs.plantings[0]
+        edit_page = self.client.get(f"/seasons/plantings/{target_crop.id}/edit")
+        self.assertEqual(edit_page.status_code, 200)
+        self.assertEqual(
+            edit_page.get_data(as_text=True).count('id="structure-home-link"'), 1
+        )
 
         response = self.client.post("/seasons/plantings/%s/edit" % target_crop.id, data={
             "plant-culture_id": self.culture_b, "plant-area": "80.00"
@@ -157,8 +189,8 @@ class SeasonWorkflowTests(unittest.TestCase):
         self.assertNotIn("90,00", text)
         self.assertNotIn("Зведена площа за підприємствами та роками", text)
         self.assertNotIn("<details", text)
-        self.assertIn('id="summary-main-menu"', text)
-        self.assertIn('href="/" class="btn btn-outline-primary" id="summary-main-menu"', text)
+        self.assertIn('id="structure-home-link"', text)
+        self.assertIn('href="/" class="btn btn-outline-primary" id="structure-home-link"', text)
         self.assertIn('id="download-summary-pdf"', text)
         self.assertIn(f'/summary_structure/pdf?cluster_id={cluster_id}', text)
 
@@ -384,9 +416,9 @@ class SeasonWorkflowTests(unittest.TestCase):
 
         # UI reset/export controls are present beside the field table.
         self.assertIn('id="reset-all-filters"', html)
-        self.assertIn('id="back-to-main-menu"', html)
-        self.assertIn('href="/" class="btn btn-outline-primary" id="back-to-main-menu">', html)
-        self.assertIn('🏠 Головне меню</a>', html)
+        self.assertIn('id="structure-home-link"', html)
+        self.assertIn('href="/" class="btn btn-outline-primary" id="structure-home-link">', html)
+        self.assertIn('До головного меню</a>', html)
         self.assertIn('id="download-fields-pdf"', html)
         self.assertIn("Скинути всі фільтри", html)
 
