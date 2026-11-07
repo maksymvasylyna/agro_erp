@@ -10,11 +10,17 @@
   <div class="container mt-4">
     <h1 class="text-success mb-3">{% block header %}Agro ERP{% endblock %}</h1>
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-      <span class="text-muted">Сезон урожаю:</span>
-      {% for item in available_seasons|default([]) %}
-        <a class="btn btn-sm {{ 'btn-success' if item.year == active_harvest_year else 'btn-outline-success' }}"
-           href="{{ url_for('seasonal.select', year=item.year) }}">{{ item.year }}</a>
-      {% endfor %}
+      <form method="get" action="{{ url_for('seasonal.select') }}" class="d-flex align-items-center gap-2">
+        <label for="global-season-select" class="text-muted mb-0">Сезон урожаю:</label>
+        <select id="global-season-select" name="year" class="form-select form-select-sm w-auto"
+                aria-label="Обрати сезон урожаю" onchange="this.form.submit()" {% if not available_seasons %}disabled{% endif %}>
+          {% if not available_seasons %}<option>Немає сезонів</option>{% endif %}
+          {% for item in available_seasons|default([]) %}
+            <option value="{{ item.year }}" {% if item.year == active_harvest_year %}selected{% endif %}>{{ item.year }}</option>
+          {% endfor %}
+        </select>
+        <noscript><button type="submit" class="btn btn-sm btn-success">Обрати</button></noscript>
+      </form>
       <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('seasonal.index') }}">Керувати сезонами</a>
     </div>
 
