@@ -8,7 +8,6 @@
     {{ form.hidden_tag() }}
     <div class="mb-3">{{ form.password.label(class="form-label") }}{{ form.password(class="form-control", autocomplete="current-password") }}</div>
     {{ form.submit(class="btn btn-success") }}
-    <a class="btn btn-outline-secondary" href="{{ url_for('seasonal.index') }}">Назад</a>
   </form>
 </div>
 {% endblock %}
