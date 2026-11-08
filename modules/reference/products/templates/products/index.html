@@ -1,64 +1,56 @@
 {% extends 'reference/_index_base.html' %}
-{% block title_text %}Продукти та препарати{% endblock %}
-{% block header_text %}Продукти та препарати{% endblock %}
 
-{% block before_table %}
-  <p class="text-muted small mb-3">
-    Новий продукт автоматично доступний у планах та інших модулях.
-    Категорії, групи, одиниці виміру та виробники беруться з відповідних довідників.
-  </p>
-{% endblock %}
+{% block title_text %}Продукти{% endblock %}
+{% block header_text %}🧪 Продукти{% endblock %}
+
 {% block filter_form %}
-  <form method="get" action="{{ url_for('products.index') }}" class="row g-2 align-items-end mb-3">
-    <div class="col-lg-3 col-sm-6">
-      <label for="product-search" class="form-label">Назва продукту</label>
-      <input id="product-search" name="q" type="search" value="{{ search }}" class="form-control">
-    </div>
-    <div class="col-lg-3 col-sm-6">
-      {{ form.category.label(class="form-label") }}{{ form.category(class="form-select") }}
-    </div>
-    <div class="col-lg-3 col-sm-6">
-      {{ form.group.label(class="form-label") }}{{ form.group(class="form-select") }}
-    </div>
-    <div class="col-lg-3 col-sm-6">
-      {{ form.manufacturer.label(class="form-label") }}{{ form.manufacturer(class="form-select") }}
-    </div>
-    <div class="col-12 d-flex gap-2">
-      {{ form.submit(class="btn btn-primary") }}
-      <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">Скинути</a>
-    </div>
-  </form>
+<form method="get" class="d-flex flex-wrap mb-3">
+  {{ form.hidden_tag() }}
+  <div class="me-2">
+    {{ form.category.label }}
+    {{ form.category(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.group.label }}
+    {{ form.group(class="form-select") }}
+  </div>
+  <div class="me-2">
+    {{ form.manufacturer.label }}
+    {{ form.manufacturer(class="form-select") }}
+  </div>
+  <div class="me-2 align-self-end">
+    {{ form.submit(class="btn btn-primary") }}
+  </div>
+</form>
 {% endblock %}
+
 {% block table_headers %}
-  <th>ID</th><th>Назва</th><th>Категорія</th><th>Група</th><th>Виробник</th>
-  <th>Одиниця</th><th>Тара</th><th>Залежних записів</th><th>Дії</th>
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Категорія</th>
+  <th>Група</th>
+  <th>Виробник</th>
+  <th>Дії</th>
 {% endblock %}
+
 {% block table_rows %}
   {% for product in items %}
-    {% set dependent = dependencies.get(product.id, 0) %}
-    <tr>
-      <td>{{ product.id }}</td>
-      <td class="text-start fw-semibold">{{ product.name }}</td>
-      <td>{{ product.category.name if product.category else '—' }}</td>
-      <td>{{ product.group.name if product.group else '—' }}</td>
-      <td>{{ product.manufacturer.name if product.manufacturer else '—' }}</td>
-      <td>{{ product.unit.name if product.unit else '—' }}</td>
-      <td>{{ product.container or '—' }}</td>
-      <td>{{ dependent }}</td>
-      <td><div class="d-flex flex-wrap justify-content-center gap-2">
-        <a href="{{ url_for('products.edit', id=product.id) }}" class="btn btn-sm btn-primary">Редагувати</a>
-        {% if dependent %}
-          <button type="button" disabled class="btn btn-sm btn-outline-danger" title="Є пов'язані записи">Видалити</button>
-        {% else %}
-          <form method="post" action="{{ url_for('products.delete', id=product.id) }}"
-                onsubmit="return confirm('Видалити продукт «{{ product.name }}»?');">
-            {{ delete_form.hidden_tag() }}
-            <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
-          </form>
-        {% endif %}
-      </div></td>
-    </tr>
+  <tr>
+    <td>{{ product.id }}</td>
+    <td>{{ product.name }}</td>
+    <td>{{ product.category.name if product.category else '—' }}</td>
+    <td>{{ product.group.name if product.group else '—' }}</td>
+    <td>{{ product.manufacturer.name if product.manufacturer else '—' }}</td>
+    <td>
+      <a href="{{ url_for('products.edit', id=product.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('products.delete', id=product.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
   {% else %}
-    <tr><td colspan="9">Продуктів за вибраними фільтрами немає.</td></tr>
+  <tr>
+    <td colspan="6">Даних немає</td>
+  </tr>
   {% endfor %}
 {% endblock %}

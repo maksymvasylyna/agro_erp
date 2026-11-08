@@ -1,25 +1,62 @@
-{% extends 'reference/_form_base.html' %}
-{% block title_text %}{{ action }} продукт{% endblock %}
-{% block header_text %}{{ action }} продукт{% endblock %}
-{% block back_url %}{{ url_for('products.index') }}{% endblock %}
-{% block form_fields %}
-  <div class="col-12">{{ render_field(form.name) }}</div>
-  <div class="col-md-6">
-    {{ render_field(form.category) }}
-    <div class="form-text"><a href="{{ url_for('categories.index') }}">Довідник категорій</a></div>
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{{ header }}{% endblock %}
+
+{% block content %}
+
+  <!-- ✅ Відображення flash-повідомлень -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- 🏠 та ⬅️ Кнопки -->
+  <div class="d-flex justify-content-between mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+    <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
   </div>
-  <div class="col-md-6">
-    {{ render_field(form.group) }}
-    <div class="form-text"><a href="{{ url_for('groups.index') }}">Довідник груп</a></div>
-  </div>
-  <div class="col-md-6">
-    {{ render_field(form.manufacturer) }}
-    <div class="form-text"><a href="{{ url_for('manufacturers.index') }}">Довідник виробників</a></div>
-  </div>
-  <div class="col-md-6">
-    {{ render_field(form.unit) }}
-    <div class="form-text"><a href="{{ url_for('units.index') }}">Довідник одиниць виміру</a></div>
-  </div>
-  <div class="col-md-6">{{ render_field(form.container) }}</div>
-  <div class="col-12 text-muted small">Тара — необов'язкове поле. Інші характеристики продукту визначаються пов'язаними довідниками.</div>
+
+  <!-- Форма продукту -->
+  <form method="post">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+      {{ form.name.label }}
+      {{ form.name(class="form-control") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.category.label }}
+      {{ form.category(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.unit.label }}
+      {{ form.unit(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.group.label }}
+      {{ form.group(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.manufacturer.label }}
+      {{ form.manufacturer(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.container.label }}
+      {{ form.container(class="form-control") }}
+    </div>
+
+    {{ form.submit(class="btn btn-success") }}
+  </form>
 {% endblock %}

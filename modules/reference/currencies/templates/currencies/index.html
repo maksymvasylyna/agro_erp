@@ -1,42 +1,29 @@
 {% extends 'reference/_index_base.html' %}
+
 {% block title_text %}Валюти{% endblock %}
-{% block header_text %}Валюти{% endblock %}
-{% block filter_form %}
-  <form method="get" action="{{ url_for('currencies.index') }}" class="row g-2 align-items-end mb-3">
-    <div class="col-sm-7 col-lg-5">
-      <label class="form-label" for="currency-search">Код або назва</label>
-      <input id="currency-search" type="search" class="form-control" name="q" value="{{ search }}">
-    </div>
-    <div class="col-sm-5 col-lg-4 d-flex gap-2">
-      <button class="btn btn-primary" type="submit">Знайти</button>
-      <a class="btn btn-outline-secondary" href="{{ url_for('currencies.index') }}">Скинути</a>
-    </div>
-  </form>
-{% endblock %}
+{% block header_text %}💱 Валюти{% endblock %}
+
 {% block table_headers %}
-  <th>ID</th><th>Код</th><th>Назва валюти</th><th>Залежних записів</th><th>Дії</th>
+  <th>ID</th>
+  <th>Назва</th>
+  <th>Дії</th>
 {% endblock %}
+
 {% block table_rows %}
-  {% for item in items %}
-    {% set dependent = dependencies.get(item.id, 0) %}
-    <tr>
-      <td>{{ item.id }}</td>
-      <td class="fw-semibold">{{ item.code }}</td>
-      <td class="text-start">{{ item.name }}</td>
-      <td>{{ dependent }}</td>
-      <td><div class="d-flex flex-wrap justify-content-center gap-2">
-        <a class="btn btn-sm btn-primary" href="{{ url_for('currencies.edit', id=item.id) }}">Редагувати</a>
-        {% if dependent %}
-          <button class="btn btn-sm btn-outline-danger" type="button" disabled>Видалити</button>
-        {% else %}
-          <form method="post" action="{{ url_for('currencies.delete', id=item.id) }}"
-                onsubmit="return confirm('Видалити валюту «{{ item.code }}»?');">
-            {{ delete_form.hidden_tag() }}<button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
-          </form>
-        {% endif %}
-      </div></td>
-    </tr>
+  {% for currency in currencies %}
+  <tr>
+    <td>{{ currency.id }}</td>
+    <td>{{ currency.name }}</td>
+    <td>
+      <a href="{{ url_for('currencies.edit', id=currency.id) }}" class="btn btn-sm btn-primary">✏️</a>
+      <form action="{{ url_for('currencies.delete', id=currency.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
+        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+      </form>
+    </td>
+  </tr>
   {% else %}
-    <tr><td colspan="5">Валют не знайдено.</td></tr>
+  <tr>
+    <td colspan="3">Даних немає</td>
+  </tr>
   {% endfor %}
 {% endblock %}

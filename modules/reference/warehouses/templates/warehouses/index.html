@@ -1,61 +1,87 @@
-{% extends 'reference/_index_base.html' %}
-{% block title_text %}Склади підприємств{% endblock %}
-{% block header_text %}Склади підприємств{% endblock %}
-{% block before_table %}
-  <p class="text-muted small mb-3">Склади прив'язані до підприємств. Деактивація не видаляє історію складських операцій.</p>
-{% endblock %}
-{% block filter_form %}
-  <form method="get" action="{{ url_for('warehouses.index') }}" class="row g-2 align-items-end mb-3">
-    <div class="col-sm-6 col-lg-4">
-      <label class="form-label" for="wh-company">Підприємство</label>
-      <select class="form-select" name="company_id" id="wh-company">
-        <option value="">— Усі —</option>
-        {% for company in companies %}
-          <option value="{{ company.id }}" {% if company_id == company.id %}selected{% endif %}>{{ company.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-sm-6 col-lg-2">
-      <label class="form-label" for="wh-active">Статус</label>
-      <select class="form-select" name="active" id="wh-active">
-        <option value="">— Усі —</option>
-        <option value="1" {% if active == '1' %}selected{% endif %}>Активні</option>
-        <option value="0" {% if active == '0' %}selected{% endif %}>Неактивні</option>
-      </select>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-      <label class="form-label" for="wh-search">Назва складу</label>
-      <input class="form-control" type="search" id="wh-search" name="q" value="{{ q }}">
-    </div>
-    <div class="col-sm-6 col-lg-3 d-flex gap-2">
-      <button class="btn btn-primary" type="submit">Фільтрувати</button>
-      <a href="{{ url_for('warehouses.index') }}" class="btn btn-outline-secondary">Скинути</a>
-    </div>
-  </form>
-{% endblock %}
-{% block table_headers %}
-  <th>Склад</th><th>Підприємство</th><th>Адреса / примітка</th><th>Статус</th><th>Дії</th>
-{% endblock %}
-{% block table_rows %}
-  {% for item in rows %}
+{% extends "base.html" %}
+{% block title %}{{ title or "Довідник складів" }}{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">{{ header or "🏷️ Довідник складів підприємств" }}</h2>
+
+<div class="d-flex gap-2 mb-3">
+  <button type="button" class="btn btn-outline-secondary" onclick="history.back()">⬅️ Назад</button>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('warehouses.index') }}">
+  <div class="col-md-3">
+    <label class="form-label">Підприємство</label>
+    <select class="form-select" name="company_id" onchange="this.form.submit()">
+      <option value="">— Усі —</option>
+      {% for c in companies %}
+        <option value="{{ c.id }}" {{ 'selected' if company_id==c.id else '' }}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label">Активність</label>
+    <select class="form-select" name="active" onchange="this.form.submit()">
+      <option value="">— Усі —</option>
+      <option value="1" {{ 'selected' if active=='1' else '' }}>Активні</option>
+      <option value="0" {{ 'selected' if active=='0' else '' }}>Неактивні</option>
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <label class="form-label">Пошук за назвою</label>
+    <input class="form-control" type="text" name="q" value="{{ q or '' }}" placeholder="Напр. Склад №1">
+  </div>
+
+  <div class="col-md-4 d-flex gap-2">
+    <button class="btn btn-outline-primary ms-auto" type="submit">Фільтрувати</button>
+    <a class="btn btn-primary" href="{{ url_for('warehouses.new', company_id=company_id) }}">➕ Новий склад</a>
+  </div>
+</form>
+
+<table class="table table-striped table-bordered align-middle">
+  <thead class="table-light">
     <tr>
-      <td class="text-start fw-semibold">{{ item.name }}</td>
-      <td>{{ item.company.name if item.company else '—' }}</td>
-      <td>{{ item.address or '—' }}</td>
-      <td>
-        {% if item.is_active %}<span class="badge bg-success">Активний</span>
-        {% else %}<span class="badge bg-secondary">Неактивний</span>{% endif %}
-      </td>
-      <td><div class="d-flex flex-wrap justify-content-center gap-2">
-        <a href="{{ url_for('warehouses.edit', wid=item.id) }}" class="btn btn-sm btn-primary">Редагувати</a>
-        <form method="post" action="{{ url_for('warehouses.toggle', wid=item.id) }}"
-              onsubmit="return confirm('Змінити статус складу «{{ item.name }}»?');">
-          {{ action_form.hidden_tag() }}
-          <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'Деактивувати' if item.is_active else 'Активувати' }}</button>
-        </form>
-      </div></td>
+      <th style="width:40%">Назва</th>
+      <th style="width:30%">Підприємство</th>
+      <th style="width:10%">Статус</th>
+      <th style="width:20%">Дії</th>
     </tr>
-  {% else %}
-    <tr><td colspan="5">Складів за вибраними фільтрами немає.</td></tr>
-  {% endfor %}
+  </thead>
+  <tbody>
+    {% if rows and rows|length %}
+      {% for r in rows %}
+        <tr>
+          <td><b>{{ r.name }}</b></td>
+          <td>{{ (r.company.name if r.company else ('#'+r.company_id|string)) }}</td>
+          <td>
+            {% if r.is_active %}
+              <span class="badge bg-success">активний</span>
+            {% else %}
+              <span class="badge bg-secondary">неактивний</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex flex-wrap gap-2">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('warehouses.edit', wid=r.id) }}">✏️ Редагувати</a>
+
+              <form method="post" action="{{ url_for('warehouses.toggle', wid=r.id) }}" onsubmit="return confirm('Перемкнути активність складу «{{ r.name }}»?');">
+                <button class="btn btn-sm btn-outline-warning" type="submit">
+                  {% if r.is_active %}Деактивувати{% else %}Активувати{% endif %}
+                </button>
+              </form>
+
+              <form method="post" action="{{ url_for('warehouses.delete', wid=r.id) }}" onsubmit="return confirm('Деактивувати склад «{{ r.name }}»?');">
+                <button class="btn btn-sm btn-outline-danger" type="submit">🗑️ Деактивувати</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td colspan="4" class="text-center text-muted">Нічого не знайдено.</td></tr>
+    {% endif %}
+  </tbody>
+</table>
 {% endblock %}

@@ -1,17 +1,8 @@
+# modules/reference/manufacturers/forms.py
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired, Length
-from modules.reference.shared_crud import normalize_reference_name
-
+from wtforms.validators import DataRequired
 
 class ManufacturerForm(FlaskForm):
-    name = StringField(
-        "Назва виробника",
-        filters=[normalize_reference_name],
-        validators=[DataRequired(message="Заповніть назву."), Length(max=128)],
-    )
+    name = StringField("Назва", validators=[DataRequired()])
     submit = SubmitField("Зберегти")
-
-
-class ManufacturerDeleteForm(FlaskForm):
-    """Validates CSRF for directory deletion."""

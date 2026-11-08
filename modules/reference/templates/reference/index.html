@@ -1,146 +1,148 @@
 {% extends 'base.html' %}
-{% block title %}Довідники AgroERP{% endblock %}
-{% block header %}Довідники{% endblock %}
+
+{% block title %}Довідники{% endblock %}
+
+{% block header %}📚 Довідники{% endblock %}
+
 {% block content %}
-<section class="erp-reference-page">
-  <div class="d-flex justify-content-end mb-3">
-    <a class="btn btn-outline-secondary erp-nav-button" href="{{ url_for('index') }}">До головного меню</a>
-  </div>
-  <p class="text-muted mb-4">
-    Довідники — основне джерело даних для полів, планів, закупівель, заявок і складів.
-    Всі модулі використовують записи за їхніми постійними ID.
-  </p>
+<div class="d-flex justify-content-between mb-3">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
+</div>
+
+<div class="container mt-4">
   <div class="row g-3">
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('units.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">📏 Одиниці виміру</h2>
-            <p class="card-text mb-0">Вимірювання для продуктів та операцій</p>
+    <div class="col-md-4">
+      <a href="{{ url_for('units.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">📏 Одиниці виміру</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('categories.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🗂️ Категорії</h2>
-            <p class="card-text mb-0">Класифікація продуктів</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('categories.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🗂️ Категорії</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('currencies.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">💱 Валюти</h2>
-            <p class="card-text mb-0">Коди та назви валют</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('currencies.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">💱 Валюти</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('products.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🧪 Продукти та препарати</h2>
-            <p class="card-text mb-0">Єдина база для планів та закупівель</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('products.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🧪 Продукти</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('manufacturers.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🏭 Виробники</h2>
-            <p class="card-text mb-0">Постачальницькі та продуктові зв’язки</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('manufacturers.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏭 Виробники</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('payers.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">💼 Платники</h2>
-            <p class="card-text mb-0">Облік оплати й розподілів</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('payers.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">💼 Платники</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('cultures.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🌱 Культури</h2>
-            <p class="card-text mb-0">Сівозміна полів</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('cultures.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🌱 Культури</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('groups.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🧬 Групи продуктів</h2>
-            <p class="card-text mb-0">Групування продуктів</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('groups.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🧪 Групи продуктів</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('clusters.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🏗️ Кластери</h2>
-            <p class="card-text mb-0">Організаційна структура</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('clusters.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏗️ Кластери</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('companies.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🏢 Підприємства</h2>
-            <p class="card-text mb-0">Прив’язка до кластерів</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('companies.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏢 Підприємства</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('warehouses.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🏬 Склади</h2>
-            <p class="card-text mb-0">Склади підприємств</p>
+
+    <!-- 🏬 НОВЕ: Склади -->
+    <div class="col-md-4">
+      <a href="{{ url_for('warehouses.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🏬 Склади</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('fields.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🌾 Поля</h2>
-            <p class="card-text mb-0">Постійні картки та сезони</p>
+    <!-- /Склади -->
+
+    <div class="col-md-4">
+      <a href="{{ url_for('fields.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🌾 Поля</h5>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-xl-4">
-      <a class="erp-directory-link" href="{{ url_for('treatment_types.index') }}">
-        <div class="card erp-directory-card">
-          <div class="card-body">
-            <h2 class="card-title h5 mb-2">🚜 Види обробітку</h2>
-            <p class="card-text mb-0">Планування операцій</p>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('treatment_types.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-success">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success mb-0">🚜 Види обробітку</h5>
           </div>
         </div>
       </a>
     </div>
+
   </div>
-</section>
+</div>
 {% endblock %}
