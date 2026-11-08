@@ -5,6 +5,27 @@
   <a href="{{ home_url }}" class="btn btn-outline-secondary erp-nav-button">До головного меню</a>
 </nav>
 {%- endmacro %}
+{# Reusable season selector, initially used by Fields and later by reports/plans. #}
+{% macro erp_season_controls(seasons, active_year, select_url, manager_url, return_to) -%}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 erp-reference-page" id="season-navigation">
+  <form method="get" action="{{ select_url }}" class="d-flex flex-wrap align-items-center gap-2">
+    <input type="hidden" name="next" value="{{ return_to }}">
+    <label for="global-season-select" class="form-label mb-0">Сезон урожаю:</label>
+    <select id="global-season-select" name="year" class="form-select form-select-sm w-auto"
+            onchange="this.form.submit()" {% if not seasons %}disabled{% endif %}>
+      {% for item in seasons %}
+        <option value="{{ item.year }}" {% if item.year == active_year %}selected{% endif %}>{{ item.year }}</option>
+      {% else %}
+        <option>Немає сезонів</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Обрати</button></noscript>
+  </form>
+  {% if manager_url %}
+    <a href="{{ manager_url }}" class="btn btn-sm btn-outline-secondary">Керувати сезонами</a>
+  {% endif %}
+</div>
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -16,6 +37,7 @@
 </head>
 <body>
   <div class="container mt-4">
+    {% block page_top %}{% endblock %}
     <h1 class="erp-page-title mb-4">{% block header %}Agro ERP{% endblock %}</h1>
 
     {# 🔔 Глобальні flash-повідомлення: видно на всіх сторінках #}

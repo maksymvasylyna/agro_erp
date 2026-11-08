@@ -32,9 +32,15 @@ def create_app():
     from modules.reference.cultures.models import Culture
     from modules.reference.companies.models import Company
     from modules.reference.fields.field_models import Field
+    from modules.reference.fields.season_models import Season, FieldSeason, FieldPlanting
 
     with app.app_context():
         db.create_all()
+        # Add empty seasons only; legacy fields have no verified year and must
+        # never be silently attributed to 2026 or 2027.
+        if not Season.query.first():
+            db.session.add_all([Season(year=2026), Season(year=2027)])
+            db.session.commit()
 
     @app.route('/')
     def index():
