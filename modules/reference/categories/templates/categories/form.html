@@ -1,20 +1,15 @@
-{% extends 'base.html' %}
+{% extends 'reference/_form_base.html' %}
 
-{% block title %}{{ title }}{% endblock %}
-{% block header %}{{ header }}{% endblock %}
+{% block title_text %}{{ action }} категорію{% endblock %}
+{% block header_text %}{{ action }} категорію{% endblock %}
+{% block back_url %}{{ url_for('categories.index') }}{% endblock %}
 
-{% block content %}
-  <div class="d-flex justify-content-between mb-3">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
-    <a href="{{ url_for('categories.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
-  </div>
-
-  <form method="post">
-    {{ form.hidden_tag() }}
-    <div class="mb-3">
-      {{ form.name.label }}
-      {{ form.name(class="form-control") }}
+{% block form_fields %}
+  <div class="col-12">
+    {{ render_field(form.name) }}
+    <div class="form-text">
+      Назва категорії має бути унікальною. Після збереження вона з’явиться
+      у списку вибору в довіднику продуктів.
     </div>
-    {{ form.submit(class="btn btn-success") }}
-  </form>
+  </div>
 {% endblock %}
