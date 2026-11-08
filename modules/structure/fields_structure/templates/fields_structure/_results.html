@@ -1,0 +1,115 @@
+<section id="field-results" aria-live="polite">
+  <div id="field-summary" class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <span class="text-muted">Знайдено посівів: <strong>{{ count }}</strong></span>
+    <span class="text-muted">Полів: <strong>{{ field_count }}</strong></span>
+    <span class="text-muted">Фізична площа відібраних полів: <strong>{{ '%.2f'|format(physical_area) }} га</strong></span>
+    <span class="text-muted">Посівна площа: <strong>{{ '%.2f'|format(total_area) }} га</strong></span>
+    <span class="text-muted">Не розподілено в цих полях: <strong>{{ '%.2f'|format(unallocated_area) }} га</strong></span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover align-middle" id="field-table">
+      <thead class="table-light">
+        <tr class="filter-controls-row">
+          {% for key in ['clusters', 'companies', 'cultures', 'fields'] %}
+          {% set entries = options[key] %}
+          {% set selected = checked[key] %}
+          <th scope="col">
+            <div class="field-column-filter" data-filter-key="{{ key }}">
+              <button type="button" class="btn btn-sm btn-outline-secondary column-filter-button"
+                      data-filter-trigger="{{ key }}" id="filter-trigger-{{ key }}"
+                      aria-haspopup="dialog" aria-expanded="false"
+                      aria-controls="filter-panel-{{ key }}"
+                      {% if not entries %}disabled{% endif %}>
+                <span data-selection-label>
+                  {% if selected|length == entries|length %}Усі
+                  {% elif selected|length == 0 %}Нічого не обрано
+                  {% else %}Обрано {{ selected|length }} із {{ entries|length }}{% endif %}
+                </span>
+                <span aria-hidden="true">▾</span>
+              </button>
+              <div class="field-filter-panel shadow-sm" data-filter-panel="{{ key }}"
+                   id="filter-panel-{{ key }}" role="dialog" aria-label="Фільтр колонки" hidden>
+                <input type="search" class="form-control form-control-sm mb-2"
+                       placeholder="Пошук у списку…" aria-label="Пошук значення фільтра"
+                       data-filter-search="{{ key }}">
+                <label class="filter-select-all d-flex align-items-center gap-2 fw-semibold mb-2">
+                  <input class="form-check-input mt-0" type="checkbox" data-select-all
+                         {% if selected|length == entries|length %}checked{% endif %}>
+                  <span>Обрати все</span>
+                </label>
+                <div class="filter-options-list" data-filter-options>
+                  {% for entry in entries %}
+                    <label class="filter-item d-flex align-items-center gap-2">
+                      <input class="form-check-input mt-0" type="checkbox"
+                             name="{{ key }}" value="{{ entry.id }}" data-filter-option
+                             {% if entry.id in selected %}checked{% endif %}>
+                      <span>{{ entry.name }}</span>
+                    </label>
+                  {% else %}
+                    <span class="text-muted small">Немає доступних варіантів.</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </th>
+          {% endfor %}
+          <th scope="col">
+            <div class="field-column-filter" data-area-filter>
+              <button type="button" class="btn btn-sm btn-outline-secondary column-filter-button"
+                      data-filter-trigger="area" id="filter-trigger-area"
+                      aria-haspopup="dialog" aria-expanded="false" aria-controls="filter-panel-area">
+                <span data-area-label>
+                {% if area_min is not none or area_max is not none %}Діапазон
+                {% else %}Уся площа{% endif %}
+                </span>
+                <span aria-hidden="true">▾</span>
+              </button>
+              <div class="field-filter-panel shadow-sm" data-filter-panel="area"
+                   id="filter-panel-area" role="dialog" aria-label="Фільтр площі" hidden>
+                <label for="area-from" class="form-label mb-1">Площа від, га</label>
+                <input type="number" id="area-from" name="area_min" class="form-control form-control-sm mb-2"
+                       data-area-min min="0" step="0.01"
+                       value="{{ area_min if area_min is not none else '' }}" placeholder="Від">
+                <label for="area-to" class="form-label mb-1">Площа до, га</label>
+                <input type="number" id="area-to" name="area_max" class="form-control form-control-sm mb-2"
+                       data-area-max min="0" step="0.01"
+                       value="{{ area_max if area_max is not none else '' }}" placeholder="До">
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100" data-area-reset>
+                  Очистити діапазон
+                </button>
+              </div>
+            </div>
+          </th>
+        </tr>
+        <tr class="field-column-titles">
+          <th scope="col">Кластер</th>
+          <th scope="col">Підприємство</th>
+          <th scope="col">Культура</th>
+          <th scope="col">Номер поля</th>
+          <th scope="col" class="text-end">Площа, га</th>
+        </tr>
+      </thead>
+      <tbody id="field-table-body">
+        {% for row in items %}
+          <tr>
+            <td>{{ row.field_season.cluster.name }}</td>
+            <td>{{ row.field_season.company.name }}</td>
+            <td>{{ row.culture.name }}</td>
+            <td>{{ row.field_season.field.name }}</td>
+            <td class="text-end">{{ '%.2f'|format(row.area) }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">Немає сезонних полів або посівів за вибраними фільтрами.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot id="field-table-footer">
+        <tr>
+          <th colspan="4" class="text-end">Разом посівів</th>
+          <th class="text-end">{{ '%.2f'|format(total_area) }}</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>

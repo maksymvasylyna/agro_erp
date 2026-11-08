@@ -233,5 +233,102 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertEqual(old_field.culture_id, self.crop_a)
 
 
+    def test_field_structure_hierarchical_facets_and_pdf(self):
+        self.set_year(2026)
+        assigned = self.client.post(f"/fields/{self.field_id}/season", data={
+            "field-cluster": self.cluster_a, "field-company": self.company_a,
+            "field-area": "90.00",
+        })
+        self.assertEqual(assigned.status_code, 302)
+        for crop_id, area in ((self.crop_a, "40.00"), (self.crop_b, "25.00")):
+            response = self.client.post(f"/fields/{self.field_id}/plantings", data={
+                "plant-culture": crop_id, "plant-area": area,
+            })
+            self.assertEqual(response.status_code, 302)
+
+        # The same field can have multiple crops without double counting its physical area.
+        page = self.client.get("/structure/fields")
+        self.assertEqual(page.status_code, 200)
+        html = page.get_data(as_text=True)
+        self.assertIn('data-filter-trigger="clusters"', html)
+        self.assertIn('data-filter-trigger="companies"', html)
+        self.assertIn('data-filter-trigger="cultures"', html)
+        self.assertIn('data-filter-trigger="fields"', html)
+        self.assertIn('data-filter-trigger="area"', html)
+        self.assertIn('id="reset-all-filters"', html)
+        self.assertIn("Фізична площа відібраних полів", html)
+        self.assertIn("90.00 га", html)
+        self.assertIn("65.00 га", html)
+        self.assertIn("25.00 га", html)
+        self.assertIn("Завантажити PDF", html)
+        self.assertIn("До головного меню", html)
+
+        # Dynamic AJAX facet results use precisely the same filtered planting rows.
+        headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+        filtered = self.client.get(
+            "/structure/fields", query_string={"clusters": [self.cluster_a],
+                "companies": [self.company_a], "cultures": [self.crop_a],
+                "fields": [self.field_id], "area_min": "35", "area_max": "45"},
+            headers=headers,
+        )
+        self.assertEqual(filtered.status_code, 200)
+        content = filtered.get_json()
+        self.assertIn("40.00", content["html"])
+        self.assertNotIn("Соняшник</td>", content["html"])
+        self.assertEqual(content["checked"]["cultures"], [self.crop_a])
+        self.assertEqual([item["id"] for item in content["options"]["fields"]], [self.field_id])
+
+        empty = self.client.get("/structure/fields", query_string={"cultures": "__none__"})
+        self.assertEqual(empty.status_code, 200)
+        self.assertIn("Немає сезонних полів", empty.get_data(as_text=True))
+        bad = self.client.get("/structure/fields", query_string={"area_min": "-2"})
+        self.assertEqual(bad.status_code, 400)
+
+        pdf = self.client.get("/structure/fields/pdf",
+                              query_string={"cultures": [self.crop_a], "area_min": "35"})
+        self.assertEqual(pdf.status_code, 200)
+        self.assertEqual(pdf.mimetype, "application/pdf")
+        self.assertTrue(pdf.data.startswith(b"%PDF"))
+        self.assertIn("struktura_poliv_2026.pdf", pdf.headers["Content-Disposition"])
+
+    def test_summary_structure_season_cluster_and_pdf(self):
+        self.set_year(2026)
+        self.client.post(f"/fields/{self.field_id}/season", data={
+            "field-cluster": self.cluster_a, "field-company": self.company_a,
+            "field-area": "90.00",
+        })
+        for crop_id, area in ((self.crop_a, "40.00"), (self.crop_b, "25.00")):
+            self.client.post(f"/fields/{self.field_id}/plantings", data={
+                "plant-culture": crop_id, "plant-area": area,
+            })
+        page = self.client.get("/summary_structure/")
+        self.assertEqual(page.status_code, 200)
+        html = page.get_data(as_text=True)
+        self.assertIn("Підприємство А", html)
+        self.assertIn("Пшениця", html)
+        self.assertIn("Соняшник", html)
+        self.assertIn("65", html)
+        self.assertIn("До головного меню", html)
+        self.assertIn("Завантажити PDF", html)
+        self.assertIn('id="global-season-select"', html)
+
+        filtered = self.client.get("/summary_structure/", query_string={"cluster_id": self.cluster_b})
+        self.assertEqual(filtered.status_code, 200)
+        self.assertIn("немає посівів", filtered.get_data(as_text=True).lower())
+
+        pdf = self.client.get("/summary_structure/pdf",
+                              query_string={"cluster_id": self.cluster_a})
+        self.assertEqual(pdf.status_code, 200)
+        self.assertEqual(pdf.mimetype, "application/pdf")
+        self.assertTrue(pdf.data.startswith(b"%PDF"))
+        self.assertIn("zagalna_struktura_2026.pdf", pdf.headers["Content-Disposition"])
+
+        self.set_year(2027)
+        new_year = self.client.get("/summary_structure/")
+        self.assertEqual(new_year.status_code, 200)
+        self.assertNotIn("Підприємство А</td>", new_year.get_data(as_text=True))
+        self.assertEqual(db.session.get(Field, self.field_id).area, 100.0)
+
+
 if __name__ == "__main__":
     unittest.main()
