@@ -1,6 +1,6 @@
 """Currency reference: stable uppercase codes used by purchasing."""
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from extensions import db
 from modules.reference.shared_crud import linked_record_counts
@@ -22,7 +22,7 @@ def index():
     search = (request.args.get("q") or "").strip()
     query = Currency.query
     if search:
-        query = query.filter(db.or_(
+        query = query.filter(or_(
             Currency.code.ilike(f"%{search}%"),
             Currency.name.ilike(f"%{search}%"),
         ))
