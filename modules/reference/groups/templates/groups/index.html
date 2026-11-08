@@ -1,29 +1,62 @@
 {% extends 'reference/_index_base.html' %}
 
 {% block title_text %}Групи продуктів{% endblock %}
-{% block header_text %}🧪 Групи продуктів{% endblock %}
+{% block header_text %}Групи продуктів{% endblock %}
+
+{% block before_table %}
+  <p class="text-muted small mb-3">
+    Групи продуктів використовуються для класифікації та фільтрації препаратів,
+    добрив і насіння. Нові групи автоматично доступні в довіднику продуктів.
+  </p>
+{% endblock %}
+
+{% block filter_form %}
+  <form method="get" action="{{ url_for('groups.index') }}" class="row g-2 align-items-end mb-3">
+    <div class="col-sm-7 col-lg-5">
+      <label for="group-search" class="form-label">Пошук за назвою</label>
+      <input id="group-search" type="search" name="q" class="form-control"
+             value="{{ search }}" placeholder="Наприклад, Добрива">
+    </div>
+    <div class="col-sm-5 col-lg-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Знайти</button>
+      <a href="{{ url_for('groups.index') }}" class="btn btn-outline-secondary">Скинути</a>
+    </div>
+  </form>
+{% endblock %}
 
 {% block table_headers %}
   <th>ID</th>
-  <th>Назва</th>
+  <th>Назва групи</th>
+  <th>Продуктів</th>
   <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
   {% for group in groups %}
-  <tr>
-    <td>{{ group.id }}</td>
-    <td>{{ group.name }}</td>
-    <td>
-      <a href="{{ url_for('groups.edit', id=group.id) }}" class="btn btn-sm btn-primary">✏️</a>
-      <form action="{{ url_for('groups.delete', id=group.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
-        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
-      </form>
-    </td>
-  </tr>
+    {% set linked = product_counts.get(group.id, 0) %}
+    <tr>
+      <td>{{ group.id }}</td>
+      <td class="text-start fw-semibold">{{ group.name }}</td>
+      <td>{{ linked }}</td>
+      <td>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <a href="{{ url_for('groups.edit', id=group.id) }}"
+             class="btn btn-sm btn-primary"
+             aria-label="Редагувати групу {{ group.name }}">Редагувати</a>
+          {% if linked %}
+            <button class="btn btn-sm btn-outline-danger" type="button" disabled
+                    title="Група використовується продуктами">Видалити</button>
+          {% else %}
+            <form method="post" action="{{ url_for('groups.delete', id=group.id) }}"
+                  onsubmit="return confirm('Видалити цю групу продуктів?');">
+              {{ delete_form.hidden_tag() }}
+              <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
+            </form>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
   {% else %}
-  <tr>
-    <td colspan="3">Даних немає</td>
-  </tr>
+    <tr><td colspan="4" class="text-muted">Груп за вибраним запитом немає.</td></tr>
   {% endfor %}
 {% endblock %}
