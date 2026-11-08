@@ -8,6 +8,7 @@ from extensions import db
 from modules.reference.clusters.models import Cluster
 from modules.reference.companies.models import Company
 from modules.reference.fields.field_models import Field
+from modules.reference.fields.season_models import FieldSeason
 from modules.reference.warehouses.models import Warehouse
 
 from .forms import CompanyDeleteForm, CompanyFilterForm, CompanyForm
@@ -17,6 +18,7 @@ companies_bp = Blueprint("companies", __name__, template_folder="templates")
 # Known foreign-key consumers of companies. Restrict deletion, never cascade.
 _DEPENDENCIES = (
     ("полів", Field.company_id),
+    ("сезонних записів полів", FieldSeason.company_id),
     ("складів", Warehouse.company_id),
 )
 
@@ -99,13 +101,15 @@ def edit(id):
     company = Company.query.get_or_404(id)
     form = CompanyForm(obj=company, obj_id=company.id)
     field_count = Field.query.filter_by(company_id=company.id).count()
+    seasonal_count = FieldSeason.query.filter_by(company_id=company.id).count()
 
     if form.validate_on_submit():
-        if form.cluster.data.id != company.cluster_id and field_count:
+        if form.cluster.data.id != company.cluster_id and (field_count or seasonal_count):
             # Legacy fields carry both company_id and cluster_id: changing only
             # the company would create contradictory links. Reassign fields first.
             form.cluster.errors.append(
-                f"До підприємства прив'язано {field_count} полів. "
+                f"До підприємства прив'язано {field_count} постійних полів "
+                f"та {seasonal_count} сезонних записів. "
                 "Спочатку перенесіть поля, і лише після цього змінюйте кластер."
             )
         else:
@@ -120,7 +124,7 @@ def edit(id):
                 flash("Підприємство оновлено.", "success")
                 return redirect(url_for("companies.index"))
 
-    return _form_page(form, "Редагувати підприємство", field_count=field_count)
+    return _form_page(form, "Редагувати підприємство", field_count=field_count + seasonal_count)
 
 
 @companies_bp.route("/companies/delete/<int:id>", methods=["POST"])

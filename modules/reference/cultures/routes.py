@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 from modules.reference.fields.field_models import Field
+from modules.reference.fields.season_models import FieldSeason, FieldPlanting
 from .forms import CultureDeleteForm, CultureForm
 from .models import Culture
 
@@ -12,12 +13,20 @@ bp = Blueprint("cultures", __name__, url_prefix="/cultures", template_folder="te
 
 
 def _field_counts():
-    return dict(
-        db.session.query(Field.culture_id, func.count(Field.id))
-        .filter(Field.culture_id.isnot(None))
-        .group_by(Field.culture_id)
+    # Display number of distinct permanent fields per culture, accounting for
+    # both pre-season reference values and all historical crop allocations.
+    linked = {}
+    for culture_id, field_id in db.session.query(
+        Field.culture_id, Field.id
+    ).filter(Field.culture_id.isnot(None)).all():
+        linked.setdefault(culture_id, set()).add(field_id)
+    for culture_id, field_id in (
+        db.session.query(FieldPlanting.culture_id, FieldSeason.field_id)
+        .join(FieldSeason, FieldSeason.id == FieldPlanting.field_season_id)
         .all()
-    )
+    ):
+        linked.setdefault(culture_id, set()).add(field_id)
+    return {culture_id: len(ids) for culture_id, ids in linked.items()}
 
 
 @bp.route("/")
@@ -78,9 +87,11 @@ def delete(id):
 
     culture = Culture.query.get_or_404(id)
     fields = Field.query.filter_by(culture_id=culture.id).count()
-    if fields:
+    plantings = FieldPlanting.query.filter_by(culture_id=culture.id).count()
+    if fields or plantings:
         flash(
-            f"Культуру «{culture.name}» використовують {fields} полів. "
+            f"Культуру «{culture.name}» використовують {fields} постійних полів "
+            f"та {plantings} сезонних посівів. "
             "Спочатку змініть відповідні записи; видалення заблоковано.",
             "warning",
         )

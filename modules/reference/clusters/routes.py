@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from extensions import db
 from modules.reference.companies.models import Company
 from modules.reference.fields.field_models import Field
+from modules.reference.fields.season_models import FieldSeason
 from .models import Cluster
 from .forms import ClusterForm, ClusterDeleteForm, normalize_cluster_name
 
@@ -24,10 +25,17 @@ def _counts():
         db.session.query(Company.cluster_id, func.count(Company.id))
         .group_by(Company.cluster_id).all()
     )
-    fields = dict(
-        db.session.query(Field.cluster_id, func.count(Field.id))
-        .group_by(Field.cluster_id).all()
-    )
+    # Include permanent fields and seasonal affiliations, without
+    # double-counting the same field within a cluster across years.
+    linked = {}
+    for cluster_id, field_id in db.session.query(Field.cluster_id, Field.id).all():
+        if cluster_id is not None:
+            linked.setdefault(cluster_id, set()).add(field_id)
+    for cluster_id, field_id in db.session.query(
+        FieldSeason.cluster_id, FieldSeason.field_id
+    ).all():
+        linked.setdefault(cluster_id, set()).add(field_id)
+    fields = {cluster_id: len(ids) for cluster_id, ids in linked.items()}
     return companies, fields
 
 
@@ -96,9 +104,11 @@ def delete(id):
     cluster = Cluster.query.get_or_404(id)
     companies = Company.query.filter_by(cluster_id=cluster.id).count()
     fields = Field.query.filter_by(cluster_id=cluster.id).count()
-    if companies or fields:
+    seasonal_fields = FieldSeason.query.filter_by(cluster_id=cluster.id).count()
+    if companies or fields or seasonal_fields:
         flash(
-            f"Кластер «{cluster.name}» використовується: підприємств — {companies}, полів — {fields}. "
+            f"Кластер «{cluster.name}» використовується: підприємств — {companies}, "
+            f"постійних полів — {fields}, сезонних записів — {seasonal_fields}. "
             "Спочатку змініть їх прив'язки; видалення заблоковано.",
             "warning",
         )
