@@ -1,29 +1,61 @@
 {% extends 'reference/_index_base.html' %}
 
 {% block title_text %}Культури{% endblock %}
-{% block header_text %}🌱 Культури{% endblock %}
+{% block header_text %}Культури{% endblock %}
+
+{% block before_table %}
+  <p class="text-muted small mb-3">
+    Довідник є джерелом культур для полів і майбутньої сезонної сівозміни.
+    Додана культура автоматично доступна у формах створення поля.
+  </p>
+{% endblock %}
+
+{% block filter_form %}
+  <form method="get" action="{{ url_for('cultures.index') }}" class="row g-2 align-items-end mb-3">
+    <div class="col-sm-8 col-lg-5">
+      <label class="form-label" for="culture-search">Пошук культури</label>
+      <input type="search" class="form-control" id="culture-search" name="q"
+             value="{{ search }}" placeholder="Введіть назву культури">
+    </div>
+    <div class="col-sm-4 col-lg-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Знайти</button>
+      <a href="{{ url_for('cultures.index') }}" class="btn btn-outline-secondary">Скинути</a>
+    </div>
+  </form>
+{% endblock %}
 
 {% block table_headers %}
   <th>ID</th>
-  <th>Назва</th>
+  <th>Назва культури</th>
+  <th>Полів</th>
   <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
   {% for culture in cultures %}
+  {% set field_count = field_counts.get(culture.id, 0) %}
   <tr>
     <td>{{ culture.id }}</td>
-    <td>{{ culture.name }}</td>
+    <td class="text-start fw-semibold">{{ culture.name }}</td>
+    <td>{{ field_count }}</td>
     <td>
-      <a href="{{ url_for('cultures.edit', id=culture.id) }}" class="btn btn-sm btn-primary">✏️</a>
-      <form action="{{ url_for('cultures.delete', id=culture.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
-        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
-      </form>
+      <div class="d-flex flex-wrap justify-content-center gap-2">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('cultures.edit', id=culture.id) }}"
+           aria-label="Редагувати культуру {{ culture.name }}">Редагувати</a>
+        {% if field_count %}
+          <button class="btn btn-sm btn-outline-danger" type="button" disabled
+                  title="Культура використовується полями">Видалити</button>
+        {% else %}
+          <form method="post" action="{{ url_for('cultures.delete', id=culture.id) }}"
+                onsubmit="return confirm('Видалити культуру «{{ culture.name }}»?');">
+            {{ delete_form.hidden_tag() }}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
+          </form>
+        {% endif %}
+      </div>
     </td>
   </tr>
   {% else %}
-  <tr>
-    <td colspan="3">Даних немає</td>
-  </tr>
+    <tr><td colspan="4" class="text-muted">Культур за вибраним запитом немає.</td></tr>
   {% endfor %}
 {% endblock %}
