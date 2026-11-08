@@ -1,39 +1,15 @@
-{% extends 'base.html' %}
+{% extends 'reference/_form_base.html' %}
 
-{% block title %}{{ title }}{% endblock %}
-{% block header %}{{ header }}{% endblock %}
+{% block title_text %}{{ action }} валюту{% endblock %}
+{% block header_text %}{{ action }} валюту{% endblock %}
+{% block back_url %}{{ url_for('currencies.index') }}{% endblock %}
 
-{% block content %}
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
-  <div class="d-flex justify-content-between mb-3">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
-    <a href="{{ url_for('currencies.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
+{% block form_fields %}
+  <div class="col-md-4">
+    {{ render_field(form.code) }}
+    <div class="form-text">Наприклад, UAH, USD, EUR, $ або €. Літерні коди зберігаються великими літерами.</div>
   </div>
-
-  <form method="post">
-    {{ form.hidden_tag() }}
-
-    <div class="mb-3">
-      {{ form.code.label }}
-      {{ form.code(class="form-control") }}
-    </div>
-
-    <div class="mb-3">
-      {{ form.name.label }}
-      {{ form.name(class="form-control") }}
-    </div>
-
-    {{ form.submit(class="btn btn-success") }}
-  </form>
+  <div class="col-md-8">
+    {{ render_field(form.name) }}
+  </div>
 {% endblock %}
