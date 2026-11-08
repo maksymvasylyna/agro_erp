@@ -1,20 +1,7 @@
-{% extends 'base.html' %}
-
-{% block title %}{{ title }}{% endblock %}
-{% block header %}{{ header }}{% endblock %}
-
-{% block content %}
-  <div class="d-flex justify-content-between mb-3">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
-    <a href="{{ url_for('payers.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
-  </div>
-
-  <form method="post">
-    {{ form.hidden_tag() }}
-    <div class="mb-3">
-      {{ form.name.label }}
-      {{ form.name(class="form-control") }}
-    </div>
-    {{ form.submit(class="btn btn-success") }}
-  </form>
+{% extends 'reference/_form_base.html' %}
+{% block title_text %}{{ action }}: Платники{% endblock %}
+{% block header_text %}{{ action }}: Платники{% endblock %}
+{% block back_url %}{{ url_for('payers.index') }}{% endblock %}
+{% block form_fields %}
+  <div class="col-12">{{ render_field(form.name) }}</div>
 {% endblock %}
