@@ -25,3 +25,60 @@
   .tile-card { transition: none; }
   .tile-card:hover { transform: none; }
 }
+
+/* Shared AgroERP shell and reference-module design system. */
+:root {
+  --erp-navy: #193b69;
+  --erp-blue: #285a93;
+  --erp-gold: #d8ae4d;
+  --erp-border: #dce5ef;
+}
+.erp-page-title {
+  color: var(--erp-navy);
+  font-weight: 700;
+  padding-bottom: .7rem;
+  border-bottom: 3px solid var(--erp-gold);
+}
+.erp-page-nav .erp-nav-button {
+  color: var(--erp-navy);
+  border-color: #b4c4d7;
+  background: #fff;
+  min-width: 142px;
+  font-weight: 600;
+}
+.erp-page-nav .erp-nav-button:hover,
+.erp-page-nav .erp-nav-button:focus-visible {
+  color: #fff;
+  background: var(--erp-navy);
+  border-color: var(--erp-navy);
+}
+.erp-reference-page .btn-success {
+  background: var(--erp-blue);
+  border-color: var(--erp-blue);
+}
+.erp-reference-page .btn-success:hover,
+.erp-reference-page .btn-success:focus-visible {
+  background: var(--erp-navy);
+  border-color: var(--erp-navy);
+}
+.erp-reference-page .btn-primary {
+  background: var(--erp-navy);
+  border-color: var(--erp-navy);
+}
+.erp-reference-page .erp-reference-table thead th {
+  background: #ecf2f8;
+  color: var(--erp-navy);
+  border-bottom: 2px solid var(--erp-gold);
+  white-space: nowrap;
+}
+.erp-reference-page .erp-reference-table tbody td { vertical-align: middle; }
+.erp-reference-page .erp-form-card {
+  border: 1px solid var(--erp-border);
+  border-radius: .8rem;
+  box-shadow: 0 .25rem .7rem rgba(25, 59, 105, .06);
+}
+.erp-reference-page .form-label { color: var(--erp-navy); font-weight: 600; }
+.erp-reference-page .erp-dependent { color: #64748b; font-size: .85rem; }
+@media (max-width: 575.98px) {
+  .erp-page-nav .erp-nav-button { min-width: 0; font-size: .875rem; }
+}

@@ -6,7 +6,7 @@
 
 {% block form_fields %}
 <div class="col-md-12">
-    <label for="name" class="form-label">Назва</label>
-    {{ form.name(class="form-control") }}
+  {{ render_field(form.name) }}
+  <div class="form-text">Назва має бути унікальною. Після збереження кластер доступний у довіднику підприємств.</div>
 </div>
 {% endblock %}

@@ -1,49 +1,41 @@
 {% extends 'base.html' %}
+{% from 'base.html' import erp_navigation with context %}
 
-{% block title %}{% block title_text %}Форма{% endblock %}{% endblock %}
-{% block header %}{% block header_text %}📝 Форма{% endblock %}{% endblock %}
-
-{% block content %}
-{% from _self import render_field %}
-
-<div class="d-flex justify-content-between mb-3">
-  <a href="{% block back_url %}#{% endblock %}" class="btn btn-outline-secondary">⬅️ Назад</a>
-  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
-</div>
-
-{# ⚠️ CSRF-помилки (якщо виникнуть) #}
-{% if form.csrf_token is defined and form.csrf_token.errors %}
-  <div class="alert alert-danger">
-    {{ form.csrf_token.errors|join(', ') }}
-  </div>
-{% endif %}
-
-<form method="POST" class="row g-3" novalidate>
-  {{ form.hidden_tag() }}
-
-  {# 🔧 Поля форми. За замовчуванням — тільки "name". Перекрий у дочірніх шаблонах. #}
-  {% block form_fields %}
-    <div class="col-md-12">
-      {{ render_field(form.name) }}
-    </div>
-  {% endblock %}
-
-  <div class="col-12">
-    {{ form.submit(class="btn btn-success") }}
-  </div>
-</form>
-
-{% endblock %}
-
-{# ================= MACROS ================= #}
+{# Render a form control consistently, including its validation errors. #}
 {% macro render_field(field, label_text=None) -%}
   {% set is_select = 'Select' in field.type %}
   {% set base_class = 'form-select' if is_select else 'form-control' %}
-  {% set classes = base_class + (' is-invalid' if field.errors else '') %}
-
-  <label class="form-label">{{ label_text or field.label.text }}</label>
-  {{ field(class=classes) }}
+  <label for="{{ field.id }}" class="form-label">{{ label_text or field.label.text }}</label>
+  {{ field(class=base_class + (' is-invalid' if field.errors else '')) }}
   {% for err in field.errors %}
     <div class="invalid-feedback d-block">{{ err }}</div>
   {% endfor %}
 {%- endmacro %}
+
+{% block title %}{% block title_text %}Форма{% endblock %}{% endblock %}
+{% block header %}{% block header_text %}Форма{% endblock %}{% endblock %}
+
+{% block content %}
+<section class="erp-reference-page">
+  {% set back_link %}{% block back_url %}{{ url_for('reference.index') }}{% endblock %}{% endset %}
+  {{ erp_navigation(back_link|trim, url_for('index')) }}
+
+  {% if form.csrf_token is defined and form.csrf_token.errors %}
+    <div class="alert alert-danger" role="alert">{{ form.csrf_token.errors|join(', ') }}</div>
+  {% endif %}
+
+  <div class="card erp-form-card">
+    <div class="card-body">
+      <form method="POST" class="row g-3" novalidate>
+        {{ form.hidden_tag() }}
+        {% block form_fields %}
+          <div class="col-md-12">{{ render_field(form.name) }}</div>
+        {% endblock %}
+        <div class="col-12">
+          {{ form.submit(class="btn btn-success") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
