@@ -12,22 +12,25 @@ from .models import Culture
 bp = Blueprint("cultures", __name__, url_prefix="/cultures", template_folder="templates")
 
 
-def _field_counts():
-    # Display number of distinct permanent fields per culture, accounting for
-    # both pre-season reference values and all historical crop allocations.
-    linked = {}
-    for culture_id, field_id in db.session.query(
-        Field.culture_id, Field.id
-    ).filter(Field.culture_id.isnot(None)).all():
-        linked.setdefault(culture_id, set()).add(field_id)
-    for culture_id, field_id in (
-        db.session.query(FieldPlanting.culture_id, FieldSeason.field_id)
-        .join(FieldSeason, FieldSeason.id == FieldPlanting.field_season_id)
-        .all()
-    ):
-        linked.setdefault(culture_id, set()).add(field_id)
-    return {culture_id: len(ids) for culture_id, ids in linked.items()}
+def _usage_counts():
+    """Separate historical field assignments from seasonal crop plantings.
 
+    fields.culture_id is a legacy snapshot; a seasonal planting is a distinct
+    row, possibly one of multiple plantings per field. Do not sum these metrics.
+    """
+    base_fields = dict(
+        db.session.query(Field.culture_id, func.count(Field.id))
+        .filter(Field.culture_id.isnot(None))
+        .group_by(Field.culture_id)
+        .all()
+    )
+    seasonal_plantings = dict(
+        db.session.query(FieldPlanting.culture_id, func.count(FieldPlanting.id))
+        .filter(FieldPlanting.culture_id.isnot(None))
+        .group_by(FieldPlanting.culture_id)
+        .all()
+    )
+    return base_fields, seasonal_plantings
 
 @bp.route("/")
 def index():
@@ -35,10 +38,12 @@ def index():
     query = Culture.query
     if search:
         query = query.filter(Culture.name.ilike(f"%{search}%"))
+    base_field_counts, planting_counts = _usage_counts()
     return render_template(
         "cultures/index.html",
         cultures=query.order_by(Culture.name).all(),
-        field_counts=_field_counts(),
+        base_field_counts=base_field_counts,
+        planting_counts=planting_counts,
         delete_form=CultureDeleteForm(),
         create_url=url_for("cultures.create"),
         search=search,

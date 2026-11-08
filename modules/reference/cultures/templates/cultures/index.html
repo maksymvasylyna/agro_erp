@@ -5,8 +5,9 @@
 
 {% block before_table %}
   <p class="text-muted small mb-3">
-    Довідник є джерелом культур для полів і майбутньої сезонної сівозміни.
-    Додана культура автоматично доступна у формах створення поля.
+    Довідник культур використовується в полях і сезонних посівах. У таблиці
+    окремо показані старі прив’язки з карток полів та записи посівів за всі сезони.
+    Це різні показники, їх не потрібно підсумовувати.
   </p>
 {% endblock %}
 
@@ -27,24 +28,27 @@
 {% block table_headers %}
   <th>ID</th>
   <th>Назва культури</th>
-  <th>Полів</th>
+  <th>Полів у базовому обліку</th>
+  <th>Сезонних посівів</th>
   <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
   {% for culture in cultures %}
-  {% set field_count = field_counts.get(culture.id, 0) %}
+  {% set base_count = base_field_counts.get(culture.id, 0) %}
+  {% set seasonal_count = planting_counts.get(culture.id, 0) %}
   <tr>
     <td>{{ culture.id }}</td>
     <td class="text-start fw-semibold">{{ culture.name }}</td>
-    <td>{{ field_count }}</td>
+    <td>{{ base_count }}</td>
+    <td>{{ seasonal_count }}</td>
     <td>
       <div class="d-flex flex-wrap justify-content-center gap-2">
         <a class="btn btn-sm btn-primary" href="{{ url_for('cultures.edit', id=culture.id) }}"
            aria-label="Редагувати культуру {{ culture.name }}">Редагувати</a>
-        {% if field_count %}
+        {% if base_count or seasonal_count %}
           <button class="btn btn-sm btn-outline-danger" type="button" disabled
-                  title="Культура використовується полями">Видалити</button>
+                  title="Культура використовується полями або сезонними посівами">Видалити</button>
         {% else %}
           <form method="post" action="{{ url_for('cultures.delete', id=culture.id) }}"
                 onsubmit="return confirm('Видалити культуру «{{ culture.name }}»?');">
@@ -56,6 +60,6 @@
     </td>
   </tr>
   {% else %}
-    <tr><td colspan="4" class="text-muted">Культур за вибраним запитом немає.</td></tr>
+    <tr><td colspan="5" class="text-muted">Культур за вибраним запитом немає.</td></tr>
   {% endfor %}
 {% endblock %}
