@@ -1,329 +1,473 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
+"""Field reference CRUD and authoritative seasonal crop rotation.
+
+All new season-specific writes go to field_seasons/field_plantings. Old
+fields.area / fields.culture_id remain unchanged by seasonal edits so the
+existing 26 operational plans do not silently change interpretation.
+"""
+from decimal import Decimal
+from urllib.parse import urlsplit
+
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
+from flask_wtf import FlaskForm
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload, selectinload
+
 from extensions import db
 from modules.reference.fields.field_models import Field
-from modules.reference.fields.forms import FieldForm, FieldFilterForm
+from modules.reference.fields.forms import (
+    ActionForm, FieldCreateForm, FieldFilterForm, FieldNameForm, PlantingForm,
+    SeasonCreateForm, SeasonFieldForm,
+)
+from modules.reference.fields.season_models import FieldPlanting, FieldSeason, Season
+from modules.reference.companies.models import Company
+from modules.reference.cultures.models import Culture
 
-# Опційні залежності (якщо відсутні у проєкті — пропускаємо кроки)
-try:
-    from modules.purchases.payer_allocation.models import PayerAllocation  # щоб відв'язати field_id при wipe
-except Exception:
-    PayerAllocation = None
-
-try:
-    from modules.plans.models import Plan  # якщо нема — пропустимо видалення планів при wipe
-except Exception:
-    Plan = None
-
-# У твоєму проєкті ApprovedPlan відсутній — залишаємо як None
-ApprovedPlan = None
-
-fields_bp = Blueprint('fields', __name__, template_folder='templates')
+fields_bp = Blueprint("fields", __name__, template_folder="templates")
 
 
-def _id(x):
-    """Повертає .id для об'єктів або саме значення для SelectField(coerce=int)."""
-    return getattr(x, "id", x) if x is not None else None
+def _context():
+    seasons = Season.query.order_by(Season.year.desc()).all()
+    selected = session.get("harvest_year")
+    season = next((s for s in seasons if s.year == selected), None)
+    if season is None:
+        season = seasons[0] if seasons else None
+    if season:
+        session["harvest_year"] = season.year
+    return seasons, season
 
 
-@fields_bp.route('/fields')
-def index():
-    form = FieldFilterForm(request.args)
-    query = Field.query
+def _view_context():
+    seasons, season = _context()
+    return {"seasons": seasons, "season": season, "active_year": season.year if season else None}
 
-    if form.cluster.data:
-        query = query.filter_by(cluster_id=_id(form.cluster.data))
-    if form.company.data:
-        query = query.filter_by(company_id=_id(form.company.data))
-    if form.culture.data:
-        query = query.filter_by(culture_id=_id(form.culture.data))
 
-    fields = query.all()
-    return render_template(
-        'fields/index.html',
-        form=form,
-        items=fields,
-        create_url=url_for('fields.create')
+def _ensure_open(season):
+    if season is None:
+        abort(404, description="Спочатку створіть сезон у довіднику полів.")
+    if season.is_closed:
+        abort(409, description="Сезон закрито для редагування.")
+
+
+def _valid_parent(form):
+    if not form.company.data or not form.cluster.data:
+        return False
+    if form.company.data.cluster_id != form.cluster.data.id:
+        form.company.errors.append("Це підприємство не належить до вибраного кластера.")
+        return False
+    return True
+
+
+def _active_duplicate(name, company_id, exclude_id=None):
+    query = Field.query.filter(
+        Field.is_active.is_(True),
+        Field.company_id == company_id,
+        func.lower(Field.name) == name.lower(),
+    )
+    if exclude_id is not None:
+        query = query.filter(Field.id != exclude_id)
+    return query.first()
+
+
+def _season_fields(season_id):
+    return (
+        FieldSeason.query
+        .options(
+            joinedload(FieldSeason.field),
+            joinedload(FieldSeason.company),
+            joinedload(FieldSeason.cluster),
+            selectinload(FieldSeason.plantings).joinedload(FieldPlanting.culture),
+        )
+        .filter(FieldSeason.season_id == season_id)
     )
 
 
-@fields_bp.route('/fields/create', methods=['GET', 'POST'])
-def create():
-    form = FieldForm()
-    if form.validate_on_submit():
-        # Нормалізуємо назву (прибираємо зайві пробіли), порівнюємо без регістру
-        name = " ".join((form.name.data or "").split())
-        cluster_id = _id(form.cluster.data)
-        company_id = _id(form.company.data)
-        culture_id = _id(form.culture.data)
+def _safe_redirect_path(raw):
+    parsed = urlsplit(raw or "")
+    return (
+        bool(raw) and parsed.scheme == "" and parsed.netloc == "" and parsed.fragment == ""
+        and parsed.path.startswith("/") and not parsed.path.startswith("//")
+        and chr(92) not in raw and chr(0) not in raw
+        and parsed.path != url_for("fields.select_season")
+    )
 
-        # 1) Перевіряємо на АКТИВНИЙ дубль у цільовій компанії
-        q_target = Field.query.filter(func.lower(Field.name) == func.lower(name))
-        if hasattr(Field, 'company_id'):
-            q_target = q_target.filter(Field.company_id == company_id)
 
-        existing_target_active = q_target.filter(getattr(Field, 'is_active', True) == True).first()
-        if existing_target_active:
-            flash(f"Поле з назвою '{name}' вже існує!", "danger")
-            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+def _save_errors(form):
+    messages = [message for errors in form.errors.values() for message in errors]
+    flash(" ".join(messages) or "Перевірте дані форми.", "warning")
 
-        # 2) Якщо в цільовій компанії є АРХІВНИЙ — відновлюємо його
-        existing_target_arch = q_target.filter(getattr(Field, 'is_active', True) == False).first()
-        if existing_target_arch:
-            existing_target_arch.is_active = True
-            existing_target_arch.cluster_id = cluster_id
-            existing_target_arch.culture_id = culture_id
-            existing_target_arch.area = form.area.data
-            try:
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-                flash("Не вдалося відновити поле: порушення унікальності.", "danger")
-            except Exception:
-                db.session.rollback()
-                current_app.logger.exception("Unarchive Field (target) failed")
-                flash("Не вдалося відновити поле.", "danger")
-            else:
-                flash('Архівне поле відновлено.', 'success')
-                return redirect(url_for('fields.index'))
 
-            # Якщо ми тут — значить щось пішло не так: повертаємо форму
-            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+@fields_bp.route("/fields")
+def index():
+    ctx = _view_context()
+    season = ctx["season"]
+    form = FieldFilterForm(request.args)
+    term = (request.args.get("q") or "").strip()
+    rows = []
+    unassigned = []
+    total = Decimal("0.00")
+    planted = Decimal("0.00")
 
-        # 3) Пошукаємо БУДЬ-ЯКИЙ архівний запис з такою назвою в інших компаніях
-        existing_any_arch = (
-            Field.query
-            .filter(func.lower(Field.name) == func.lower(name))
-            .filter(getattr(Field, 'is_active', True) == False)
-            .first()
-        )
-        if existing_any_arch:
-            # Переконаймося, що в цільовій компанії немає активного дубля (ми вже перевірили вище, але лишимо надійність)
-            dup_active = (
-                Field.query
-                .filter(func.lower(Field.name) == func.lower(name))
-                .filter(getattr(Field, 'is_active', True) == True)
-                .filter(Field.company_id == company_id if hasattr(Field, 'company_id') else True)
-                .first()
+    if season:
+        query = _season_fields(season.id).join(Field, FieldSeason.field_id == Field.id)
+        if form.cluster.data:
+            query = query.filter(FieldSeason.cluster_id == form.cluster.data.id)
+        if form.company.data:
+            query = query.filter(FieldSeason.company_id == form.company.data.id)
+        if form.culture.data:
+            query = query.filter(
+                FieldSeason.plantings.any(FieldPlanting.culture_id == form.culture.data.id)
             )
-            if dup_active:
-                flash(f"Поле з назвою '{name}' вже існує в обраній компанії.", "danger")
-                return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+        if term:
+            query = query.filter(Field.name.ilike(f"%{term}%"))
+        rows = query.order_by(FieldSeason.company_id, Field.name).all()
+        total = sum((fs.area for fs in rows), Decimal("0.00"))
+        planted = sum((fs.planted_area for fs in rows), Decimal("0.00"))
 
-            # ♻️ Переназначаємо архівний запис на потрібну компанію і відновлюємо
-            existing_any_arch.is_active = True
-            existing_any_arch.company_id = company_id
-            existing_any_arch.cluster_id = cluster_id
-            existing_any_arch.culture_id = culture_id
-            existing_any_arch.area = form.area.data
-            try:
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-                flash("Не вдалося відновити поле (переназначення company): унікальність порушена.", "danger")
-            except Exception:
-                db.session.rollback()
-                current_app.logger.exception("Unarchive Field (reassign company) failed")
-                flash("Не вдалося відновити поле (переназначення company).", "danger")
-            else:
-                flash('Архівне поле відновлено і привʼязано до вибраної компанії.', 'success')
-                return redirect(url_for('fields.index'))
-
-            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
-
-        # 4) Взагалі не існує — створюємо нове
-        field = Field(
-            name=name,
-            cluster_id=cluster_id,
-            company_id=company_id,
-            culture_id=culture_id,
-            area=form.area.data
+        assigned = db.session.query(FieldSeason.field_id).filter(
+            FieldSeason.season_id == season.id
         )
-        db.session.add(field)
+        unassigned = (
+            Field.query.options(joinedload(Field.company))
+            .filter(Field.is_active.is_(True), ~Field.id.in_(assigned))
+            .order_by(Field.name)
+            .all()
+        )
+    return render_template(
+        "fields/index.html",
+        **ctx,
+        rows=rows, unassigned=unassigned, total=total, planted=planted,
+        form=form, term=term,
+        create_url=url_for("fields.create"),
+    )
+
+
+@fields_bp.route("/fields/seasons")
+def seasons_manager():
+    ctx = _view_context()
+    entries = []
+    for item in ctx["seasons"]:
+        entries.append({
+            "season": item,
+            "fields": FieldSeason.query.filter_by(season_id=item.id).count(),
+            "previous": Season.query.filter_by(year=item.year - 1).first(),
+        })
+    return render_template(
+        "fields/seasons.html", **ctx, entries=entries,
+        new_form=SeasonCreateForm(prefix="new"),
+        action_form=ActionForm(),
+    )
+
+
+@fields_bp.route("/fields/select-season")
+def select_season():
+    year = request.args.get("year", type=int)
+    if year is None or not Season.query.filter_by(year=year).first():
+        abort(404)
+    session["harvest_year"] = year
+    target = request.args.get("next", "")
+    return redirect(target if _safe_redirect_path(target) else url_for("fields.index"))
+
+
+@fields_bp.post("/fields/seasons/create")
+def create_season():
+    form = SeasonCreateForm(prefix="new")
+    if not form.validate_on_submit():
+        _save_errors(form)
+        return redirect(url_for("fields.seasons_manager"))
+    year = form.year.data
+    if Season.query.filter_by(year=year).first():
+        flash("Сезон цього року вже існує.", "warning")
+    else:
         try:
+            db.session.add(Season(year=year))
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            flash("Не вдалося створити поле: порушення унікальності (можливо, активний дублікат).", "danger")
-            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
-        except Exception:
-            db.session.rollback()
-            current_app.logger.exception("Create Field failed")
-            flash('Помилка збереження поля.', 'danger')
-            return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+            flash("Не вдалося створити сезон: такий рік уже існує.", "warning")
+        else:
+            flash(f"Сезон урожаю {year} створено.", "success")
+            session["harvest_year"] = year
+    return redirect(url_for("fields.seasons_manager"))
 
-        flash('Поле додано!', 'success')
-        return redirect(url_for('fields.index'))
 
-    # Якщо POST невалідний — залогуємо, щоб на проді не «мовчало»
-    if request.method == 'POST':
+@fields_bp.post("/fields/seasons/<int:year>/copy")
+def copy_season(year):
+    if not ActionForm().validate_on_submit():
+        abort(400)
+    target = Season.query.filter_by(year=year).first_or_404()
+    source = Season.query.filter_by(year=year - 1).first()
+    _ensure_open(target)
+    if source is None:
+        flash(f"Сезону {year - 1} не існує — копіювати нічого.", "warning")
+    elif FieldSeason.query.filter_by(season_id=target.id).first():
+        flash("Копіювати дозволено лише в повністю порожній сезон.", "warning")
+    else:
         try:
-            payload = {
-                "name": getattr(form, 'name').data if hasattr(form, 'name') else None,
-                "company": _id(getattr(form, 'company').data) if hasattr(form, 'company') else None,
-                "cluster": _id(getattr(form, 'cluster').data) if hasattr(form, 'cluster') else None,
-                "culture": _id(getattr(form, 'culture').data) if hasattr(form, 'culture') else None,
-                "area": getattr(form, 'area').data if hasattr(form, 'area') else None,
-            }
-        except Exception:
-            payload = {}
-        current_app.logger.warning("FieldForm POST errors=%s payload=%s", dict(form.errors or {}), payload)
+            for row in _season_fields(source.id).all():
+                dest = FieldSeason(
+                    season_id=target.id, field_id=row.field_id, cluster_id=row.cluster_id,
+                    company_id=row.company_id, area=row.area,
+                )
+                db.session.add(dest)
+                db.session.flush()
+                for planting in row.plantings:
+                    db.session.add(FieldPlanting(
+                        field_season_id=dest.id, culture_id=planting.culture_id,
+                        area=planting.area, note=planting.note,
+                    ))
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Копіювання зупинено через конфлікт даних.", "danger")
+        else:
+            flash(f"Сезон {year - 1} скопійовано в {year}. Перевірте культури та площі.", "success")
+            session["harvest_year"] = year
+    return redirect(url_for("fields.seasons_manager"))
 
-    return render_template('fields/form.html', form=form, title='Нове поле', header='➕ Нове поле')
+
+@fields_bp.post("/fields/seasons/<int:year>/toggle")
+def toggle_season(year):
+    if not ActionForm().validate_on_submit():
+        abort(400)
+    season = Season.query.filter_by(year=year).first_or_404()
+    season.is_closed = not season.is_closed
+    db.session.commit()
+    flash(
+        f"Сезон {year} {'закрито' if season.is_closed else 'відкрито'} для редагування.",
+        "info",
+    )
+    return redirect(url_for("fields.seasons_manager"))
 
 
-@fields_bp.route('/fields/<int:id>/edit', methods=['GET', 'POST'])
+@fields_bp.route("/fields/create", methods=["GET", "POST"])
+def create():
+    ctx = _view_context()
+    season = ctx["season"]
+    form = FieldCreateForm()
+    companies = Company.query.order_by(Company.name).all()
+
+    if form.validate_on_submit():
+        _ensure_open(season)
+        if not _valid_parent(form):
+            pass
+        elif _active_duplicate(form.name.data, form.company.data.id):
+            form.name.errors.append("Поле з таким номером уже існує в цьому підприємстві.")
+        else:
+            field = Field(
+                name=form.name.data, is_active=True,
+                company_id=form.company.data.id, cluster_id=form.cluster.data.id,
+                area=float(form.area.data),
+                culture_id=form.culture.data.id if form.culture.data else None,
+            )
+            try:
+                db.session.add(field)
+                db.session.flush()
+                record = FieldSeason(
+                    season_id=season.id, field_id=field.id,
+                    company_id=form.company.data.id, cluster_id=form.cluster.data.id,
+                    area=form.area.data,
+                )
+                db.session.add(record)
+                db.session.flush()
+                if form.culture.data:
+                    db.session.add(FieldPlanting(
+                        field_season_id=record.id, culture_id=form.culture.data.id,
+                        area=form.area.data,
+                    ))
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                form.name.errors.append("Не вдалося створити поле: перевірте номер та зв'язки.")
+            else:
+                flash(f"Поле «{field.name}» створено у сезоні {season.year}.", "success")
+                return redirect(url_for("fields.detail", id=field.id))
+    return render_template(
+        "fields/form.html", **ctx, form=form, companies=companies,
+        view_mode="create", title="Створити поле",
+    )
+
+
+@fields_bp.route("/fields/<int:id>")
+def detail(id):
+    field = Field.query.get_or_404(id)
+    ctx = _view_context()
+    season = ctx["season"]
+    record = (
+        _season_fields(season.id).filter(FieldSeason.field_id == id).first()
+        if season else None
+    )
+    field_form = SeasonFieldForm(prefix="field")
+    if record:
+        field_form.cluster.data = record.cluster
+        field_form.company.data = record.company
+        field_form.area.data = record.area
+    else:
+        field_form.cluster.data = field.cluster
+        field_form.company.data = field.company
+        field_form.area.data = Decimal(str(field.area)) if field.area else None
+    plant_form = PlantingForm(prefix="plant")
+    history = (
+        FieldSeason.query.join(Season)
+        .options(
+            joinedload(FieldSeason.company), joinedload(FieldSeason.cluster),
+            selectinload(FieldSeason.plantings).joinedload(FieldPlanting.culture),
+        )
+        .filter(FieldSeason.field_id == id)
+        .order_by(Season.year.desc())
+        .all()
+    )
+    return render_template(
+        "fields/detail.html", **ctx, field=field, record=record,
+        field_form=field_form, plant_form=plant_form,
+        companies=Company.query.order_by(Company.name).all(),
+        history=history, action_form=ActionForm(),
+    )
+
+
+@fields_bp.post("/fields/<int:id>/season")
+def save_field_season(id):
+    field = Field.query.get_or_404(id)
+    _, season = _context()
+    _ensure_open(season)
+    form = SeasonFieldForm(prefix="field")
+    if not form.validate_on_submit() or not _valid_parent(form):
+        _save_errors(form)
+        return redirect(url_for("fields.detail", id=field.id))
+    record = FieldSeason.query.filter_by(season_id=season.id, field_id=field.id).first()
+    if record and form.area.data < record.planted_area:
+        flash("Фізична площа не може бути меншою за суму посівних площ.", "danger")
+        return redirect(url_for("fields.detail", id=id))
+    try:
+        if record is None:
+            record = FieldSeason(season_id=season.id, field_id=field.id)
+            db.session.add(record)
+        record.company_id = form.company.data.id
+        record.cluster_id = form.cluster.data.id
+        record.area = form.area.data
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash("Не вдалося зберегти поле в сезоні.", "danger")
+    else:
+        flash(f"Сезонні дані поля оновлено для {season.year} року.", "success")
+    return redirect(url_for("fields.detail", id=id))
+
+
+@fields_bp.post("/fields/<int:id>/plantings")
+def add_planting(id):
+    field = Field.query.get_or_404(id)
+    _, season = _context()
+    _ensure_open(season)
+    record = FieldSeason.query.filter_by(season_id=season.id, field_id=field.id).first_or_404()
+    form = PlantingForm(prefix="plant")
+    if not form.validate_on_submit():
+        _save_errors(form)
+    elif record.planted_area + form.area.data > record.area:
+        flash("Сума посівів перевищить фізичну площу поля.", "danger")
+    else:
+        try:
+            db.session.add(FieldPlanting(
+                field_season_id=record.id, culture_id=form.culture.data.id,
+                area=form.area.data, note=(form.note.data or "").strip() or None,
+            ))
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Не вдалося додати культуру до сівозміни.", "danger")
+        else:
+            flash("Посів додано.", "success")
+    return redirect(url_for("fields.detail", id=field.id))
+
+
+@fields_bp.route("/fields/plantings/<int:id>/edit", methods=["GET", "POST"])
+def edit_planting(id):
+    planting = FieldPlanting.query.get_or_404(id)
+    record = planting.field_season
+    _ensure_open(record.season)
+    form = PlantingForm(prefix="plant", obj=planting)
+    if form.validate_on_submit():
+        if record.planted_area - planting.area + form.area.data > record.area:
+            form.area.errors.append("Сума посівів перевищить фізичну площу.")
+        else:
+            planting.culture_id = form.culture.data.id
+            planting.area = form.area.data
+            planting.note = (form.note.data or "").strip() or None
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                form.area.errors.append("Не вдалося зберегти зміни.")
+            else:
+                flash("Посів оновлено.", "success")
+                return redirect(url_for("fields.detail", id=record.field_id))
+    return render_template(
+        "fields/planting_form.html", form=form, planting=planting,
+        parent_field=record.field, season=record.season,
+    )
+
+
+@fields_bp.post("/fields/plantings/<int:id>/delete")
+def delete_planting(id):
+    if not ActionForm().validate_on_submit():
+        abort(400)
+    planting = FieldPlanting.query.get_or_404(id)
+    record = planting.field_season
+    _ensure_open(record.season)
+    field_id = record.field_id
+    db.session.delete(planting)
+    db.session.commit()
+    flash("Посів видалено із сезону.", "info")
+    return redirect(url_for("fields.detail", id=field_id))
+
+
+@fields_bp.route("/fields/<int:id>/edit", methods=["GET", "POST"])
 def edit(id):
     field = Field.query.get_or_404(id)
-    form = FieldForm(obj=field)
+    form = FieldNameForm(obj=field)
     if form.validate_on_submit():
-        new_name = " ".join((form.name.data or "").split())
-        new_company_id = _id(form.company.data)
-
-        # Перевірка дубля ЛИШЕ серед активних у межах компанії
-        if field.name.lower() != new_name.lower() or getattr(field, 'company_id', None) != new_company_id:
-            q = Field.query.filter(func.lower(Field.name) == func.lower(new_name))
-            if hasattr(Field, 'company_id'):
-                q = q.filter(Field.company_id == new_company_id)
-            q = q.filter(getattr(Field, 'is_active', True) == True)
-            existing_active = q.first()
-            if existing_active and existing_active.id != field.id:
-                flash(f"Поле з назвою '{new_name}' вже існує в обраній компанії.", "danger")
-                return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
-
-        field.name = new_name
-        field.cluster_id = _id(form.cluster.data)
-        field.company_id = new_company_id
-        field.culture_id = _id(form.culture.data)
-        field.area = form.area.data
-
-        try:
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            flash("Не вдалося зберегти зміни: порушення унікальності (активний дублікат).", "danger")
-            return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
-        except Exception:
-            db.session.rollback()
-            current_app.logger.exception("Update Field failed")
-            flash('Помилка збереження змін.', 'danger')
-            return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
-
-        flash('Поле оновлено!', 'success')
-        return redirect(url_for('fields.index'))
-
-    return render_template('fields/form.html', form=form, title='Редагувати поле', header='✏️ Редагувати поле')
-
-
-@fields_bp.route('/fields/<int:id>/delete', methods=['POST'])
-def delete(id):
-    field = Field.query.get_or_404(id)
-    try:
-        db.session.delete(field)
-        db.session.commit()
-        flash('Поле видалено!', 'info')
-    except IntegrityError:
-        # Якщо FK заважає — мʼяке видалення (архів)
-        db.session.rollback()
-        if hasattr(field, 'is_active'):
-            field.is_active = False
+        if _active_duplicate(form.name.data, field.company_id, exclude_id=field.id):
+            form.name.errors.append("Поле з таким номером уже існує в підприємстві.")
+        else:
+            field.name = form.name.data
             try:
                 db.session.commit()
-                flash('Поле має залежності — переміщено в архів.', 'warning')
-            except Exception:
+            except IntegrityError:
                 db.session.rollback()
-                current_app.logger.exception("Archive Field on delete failed")
-                flash('Не вдалося видалити/заархівувати поле через залежності.', 'danger')
-        else:
-            flash('Не вдалося видалити поле через залежності.', 'danger')
-    except Exception:
-        db.session.rollback()
-        current_app.logger.exception("Delete Field failed")
-        flash('Сталася помилка при видаленні.', 'danger')
-    return redirect(url_for('fields.index'))
+                form.name.errors.append("Не вдалося перейменувати поле.")
+            else:
+                flash("Постійний номер поля оновлено.", "success")
+                return redirect(url_for("fields.detail", id=id))
+    return render_template("fields/form.html", form=form, view_mode="edit",
+                           title="Редагувати номер поля", field=field)
 
 
-# ===================== «ЯДЕРНА КНОПКА» — ПОВНЕ ОЧИЩЕННЯ =====================
+@fields_bp.post("/fields/<int:id>/delete")
+def delete(id):
+    if not ActionForm().validate_on_submit():
+        abort(400)
+    field = Field.query.get_or_404(id)
+    field.is_active = False
+    db.session.commit()
+    flash("Поле переміщено в архів. Сівозміна та плани збережені.", "info")
+    return redirect(url_for("fields.index"))
 
-@fields_bp.post('/fields/wipe')
-def wipe_fields():
-    """
-    Повне очищення довідника «Поля».
-    Параметри (form):
-      confirm = "DELETE FIELDS"  (обов'язково)
-      force   = "1"              (необов'язково) — видалити також плани/затверджені; у розподілах зняти field_id.
-    """
-    confirm = (request.form.get('confirm') or '').strip()
-    force = request.form.get('force') == '1'
 
-    if confirm != "DELETE FIELDS":
-        flash('Введіть точну фразу підтвердження: DELETE FIELDS', 'warning')
-        return redirect(url_for('fields.index'))
-
-    # Зберемо всі id полів
-    field_ids = [fid for (fid,) in db.session.query(Field.id).all()]
-    if not field_ids:
-        flash('Немає що очищати — таблиця «Поля» порожня.', 'info')
-        return redirect(url_for('fields.index'))
-
-    # Підрахунок залежностей (якщо моделі доступні)
-    def _count(model, col_name='field_id'):
-        if model is None:
-            return 0
-        col = getattr(model, col_name)
-        return db.session.query(func.count()).select_from(model).filter(col.in_(field_ids)).scalar()
-
-    plans_cnt = _count(Plan)
-    appr_cnt = _count(ApprovedPlan)
-    alloc_cnt = _count(PayerAllocation)
-
-    if (plans_cnt or appr_cnt) and not force:
-        flash(
-            f"Залежності знайдені: плани={plans_cnt}, затверджені={appr_cnt}. "
-            f"Очистку зупинено. Увімкніть «форс», якщо потрібно стерти повністю.",
-            'warning'
-        )
-        return redirect(url_for('fields.index'))
-
-    try:
-        # 1) Відв'язати розподіли (field_id -> NULL), щоб FK не блокував
-        if PayerAllocation and alloc_cnt:
-            db.session.query(PayerAllocation)\
-                .filter(PayerAllocation.field_id.in_(field_ids))\
-                .update({PayerAllocation.field_id: None}, synchronize_session=False)
-
-        # 2) Якщо форс — видалити пов'язані плани/затверджені
-        if force:
-            if ApprovedPlan and appr_cnt:
-                db.session.query(ApprovedPlan)\
-                    .filter(ApprovedPlan.field_id.in_(field_ids))\
-                    .delete(synchronize_session=False)
-            if Plan and plans_cnt:
-                db.session.query(Plan)\
-                    .filter(Plan.field_id.in_(field_ids))\
-                    .delete(synchronize_session=False)
-
-        # 3) Видалити всі поля
-        deleted = db.session.query(Field).delete(synchronize_session=False)
+@fields_bp.post("/fields/<int:id>/restore")
+def restore(id):
+    if not ActionForm().validate_on_submit():
+        abort(400)
+    field = Field.query.get_or_404(id)
+    if _active_duplicate(field.name, field.company_id, exclude_id=id):
+        flash("Неможливо відновити поле: існує активне поле з таким номером.", "warning")
+    else:
+        field.is_active = True
         db.session.commit()
+        flash("Поле відновлено.", "success")
+    return redirect(url_for("fields.detail", id=id))
 
-        notes = []
-        if alloc_cnt:
-            notes.append(f"відвʼязано розподілів: {alloc_cnt}")
-        if force and (plans_cnt or appr_cnt):
-            notes.append(f"видалено плани: {plans_cnt}, затверджені: {appr_cnt}")
-        tail = f" ({', '.join(notes)})" if notes else ""
 
-        flash(f'Довідник «Поля» очищено. Видалено записів: {deleted}{tail}.', 'success')
-
-    except IntegrityError:
-        db.session.rollback()
-        current_app.logger.exception("Wipe fields failed (FK integrity).")
-        flash('FK-блокування. Увімкніть «форс» або налаштуйте каскади/SET NULL.', 'danger')
-    except Exception:
-        db.session.rollback()
-        current_app.logger.exception("Wipe fields failed.")
-        flash('Сталася помилка під час очищення.', 'danger')
-
-    return redirect(url_for('fields.index'))
+@fields_bp.post("/fields/wipe")
+def wipe_fields():
+    """Disable the old destructive endpoint; protect linked plans and seasons."""
+    abort(403, description="Масове видалення застарілим маршрутом вимкнено.")
