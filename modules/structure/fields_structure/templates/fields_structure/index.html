@@ -1,72 +1,127 @@
 {% extends 'reference/_index_base.html' %}
+{% from 'base.html' import erp_season_controls with context %}
 
-{# 📌 Заголовок сторінки та header #}
 {% block title_text %}Структура по полях{% endblock %}
-{% block header_text %}🌾 Структура по полях{% endblock %}
-
-{# ⬅️ Кнопка Назад веде на головну структури #}
+{% block header_text %}Структура по полях{% if active_year %} — урожай {{ active_year }}{% endif %}{% endblock %}
 {% block back_url %}{{ url_for('structure.index') }}{% endblock %}
 
-{# ✅ Текст кнопки залишаємо стандартним: ⬅️ Назад #}
+{% block page_top %}
+  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.full_path.rstrip('?')) }}
+{% endblock %}
 
-{# 🔍 Форма фільтрації #}
+{% block before_table %}
+  {% if season %}
+    <div class="row g-2 mb-3">
+      <div class="col-md-3"><div class="card card-body erp-form-card h-100">
+        <span class="text-muted small">Полів за фільтрами</span>
+        <strong>{{ items|length }}</strong>
+      </div></div>
+      <div class="col-md-3"><div class="card card-body erp-form-card h-100">
+        <span class="text-muted small">Фізична площа відібраних полів</span>
+        <strong>{{ '%.2f'|format(total_area) }} га</strong>
+      </div></div>
+      <div class="col-md-3"><div class="card card-body erp-form-card h-100">
+        <span class="text-muted small">{{ 'Посівна площа вибраної культури' if culture_filtered else 'Посівна площа' }}</span>
+        <strong>{{ '%.2f'|format(total_planted) }} га</strong>
+      </div></div>
+      {% if not culture_filtered %}
+        <div class="col-md-3"><div class="card card-body erp-form-card h-100">
+          <span class="text-muted small">Не розподілено за культурами</span>
+          <strong>{{ '%.2f'|format(total_unallocated) }} га</strong>
+        </div></div>
+      {% endif %}
+    </div>
+    <p class="small text-muted">
+      Дані за сезон урожаю {{ season.year }}. Фізична площа кожного поля враховується один раз,
+      навіть якщо в ньому кілька культур. Старий каталог без підтвердженого року не включається.
+      {% if culture_filtered %}
+        За фільтром культури фізична площа — це повна площа полів, де є ця культура;
+        посівна площа — лише її частина.
+      {% endif %}
+    </p>
+  {% else %}
+    <div class="alert alert-warning">
+      Сезону ще немає. <a href="{{ url_for('fields.seasons_manager') }}">Створити сезон у довіднику «Поля»</a>.
+    </div>
+  {% endif %}
+{% endblock %}
+
 {% block filter_form %}
-<form method="get" class="d-flex flex-wrap mb-3">
-  {{ filter_form.hidden_tag() }}
-  <div class="me-2">
-    {{ filter_form.cluster.label }}
-    {{ filter_form.cluster(class="form-select") }}
-  </div>
-  <div class="me-2">
-    {{ filter_form.company.label }}
-    {{ filter_form.company(class="form-select") }}
-  </div>
-  <div class="me-2">
-    {{ filter_form.culture.label }}
-    {{ filter_form.culture(class="form-select") }}
-  </div>
-  <div class="me-2 align-self-end">
-    {{ filter_form.submit(class="btn btn-primary") }}
-  </div>
-</form>
+  <form method="get" action="{{ url_for('fields_structure.index') }}" class="row g-2 align-items-end mb-3">
+    <div class="col-sm-6 col-lg-3">
+      {{ filter_form.cluster.label(class="form-label") }}
+      {{ filter_form.cluster(class="form-select") }}
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      {{ filter_form.company.label(class="form-label") }}
+      {{ filter_form.company(class="form-select") }}
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      {{ filter_form.culture.label(class="form-label") }}
+      {{ filter_form.culture(class="form-select") }}
+    </div>
+    <div class="col-12 d-flex gap-2">
+      {{ filter_form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('fields_structure.index') }}" class="btn btn-outline-secondary">Скинути</a>
+    </div>
+  </form>
 {% endblock %}
 
-{# ✅ Чиста таблиця #}
 {% block table_content %}
-<table class="table table-bordered table-striped table-hover align-middle">
-  <thead class="table-success text-center">
-    <tr>
-      <th class="text-center">ID</th>
-      <th class="text-center">Назва поля</th>
-      <th class="text-center">Кластер</th>
-      <th class="text-center">Підприємство</th>
-      <th class="text-center">Культура</th>
-      <th class="text-center">Площа, га</th>
-    </tr>
-  </thead>
-  <tbody class="text-center">
-    {% if items %}
-      {% for field in items %}
+  <table class="table table-bordered table-striped table-hover align-middle erp-reference-table">
+    <thead class="text-center">
       <tr>
-        <td>{{ field.id }}</td>
-        <td>{{ field.name }}</td>
-        <td>{{ field.cluster.name if field.cluster else '' }}</td>
-        <td>{{ field.company.name if field.company else '' }}</td>
-        <td>{{ field.culture.name if field.culture else '' }}</td>
-        <td>{{ field.area }}</td>
+        <th>Поле</th>
+        <th>Кластер</th>
+        <th>Підприємство</th>
+        <th>Культура / площа посіву</th>
+        <th class="text-end">Фізична площа, га</th>
+        <th class="text-end">Посівна площа, га</th>
+        {% if not culture_filtered %}<th class="text-end">Не розподілено, га</th>{% endif %}
       </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        {% set row = item.field_season %}
+        <tr>
+          <td>
+            <a href="{{ url_for('fields.detail', id=row.field_id) }}">{{ row.field.name }}</a>
+          </td>
+          <td>{{ row.cluster.name }}</td>
+          <td>{{ row.company.name }}</td>
+          <td>
+            {% for planting in item.plantings %}
+              <div>{{ planting.culture.name }} — {{ '%.2f'|format(planting.area) }} га</div>
+            {% else %}
+              <span class="text-muted">Культуру не визначено</span>
+            {% endfor %}
+          </td>
+          <td class="text-end">{{ '%.2f'|format(row.area) }}</td>
+          <td class="text-end">{{ '%.2f'|format(item.visible_planted) }}</td>
+          {% if not culture_filtered %}
+            <td class="text-end">{{ '%.2f'|format(row.unallocated_area) }}</td>
+          {% endif %}
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="{{ 6 if culture_filtered else 7 }}" class="text-muted text-center">
+            Немає сезонних полів за вибраним роком та фільтрами.
+            Додати дані можна в <a href="{{ url_for('fields.index') }}">довіднику «Поля»</a>.
+          </td>
+        </tr>
       {% endfor %}
-      <!-- ✅ Рядок підсумку -->
-      <tr class="fw-bold">
-        <td colspan="5" class="text-end">Разом:</td>
-        <td>{{ "%.2f"|format(total_area) }}</td>
-      </tr>
-    {% else %}
-      <tr>
-        <td colspan="6">Даних немає</td>
-      </tr>
+    </tbody>
+    {% if items %}
+      <tfoot class="fw-bold">
+        <tr>
+          <td colspan="4" class="text-end">Разом</td>
+          <td class="text-end">{{ '%.2f'|format(total_area) }}</td>
+          <td class="text-end">{{ '%.2f'|format(total_planted) }}</td>
+          {% if not culture_filtered %}
+            <td class="text-end">{{ '%.2f'|format(total_unallocated) }}</td>
+          {% endif %}
+        </tr>
+      </tfoot>
     {% endif %}
-  </tbody>
-</table>
+  </table>
 {% endblock %}
-

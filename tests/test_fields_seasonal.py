@@ -188,5 +188,50 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertEqual(self.client.post("/fields/wipe").status_code, 403)
 
 
+    def test_structure_by_fields_uses_selected_season_and_unique_physical_area(self):
+        # A legacy field without an assigned year must not appear in a 2026/2027 report.
+        blank = self.client.get("/structure/fields")
+        self.assertEqual(blank.status_code, 200)
+        self.assertIn("Немає сезонних полів", blank.get_data(as_text=True))
+        self.assertNotIn("СТАРЕ 001", blank.get_data(as_text=True))
+
+        self.set_year(2026)
+        response = self.client.post(f"/fields/{self.field_id}/season", data={
+            "field-cluster": self.cluster_a, "field-company": self.company_a,
+            "field-area": "90.00",
+        })
+        self.assertEqual(response.status_code, 302)
+        for crop_id, area in ((self.crop_a, "40.00"), (self.crop_b, "25.00")):
+            response = self.client.post(f"/fields/{self.field_id}/plantings", data={
+                "plant-culture": crop_id, "plant-area": area,
+            })
+            self.assertEqual(response.status_code, 302)
+
+        page = self.client.get("/structure/fields")
+        self.assertEqual(page.status_code, 200)
+        html = page.get_data(as_text=True)
+        self.assertIn("СТАРЕ 001", html)
+        self.assertIn("90.00 га", html)
+        self.assertIn("65.00 га", html)
+        self.assertIn("25.00 га", html)
+        self.assertIn("Фізична площа відібраних полів", html)
+        # A crop filter may not inflate physical area or include other crops in planted totals.
+        crop_page = self.client.get("/structure/fields", query_string={"culture": self.crop_a})
+        self.assertEqual(crop_page.status_code, 200)
+        crop_html = crop_page.get_data(as_text=True)
+        self.assertIn("90.00 га", crop_html)
+        self.assertIn("40.00 га", crop_html)
+        self.assertNotIn("Соняшник —", crop_html)
+
+        self.set_year(2027)
+        next_year = self.client.get("/structure/fields")
+        self.assertEqual(next_year.status_code, 200)
+        self.assertNotIn("СТАРЕ 001", next_year.get_data(as_text=True))
+        # The legacy area and culture are never changed by report reads.
+        old_field = db.session.get(Field, self.field_id)
+        self.assertEqual(old_field.area, 100.0)
+        self.assertEqual(old_field.culture_id, self.crop_a)
+
+
 if __name__ == "__main__":
     unittest.main()
