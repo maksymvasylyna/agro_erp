@@ -1,78 +1,68 @@
 {% extends 'reference/_index_base.html' %}
 
-{% block title %}Підприємства{% endblock %}
-{% block header %}🏢 Підприємства{% endblock %}
+{% block title_text %}Підприємства{% endblock %}
+{% block header_text %}Підприємства{% endblock %}
 
 {% block before_table %}
-  {# Flash-повідомлення (перенеси в _index_base.html, якщо хочеш мати глобально) #}
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mb-3">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ 'warning' if category in ['warning', 'error'] else category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <p class="text-muted small mb-0">
+      Підприємство належить до одного кластера. Нові кластери автоматично доступні у формі створення.
+    </p>
+    <a href="{{ url_for('clusters.index') }}" class="btn btn-outline-primary btn-sm">Довідник «Кластери»</a>
+  </div>
 {% endblock %}
 
 {% block filter_form %}
-<form method="get" class="d-flex flex-wrap gap-3 mb-3">
-  {{ form.hidden_tag() }}
-
-  <div>
-    {{ form.name.label(class="form-label") }}
-    {{ form.name(class="form-select" + (" is-invalid" if form.name.errors else "")) }}
-    {% for err in form.name.errors %}
-      <div class="invalid-feedback d-block">{{ err }}</div>
-    {% endfor %}
-  </div>
-
-  <div>
-    {{ form.cluster.label(class="form-label") }}
-    {{ form.cluster(class="form-select" + (" is-invalid" if form.cluster.errors else "")) }}
-    {% for err in form.cluster.errors %}
-      <div class="invalid-feedback d-block">{{ err }}</div>
-    {% endfor %}
-  </div>
-
-  <div class="align-self-end d-flex gap-2">
-    {{ form.submit(class="btn btn-primary") }}
-    <a href="{{ url_for('companies.index') }}" class="btn btn-outline-secondary">Reset</a>
-  </div>
-</form>
+  <form method="get" action="{{ url_for('companies.index') }}" class="row g-2 align-items-end mb-3">
+    <div class="col-sm-6 col-lg-4">
+      {{ form.cluster.label(class="form-label") }}
+      {{ form.cluster(class="form-select") }}
+    </div>
+    <div class="col-sm-6 col-lg-4">
+      {{ form.name.label(class="form-label") }}
+      {{ form.name(class="form-select") }}
+    </div>
+    <div class="col-sm-12 col-lg-4 d-flex gap-2">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('companies.index') }}" class="btn btn-outline-secondary">Скинути</a>
+    </div>
+  </form>
 {% endblock %}
 
 {% block table_headers %}
   <th>ID</th>
-  <th>Назва</th>
+  <th>Назва підприємства</th>
   <th>Кластер</th>
-  <th class="text-center">Дії</th>
+  <th>Полів</th>
+  <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
-  {% for id, name, cluster_name, edit_url, delete_url in items %}
-  <tr>
-    <td>{{ id }}</td>
-    <td>{{ name }}</td>
-    <td>{{ cluster_name }}</td>
-    <td class="text-center">
-      <a href="{{ edit_url }}" class="btn btn-sm btn-primary" title="Редагувати">✏️</a>
-      <form action="{{ delete_url }}" method="post" style="display:inline-block;" onsubmit="return confirm('Підтвердити видалення?')">
-        {# Якщо використовується Flask-WTF CSRFProtect — додай токен: #}
-        {% if csrf_token %}
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {% endif %}
-        <button type="submit" class="btn btn-sm btn-danger" title="Видалити">🗑️</button>
-      </form>
-    </td>
-  </tr>
+  {% for company in companies %}
+    {% set linked = dependencies.get(company.id, {}) %}
+    <tr>
+      <td>{{ company.id }}</td>
+      <td class="text-start fw-semibold">{{ company.name }}</td>
+      <td>{{ company.cluster.name if company.cluster else '—' }}</td>
+      <td>{{ linked.get('полів', 0) }}</td>
+      <td>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <a href="{{ url_for('companies.edit', id=company.id) }}"
+             class="btn btn-sm btn-primary" aria-label="Редагувати {{ company.name }}">Редагувати</a>
+          {% if linked %}
+            <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                    title="Підприємство використовується в інших модулях">Видалити</button>
+          {% else %}
+            <form method="post" action="{{ url_for('companies.delete', id=company.id) }}"
+                  onsubmit="return confirm('Видалити підприємство «{{ company.name }}»?');">
+              {{ delete_form.hidden_tag() }}
+              <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
+            </form>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
   {% else %}
-  <tr>
-    <td colspan="4" class="text-center text-muted">Даних немає</td>
-  </tr>
+    <tr><td colspan="5" class="text-muted">Підприємств за вибраними фільтрами немає.</td></tr>
   {% endfor %}
 {% endblock %}
