@@ -1,7 +1,9 @@
 {% extends 'reference/_form_base.html' %}
-{% block title_text %}{{ action }}: Одиниці виміру{% endblock %}
+{% block title_text %}{{ 'Додати' if action == 'Створити' else 'Редагувати' }} одиницю виміру{% endblock %}
 {% block header_text %}{{ action }}: Одиниці виміру{% endblock %}
 {% block back_url %}{{ url_for('units.index') }}{% endblock %}
 {% block form_fields %}
-  <div class="col-12">{{ render_field(form.name) }}</div>
+  <div class="col-12">{{ render_field(form.name) }}
+    <div class="form-text">Нова одиниця автоматично з’являється у списку вибору під час створення продукту. Існуючі зв’язки зберігаються за ID.</div>
+  </div>
 {% endblock %}

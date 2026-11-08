@@ -1,6 +1,9 @@
 {% extends 'reference/_index_base.html' %}
 {% block title_text %}Одиниці виміру{% endblock %}
 {% block header_text %}Одиниці виміру{% endblock %}
+{% block before_table %}
+  <p class="text-muted small mb-3">Список одиниць виміру використовується у продуктах, закупівлях і заявках. Видалення одиниці з пов’язаними записами заблоковано.</p>
+{% endblock %}
 {% block filter_form %}
   <form method="get" action="{{ url_for('units.index') }}" class="row g-2 align-items-end mb-3">
     <div class="col-sm-7 col-lg-5">
