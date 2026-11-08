@@ -1,84 +1,117 @@
 {% extends 'reference/_index_base.html' %}
+{% from 'base.html' import erp_season_controls with context %}
 
-{% block title_text %}Поля{% endblock %}
-{% block header_text %}🌾 Поля{% endblock %}
+{% block title_text %}Поля — сезонність{% endblock %}
+{% block header_text %}Поля{% if active_year %} — урожай {{ active_year }}{% endif %}{% endblock %}
+{% block page_top %}
+  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.full_path.rstrip('?')) }}
+{% endblock %}
 
-<!-- ❌ Повне очищення довідника -->
-<div class="card shadow-sm rounded-2 border-danger mb-4">
-  <div class="card-body">
-    <h5 class="card-title text-danger mb-2">❌ Повне очищення довідника «Поля»</h5>
-    <p class="text-muted small mb-3">
-      Обережно: незворотна дія. Без «форсу» очистка зупиниться, якщо знайде залежності у планах.
-    </p>
-    <form method="post" action="{{ url_for('fields.wipe_fields') }}"
-          class="row g-2"
-          onsubmit="return confirm('Стерти всі записи довідника «Поля»? Дію не можна скасувати.');">
-      {# якщо є Flask-WTF CSRFProtect #}
-      {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
-      <div class="col-md-4">
-        <input name="confirm" class="form-control" placeholder='Введіть: DELETE FIELDS' required>
-      </div>
-      <div class="col-md-3 form-check d-flex align-items-center">
-        <input class="form-check-input me-2" type="checkbox" id="force" name="force" value="1">
-        <label class="form-check-label" for="force">форс (прибрати залежності)</label>
-      </div>
-      <div class="col-md-3">
-        <button class="btn btn-outline-danger w-100">🗑️ Очистити довідник</button>
-      </div>
-    </form>
+{% block before_table %}
+  <div class="row g-2 mb-3">
+    <div class="col-sm-4"><div class="card card-body erp-form-card h-100">
+      <span class="text-muted small">Полів у сезоні</span><strong>{{ rows|length }}</strong>
+    </div></div>
+    <div class="col-sm-4"><div class="card card-body erp-form-card h-100">
+      <span class="text-muted small">Фізична площа (за фільтрами)</span><strong>{{ '%.2f'|format(total) }} га</strong>
+    </div></div>
+    <div class="col-sm-4"><div class="card card-body erp-form-card h-100">
+      <span class="text-muted small">Посівна площа (за фільтрами)</span><strong>{{ '%.2f'|format(planted) }} га</strong>
+    </div></div>
   </div>
-</div>
+  {% if season and season.is_closed %}
+    <div class="alert alert-warning">Сезон {{ season.year }} закритий для редагування. Його дані можна переглядати.</div>
+  {% endif %}
+  <p class="small text-muted">
+    Сезонні площі, культури й належність полів редагуються тут. Старі поля залишаються в постійному каталозі,
+    але не приписуються жодному року без вашої дії. Структуру площ і плани підключимо до сезонних таблиць наступним етапом.
+  </p>
+{% endblock %}
 
 {% block filter_form %}
-<form method="get" class="d-flex flex-wrap mb-3">
-  {{ form.hidden_tag() }}
-  <div class="me-2">
-    {{ form.cluster.label }}
-    {{ form.cluster(class="form-select") }}
-  </div>
-  <div class="me-2">
-    {{ form.company.label }}
-    {{ form.company(class="form-select") }}
-  </div>
-  <div class="me-2">
-    {{ form.culture.label }}
-    {{ form.culture(class="form-select") }}
-  </div>
-  <div class="me-2 align-self-end">
-    {{ form.submit(class="btn btn-primary") }}
-  </div>
-</form>
+  <form method="get" action="{{ url_for('fields.index') }}" class="row g-2 align-items-end mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <label for="field-search" class="form-label">Номер поля</label>
+      <input id="field-search" name="q" value="{{ term }}" class="form-control" placeholder="Пошук поля">
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      {{ form.cluster.label(class="form-label") }}
+      {{ form.cluster(class="form-select") }}
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      {{ form.company.label(class="form-label") }}
+      {{ form.company(class="form-select") }}
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      {{ form.culture.label(class="form-label") }}
+      {{ form.culture(class="form-select") }}
+    </div>
+    <div class="col-12 d-flex gap-2">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('fields.index') }}" class="btn btn-outline-secondary">Скинути</a>
+    </div>
+  </form>
 {% endblock %}
 
 {% block table_headers %}
-  <th>ID</th>
-  <th>Назва</th>
+  <th>Поле</th>
   <th>Кластер</th>
   <th>Підприємство</th>
-  <th>Культура</th>
-  <th>Площа</th>
+  <th>Культура / посівна площа</th>
+  <th class="text-end">Фізична площа, га</th>
   <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
-  {% for field in items %}
-  <tr>
-    <td>{{ field.id }}</td>
-    <td>{{ field.name }}</td>
-    <td>{{ field.cluster.name if field.cluster else '' }}</td>
-    <td>{{ field.company.name if field.company else '' }}</td>
-    <td>{{ field.culture.name if field.culture else '' }}</td>
-    <td>{{ field.area }}</td>
-    <td>
-      <a href="{{ url_for('fields.edit', id=field.id) }}" class="btn btn-sm btn-primary">✏️</a>
-      <form action="{{ url_for('fields.delete', id=field.id) }}" method="post" style="display:inline-block;" onsubmit="return confirm('Ви впевнені?')">
-        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
-      </form>
-    </td>
-  </tr>
+  {% for row in rows %}
+    <tr>
+      <td class="text-start fw-semibold">{{ row.field.name }}</td>
+      <td>{{ row.cluster.name }}</td>
+      <td>{{ row.company.name }}</td>
+      <td class="text-start">
+        {% for planting in row.plantings %}
+          <div>{{ planting.culture.name }} — {{ '%.2f'|format(planting.area) }} га</div>
+        {% else %}
+          <span class="text-muted">Культуру не визначено</span>
+        {% endfor %}
+        {% if row.unallocated_area > 0 %}
+          <div class="text-muted small">Не розподілено: {{ '%.2f'|format(row.unallocated_area) }} га</div>
+        {% endif %}
+      </td>
+      <td class="text-end">{{ '%.2f'|format(row.area) }}</td>
+      <td><a href="{{ url_for('fields.detail', id=row.field_id) }}" class="btn btn-sm btn-primary">Картка поля</a></td>
+    </tr>
   {% else %}
-  <tr>
-    <td colspan="7">Даних немає</td>
-  </tr>
+    <tr><td colspan="6" class="text-muted">За вибраним сезоном або фільтрами полів немає.</td></tr>
   {% endfor %}
+{% endblock %}
+
+{% block table_content %}
+  {{ super() }}
+  {% if season %}
+    <details class="mt-3" id="unassigned-fields">
+      <summary class="fw-semibold text-primary" role="button">
+        Постійний каталог: {{ unassigned|length }} активних полів ще не додано до {{ season.year }} року
+      </summary>
+      <p class="small text-muted mt-2">
+        Ці поля збережені зі старого довідника. Їхній рік урожаю невідомий, тому вони не входять у підсумки сезону.
+        Щоб включити поле, відкрийте його картку.
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover erp-reference-table">
+          <thead><tr><th>Поле</th><th>Підприємство (старий запис)</th><th>Дія</th></tr></thead>
+          <tbody>
+            {% for item in unassigned %}
+              <tr><td>{{ item.name }}</td>
+                <td>{{ item.company.name if item.company else '—' }}</td>
+                <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('fields.detail', id=item.id) }}">Прив'язати до сезону</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan="3">Усі активні поля вже додано до сезону.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% endif %}
 {% endblock %}

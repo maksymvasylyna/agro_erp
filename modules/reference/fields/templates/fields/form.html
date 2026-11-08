@@ -1,104 +1,41 @@
-{% extends 'base.html' %}
+{% extends 'reference/_form_base.html' %}
+{% from 'base.html' import erp_season_controls with context %}
+{% from 'reference/_cluster_company_fields.html' import cluster_company_fields with context %}
 
-{% block title %}{{ title }}{% endblock %}
-{% block header %}{{ header }}{% endblock %}
+{% block title_text %}{{ title }}{% endblock %}
+{% block header_text %}{{ title }}{% if view_mode == 'create' and active_year %} — урожай {{ active_year }}{% endif %}{% endblock %}
+{% block back_url %}{{ url_for('fields.index') if view_mode == 'create' else url_for('fields.detail', id=field.id) }}{% endblock %}
 
-{% block content %}
+{% block page_top %}
+  {% if view_mode == 'create' %}
+    {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.full_path.rstrip('?')) }}
+  {% endif %}
+{% endblock %}
 
-  {# ✅ Flash-повідомлення #}
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
+{% block form_fields %}
+  {% if view_mode == 'create' %}
+    {% if not season %}
+      <div class="col-12"><div class="alert alert-warning">
+        Спочатку <a href="{{ url_for('fields.seasons_manager') }}">створіть сезон</a>.
+      </div></div>
+    {% elif season.is_closed %}
+      <div class="col-12"><div class="alert alert-warning">
+        Сезон {{ season.year }} закритий. Відкрийте його для редагування.
+      </div></div>
     {% endif %}
-  {% endwith %}
-
-  {# 🏠 та ⬅️ навігація #}
-  <div class="d-flex justify-content-between mb-3">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
-    <a href="{{ url_for('fields.index') }}" class="btn btn-outline-secondary">⬅️ Назад</a>
-  </div>
-
-  <div class="card shadow-sm rounded-2">
-    <div class="card-body">
-      <form method="post" action="{{ request.path }}" novalidate>
-        {{ form.hidden_tag() }}
-
-        {# Якщо є будь-які помилки форми — покажемо загальний алерт #}
-        {% if form.errors %}
-          <div class="alert alert-danger small">
-            Є помилки у формі. Будь ласка, перевірте виділені поля.
-          </div>
-        {% endif %}
-
-        {# Назва поля (обовʼязково) #}
-        <div class="mb-3">
-          {{ form.name.label(class="form-label") }}
-          {{ form.name(
-              class="form-control" + (' is-invalid' if form.name.errors else ''),
-              placeholder="Напр.: Ділянка №1",
-              required=True
-          ) }}
-          {% for e in form.name.errors %}
-            <div class="invalid-feedback d-block">{{ e }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="row g-3">
-          <div class="col-md-4">
-            {{ form.company.label(class="form-label") }}
-            {{ form.company(
-                class="form-select" + (' is-invalid' if form.company.errors else '')
-            ) }}
-            {% for e in form.company.errors %}
-              <div class="invalid-feedback d-block">{{ e }}</div>
-            {% endfor %}
-          </div>
-
-          <div class="col-md-4">
-            {{ form.cluster.label(class="form-label") }}
-            {{ form.cluster(
-                class="form-select" + (' is-invalid' if form.cluster.errors else '')
-            ) }}
-            {% for e in form.cluster.errors %}
-              <div class="invalid-feedback d-block">{{ e }}</div>
-            {% endfor %}
-          </div>
-
-          <div class="col-md-4">
-            {{ form.culture.label(class="form-label") }}
-            {{ form.culture(
-                class="form-select" + (' is-invalid' if form.culture.errors else '')
-            ) }}
-            {% for e in form.culture.errors %}
-              <div class="invalid-feedback d-block">{{ e }}</div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="mt-3">
-          {{ form.area.label(class="form-label") }}
-          {{ form.area(
-              class="form-control" + (' is-invalid' if form.area.errors else ''),
-              step="0.01",
-              min="0",
-              placeholder="Площа, га"
-          ) }}
-          {% for e in form.area.errors %}
-            <div class="invalid-feedback d-block">{{ e }}</div>
-          {% endfor %}
-        </div>
-
-        <div class="mt-4 d-flex gap-2">
-          <button class="btn btn-success">💾 Зберегти</button>
-          <a href="{{ url_for('fields.index') }}" class="btn btn-outline-secondary">Скасувати</a>
-        </div>
-      </form>
+    <div class="col-12">{{ render_field(form.name) }}</div>
+    {{ cluster_company_fields(form, companies) }}
+    <div class="col-md-6">{{ render_field(form.area) }}</div>
+    <div class="col-md-6">{{ render_field(form.culture) }}
+      <div class="form-text">Якщо обрати культуру, вся площа поля буде віднесена до неї. Пізніше можна розділити посіви в картці поля.</div>
     </div>
-  </div>
+  {% else %}
+    <div class="col-12">{{ render_field(form.name) }}
+      <div class="form-text">Тут змінюється тільки постійний номер поля. Площі, підприємства й культури за роками редагуються в картці поля.</div>
+    </div>
+  {% endif %}
+{% endblock %}
 
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/field-company-filter.js') }}"></script>
 {% endblock %}
