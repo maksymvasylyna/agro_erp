@@ -97,6 +97,21 @@ class EventAssistantTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("вже позначені", response.get_data(as_text=True))
 
+    def test_create_personal_test_event_from_environment(self):
+        from unittest.mock import patch
+        csrf = self.login()
+        recipient = "personal-test@example.com"
+        with patch.dict(os.environ, {"TEST_RECIPIENT_EMAIL": recipient}):
+            response = self.client.post("/test/create", data={"_csrf": csrf}, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+        with app.app_context():
+            c = module.Contact.query.filter_by(email=recipient).one()
+            e = module.Event.query.filter_by(title="Тестова розсилка Event Assistant").order_by(module.Event.id.desc()).first()
+            self.assertIsNotNone(e)
+            self.assertEqual(len(e.invitations), 1)
+            self.assertEqual(e.invitations[0].contact_id, c.id)
+            self.assertIsNone(e.invitations[0].sent_at)
+
     def test_real_send_is_not_available_without_configuration(self):
         from unittest.mock import patch
         self.login()
