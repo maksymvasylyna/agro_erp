@@ -44,7 +44,7 @@ class EventAssistantTests(unittest.TestCase):
 
     def test_pdf_contact_extraction(self):
         fields = module.pdf_contact_fields(
-            "МАКСИМ ВАСИЛИНА\\nГоловний агроном | Головний агроном холдингу\\n"
+            "МАКСИМ ВАСИЛИНА\nГоловний агроном | Головний агроном холдингу\n"
             "Кропивницький • +38 068 988 47 81 • contact@example.com"
         )
         self.assertEqual(fields["name"], "Максим Василина")
@@ -54,7 +54,7 @@ class EventAssistantTests(unittest.TestCase):
     def test_semicolon_csv_import(self):
         csrf = self.login()
         import io
-        payload = "ПІБ;Компанія;Email\\nТест Тестовий;Приклад;demo-contact99@example.com\\n"
+        payload = "ПІБ;Компанія;Email\nТест Тестовий;Приклад;demo-contact99@example.com\n"
         response = self.client.post(
             "/contacts/import", data={"_csrf": csrf, "file": (io.BytesIO(payload.encode("utf-8")), "contacts.csv")},
             content_type="multipart/form-data", follow_redirects=True)
