@@ -586,8 +586,19 @@ def send_test_email(event_id):
         if not email_id:
             raise RuntimeError("Provider response did not contain a message ID")
     except Exception as error:
-        app.logger.warning("Real test email failed, type=%s", type(error).__name__)
-        flash("Resend відхилив лист. Перевірте API-ключ, адресу акаунту Resend та налаштування відправника.", "error")
+        # Report the provider's actual error instead of guessing that a recipient is invalid.
+        # Never disclose the Resend API key or an email address in logs or the UI.
+        error_type = type(error).__name__
+        status = getattr(error, "status_code", None)
+        raw_reason = str(getattr(error, "message", None) or str(error) or "Причину не вказано")
+        raw_reason = raw_reason.replace(api_key, "[секрет приховано]")
+        raw_reason = re.sub(r"\\b(?:re_|sk_)[A-Za-z0-9_-]{6,}\\b", "[секрет приховано]", raw_reason)
+        raw_reason = re.sub(r"[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}", "[email приховано]", raw_reason)
+        raw_reason = re.sub(r"https?://\\S+", "[посилання приховано]", raw_reason)
+        safe_reason = " ".join(raw_reason.split())[:350]
+        label = error_type + ((" HTTP " + str(status)) if status else "")
+        app.logger.warning("Real test email failed: %s: %s", label, safe_reason)
+        flash("Помилка тестового email (" + label + "): " + safe_reason, "error")
         return redirect(url_for("send_test_email", event_id=event_id))
     db.session.add(MessageLog(event_id=event_id, contact_id=invite.contact_id, kind="real_test"))
     if invite.sent_at is None:
