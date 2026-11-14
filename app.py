@@ -592,9 +592,9 @@ def send_test_email(event_id):
         status = getattr(error, "status_code", None)
         raw_reason = str(getattr(error, "message", None) or str(error) or "Причину не вказано")
         raw_reason = raw_reason.replace(api_key, "[секрет приховано]")
-        raw_reason = re.sub(r"\\b(?:re_|sk_)[A-Za-z0-9_-]{6,}\\b", "[секрет приховано]", raw_reason)
-        raw_reason = re.sub(r"[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}", "[email приховано]", raw_reason)
-        raw_reason = re.sub(r"https?://\\S+", "[посилання приховано]", raw_reason)
+        raw_reason = re.sub(r"\b(?:re_|sk_)[A-Za-z0-9_-]{6,}\b", "[секрет приховано]", raw_reason)
+        raw_reason = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[email приховано]", raw_reason)
+        raw_reason = re.sub(r"https?://\S+", "[посилання приховано]", raw_reason)
         safe_reason = " ".join(raw_reason.split())[:350]
         label = error_type + ((" HTTP " + str(status)) if status else "")
         app.logger.warning("Real test email failed: %s: %s", label, safe_reason)
