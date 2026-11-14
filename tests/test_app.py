@@ -42,6 +42,26 @@ class EventAssistantTests(unittest.TestCase):
         with app.app_context():
             self.assertEqual(db.session.get(module.Invitation, invite_id).status, "accepted")
 
+    def test_pdf_contact_extraction(self):
+        fields = module.pdf_contact_fields(
+            "МАКСИМ ВАСИЛИНА\\nГоловний агроном | Головний агроном холдингу\\n"
+            "Кропивницький • +38 068 988 47 81 • contact@example.com"
+        )
+        self.assertEqual(fields["name"], "Максим Василина")
+        self.assertEqual(fields["email"], "contact@example.com")
+        self.assertEqual(fields["company"], "")
+
+    def test_semicolon_csv_import(self):
+        csrf = self.login()
+        import io
+        payload = "ПІБ;Компанія;Email\\nТест Тестовий;Приклад;demo-contact99@example.com\\n"
+        response = self.client.post(
+            "/contacts/import", data={"_csrf": csrf, "file": (io.BytesIO(payload.encode("utf-8")), "contacts.csv")},
+            content_type="multipart/form-data", follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        with app.app_context():
+            self.assertIsNotNone(module.Contact.query.filter_by(email="demo-contact99@example.com").first())
+
     def test_send_not_actual_email(self):
         csrf = self.login()
         with app.app_context():
