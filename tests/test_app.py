@@ -97,6 +97,67 @@ class EventAssistantTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("вже позначені", response.get_data(as_text=True))
 
+    def test_real_send_is_not_available_without_configuration(self):
+        from unittest.mock import patch
+        self.login()
+        with patch.dict(os.environ, {"RESEND_API_KEY": "", "TEST_RECIPIENT_EMAIL": ""}, clear=False):
+            r = self.client.get("/events/1/test-email")
+            self.assertEqual(r.status_code, 200)
+            self.assertIn("Пошту ще не підключено", r.get_data(as_text=True))
+
+    def test_real_send_one_recipient_with_mocked_provider(self):
+        from unittest.mock import patch
+        import resend
+        csrf = self.login()
+        with app.app_context():
+            contact = module.Contact.query.first()
+            event = module.Event(title="Реальний тест листа", starts_at="2026-12-22T10:00", location="Онлайн")
+            db.session.add(event)
+            db.session.flush()
+            inv = module.Invitation(event_id=event.id, contact_id=contact.id)
+            db.session.add(inv)
+            db.session.commit()
+            event_id = event.id
+            recipient_email = contact.email
+        with patch.dict(os.environ, {"TEST_RECIPIENT_EMAIL": recipient_email, "RESEND_API_KEY": "dummy-test-token"}):
+            with patch.object(resend.Emails, "send", return_value={"id":"test-message-id"}) as sender:
+                response = self.client.get("/events/%d/test-email" % event_id)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(sender.call_count, 0)
+                response = self.client.post("/events/%d/test-email" % event_id, data={"_csrf":csrf}, follow_redirects=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(sender.call_count, 1)
+                payload = sender.call_args.args[0]
+                self.assertEqual(payload["to"], [recipient_email])
+                self.assertIn("Підтвердити", payload["html"])
+                self.client.post("/events/%d/test-email" % event_id, data={"_csrf":csrf})
+                self.assertEqual(sender.call_count, 1)
+        with app.app_context():
+            self.assertEqual(module.MessageLog.query.filter_by(event_id=event_id, kind="real_test").count(), 1)
+
+    def test_provider_error_does_not_mark_invitation_sent(self):
+        from unittest.mock import patch
+        import resend
+        csrf = self.login()
+        with app.app_context():
+            contact = module.Contact.query.first()
+            event = module.Event(title="Помилка пошти", starts_at="2026-12-23T11:00", location="Онлайн")
+            db.session.add(event)
+            db.session.flush()
+            inv = module.Invitation(event_id=event.id, contact_id=contact.id)
+            db.session.add(inv)
+            db.session.commit()
+            event_id, invitation_id = event.id, inv.id
+            recipient_email = contact.email
+        with patch.dict(os.environ, {"TEST_RECIPIENT_EMAIL": recipient_email, "RESEND_API_KEY": "dummy-test-token"}):
+            with patch.object(resend.Emails, "send", side_effect=ValueError("denied")):
+                r = self.client.post("/events/%d/test-email" % event_id, data={"_csrf":csrf}, follow_redirects=True)
+                self.assertEqual(r.status_code, 200)
+                self.assertIn("Resend відхилив", r.get_data(as_text=True))
+        with app.app_context():
+            self.assertIsNone(db.session.get(module.Invitation, invitation_id).sent_at)
+            self.assertEqual(module.MessageLog.query.filter_by(event_id=event_id, kind="real_test").count(), 0)
+
     def test_send_not_actual_email(self):
         csrf = self.login()
         with app.app_context():
