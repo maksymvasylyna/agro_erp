@@ -11,6 +11,7 @@ from flask import Flask, abort, flash, make_response, redirect, render_template_
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from openpyxl import Workbook, load_workbook
+from pypdf import PdfReader
 from sqlalchemy import UniqueConstraint
 
 app = Flask(__name__)
@@ -199,6 +200,50 @@ def dashboard():
                 accepted=sum(i.sent_at is not None and i.status == "accepted" for i in invs),
                 pending=sum(i.sent_at is not None and i.status == "pending" for i in invs))
 
+def pdf_contact_fields(text):
+    """Conservatively extract a single contact from text-based CV PDFs."""
+    lines = [re.sub(r"\s+", " ", line).strip(" •\t") for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    email_match = re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text, flags=re.UNICODE)
+    phone_match = re.search(r"(?:\+?\s?38[\s\-()]*)?0\d{2}[\s\-()]*(?:\d[\s\-()]*){7}", text)
+    name = ""
+    for line in lines[:15]:
+        if (2 <= len(line.split()) <= 4
+            and re.fullmatch(r"[А-ЯІЇЄҐ'’\-\s]+", line)
+            and len(line) <= 100):
+            name = line.title()
+            break
+    position = ""
+    for line in lines[:12]:
+        if "|" in line and not any("@" in part for part in line.split("|")):
+            position = line.split("|")[-1].strip()
+            break
+    return {
+        "name": name,
+        "company": "",
+        "email": email_match.group(0).lower() if email_match else "",
+        "phone": phone_match.group(0).strip() if phone_match else "",
+        "position": position[:120],
+        "region": ""
+    }
+
+PDF_PREVIEW = """
+<div class="note">PDF розпізнано як одне резюме. Перевірте кожне поле, особливо компанію й посаду: PDF не завжди містить структуровані дані. Контакт ще не збережений.</div>
+<div class="spacer"></div>
+<div class="card" style="max-width:730px"><h2>Перевірка контакту з PDF</h2>
+<form action="{{ url_for('contact_add') }}" method="post"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="fields">
+<div><label>ПІБ *</label><input name="name" value="{{ item.name }}" required maxlength="160"></div>
+<div><label>Компанія *</label><input name="company" value="{{ item.company }}" placeholder="Вкажіть компанію" required maxlength="160"></div>
+<div><label>Email *</label><input name="email" type="email" value="{{ item.email }}" required maxlength="254"></div>
+<div><label>Телефон</label><input name="phone" value="{{ item.phone }}" maxlength="60"></div>
+<div><label>Посада</label><input name="position" value="{{ item.position }}" maxlength="120"></div>
+<div><label>Регіон</label><input name="region" value="{{ item.region }}" maxlength="120"></div>
+</div><div class="spacer"></div><div class="actions">
+<button class="btn">Підтвердити і зберегти</button><a href="{{ url_for('contacts') }}" class="btn secondary">Скасувати</a>
+</div></form></div>
+"""
+
 CONTACTS = """
 <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
 <div class="card"><h2>Новий контакт</h2>
@@ -207,8 +252,8 @@ CONTACTS = """
 <div><label>Email *</label><input name="email" type="email" required></div><div><label>Телефон</label><input name="phone"></div>
 <div><label>Посада</label><input name="position"></div><div><label>Регіон</label><input name="region"></div></div>
 <div class="spacer"></div><button class="btn">Зберегти контакт</button></form></div>
-<div class="card"><h2>Імпорт Excel / CSV</h2><p class="muted">Колонки: ПІБ, Компанія, Email, Телефон, Посада, Регіон. Підтримка .xlsx та .csv, до 2 МБ. Дублікати email пропускаємо.</p>
-<form action="{{ url_for('contacts_import') }}" method="post" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="file" name="file" accept=".xlsx,.csv" required><div class="spacer"></div><button class="btn secondary">Імпортувати</button></form></div></div>
+<div class="card"><h2>Імпорт Excel / CSV / PDF</h2><p class="muted">Для Excel/CSV: колонки ПІБ, Компанія, Email, Телефон, Посада, Регіон. Для PDF: текстове резюме одного контакту з перевіркою перед збереженням. До 2 МБ. Дублікати email пропускаємо.</p>
+<form action="{{ url_for('contacts_import') }}" method="post" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="file" name="file" accept=".xlsx,.csv,.pdf" required><div class="spacer"></div><button class="btn secondary">Імпортувати</button></form></div></div>
 <div class="section"><div class="row"><h2>База контактів · {{ contacts|length }}</h2><input id="search" style="max-width:270px" placeholder="Пошук..." oninput="filterRows(this.value)"></div>
 <div class="card tablewrap"><table id="contacts"><thead><tr><th>Контакт</th><th>Компанія</th><th>Email</th><th>Телефон</th><th>Регіон</th></tr></thead><tbody>
 {% for p in contacts %}<tr><td><b>{{ p.name }}</b><div class="muted">{{ p.position }}</div></td><td>{{ p.company }}</td><td>{{ p.email }}</td><td>{{ p.phone }}</td><td>{{ p.region }}</td></tr>{% endfor %}
@@ -241,16 +286,32 @@ def contact_add():
 @app.post("/contacts/import")
 def contacts_import():
     upload = request.files.get("file")
-    if not upload or not upload.filename.lower().endswith((".xlsx", ".csv")):
-        flash("Виберіть файл .xlsx або .csv", "error")
+    if not upload or not upload.filename.lower().endswith((".xlsx", ".csv", ".pdf")):
+        flash("Виберіть файл .xlsx, .csv або .pdf", "error")
         return redirect(url_for("contacts"))
     try:
+        if upload.filename.lower().endswith(".pdf"):
+            pdf = PdfReader(io.BytesIO(upload.read()))
+            if pdf.is_encrypted:
+                raise ValueError("Захищений паролем PDF не підтримується")
+            if not pdf.pages or len(pdf.pages) > 20:
+                raise ValueError("PDF повинен мати від 1 до 20 сторінок")
+            source = "\n".join((page.extract_text() or "") for page in pdf.pages)[:50000]
+            if not source.strip():
+                raise ValueError("PDF не містить доступного тексту; для сканів потрібне OCR")
+            item = pdf_contact_fields(source)
+            return page("Перевірка імпорту PDF", PDF_PREVIEW, item=item)
         if upload.filename.lower().endswith(".xlsx"):
             book = load_workbook(io.BytesIO(upload.read()), read_only=True, data_only=True)
             sheet = book.active
             rows = sheet.iter_rows(values_only=True)
         else:
-            rows = csv.reader(io.StringIO(upload.read().decode("utf-8-sig")))
+            source = upload.read().decode("utf-8-sig")
+            try:
+                dialect = csv.Sniffer().sniff(source[:4096], delimiters=",;\t")
+            except csv.Error:
+                dialect = csv.excel
+            rows = csv.reader(io.StringIO(source), dialect=dialect)
         columns = next(rows, None)
         if not columns:
             raise ValueError("Порожній файл")
