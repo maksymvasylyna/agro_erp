@@ -176,16 +176,10 @@ def logout():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "name": "event-assistant", "mode": "simulation"}
+    return {"ok": True, "name": "event-assistant", "mode": "email"}
 
 DASH = """
-<div class="note">Це демонстраційний стенд. Звичайна імітація та нагадування не надсилають листів. Реальний тестовий email доступний окремо після підключення Resend — тільки на одну дозволену адресу.</div>
-<div class="spacer"></div>
-<div class="card"><h3>Перевірка справжнього листа через Resend</h3>
-<p class="muted">Створимо окреме навчання тільки для однієї тестової адреси з налаштувань Render. Після створення ти зможеш відкрити захід і підтвердити відправлення одного справжнього листа.</p>
-<form method="post" action="{{ url_for('create_personal_test') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<button type="submit" class="btn gold">+ Створити особистий тест →</button>
-</form></div>
+<div class="note">Створіть захід, оберіть учасників та підтвердьте надсилання. Кожен отримувач отримає персональне запрошення і зможе відповісти «Беру участь» або «Не зможу».</div>
 <div class="spacer"></div>
 <div class="grid">
 <div class="card"><div class="muted">Контакти</div><div class="metric">{{ n_contacts }}</div></div>
@@ -196,7 +190,7 @@ DASH = """
 <div class="section"><div class="row"><h2>Заходи</h2><a class="btn" href="{{ url_for('event_new') }}">+ Створити захід</a></div>
 <div class="card tablewrap"><table><thead><tr><th>Захід</th><th>Дата / час</th><th>Локація</th><th>Запрошено</th><th></th></tr></thead><tbody>
 {% for event in events %}<tr><td><b>{{ event.title }}</b></td><td>{{ event.starts_at|event_date }}</td><td>{{ event.location }}</td><td>{{ event.invitations|length }}</td><td><a class="btn secondary small" href="{{ url_for('event_detail', event_id=event.id) }}">Відкрити →</a></td></tr>
-{% else %}<tr><td colspan="5">Заходів поки немає</td></tr>{% endfor %}
+{% else %}<tr><td colspan="5">Заходів поки немає. Створіть перший захід.</td></tr>{% endfor %}
 </tbody></table></div></div>
 """
 @app.get("/")
@@ -359,14 +353,14 @@ EVENT_NEW = """
 <div class="fields"><div><label>Дата і час *</label><input type="datetime-local" name="starts_at" required></div>
 <div><label>Місце проведення</label><input name="location" placeholder="Місто, адреса або онлайн"></div></div>
 <label>Опис / програма</label><textarea name="description" placeholder="Коротка програма..."></textarea>
-<div class="spacer"></div><button class="btn gold">Створити захід →</button></div>
+<div class="spacer"></div><button class="btn gold">Продовжити до підтвердження розсилки →</button></div>
 <div class="card"><div class="row"><h2>Оберіть учасників</h2><span class="muted" id="selected">0 обрано</span></div>
 <input id="finder" placeholder="Пошук за ім'ям, компанією, регіоном..." oninput="filterPeople(this.value)">
 <div class="checklist"><label><input type="checkbox" id="all" onchange="selectAll(this.checked)"> Обрати всіх видимих</label></div>
 <div class="list" id="people">
 {% for p in contacts %}<label class="person"><input type="checkbox" name="contact_ids" value="{{ p.id }}" onchange="countSelected()">
 <span><b>{{ p.name }}</b><small>{{ p.company }} · {{ p.region }}</small></span></label>{% endfor %}
-</div><p class="muted">Запрошення з'являться в звіті після створення заходу. У демо відправка лише моделюється.</p>
+</div><p class="muted">Після створення заходу ви побачите обраних отримувачів і окремо підтвердите відправлення справжніх листів.</p>
 </div></div></form>
 <script>
 function countSelected(){document.getElementById("selected").textContent=document.querySelectorAll("#people input:checked").length+" обрано"}
@@ -396,13 +390,11 @@ def event_new():
             for person in valid:
                 db.session.add(Invitation(event_id=event.id, contact_id=person.id))
             db.session.commit()
-            flash("Захід створено. Запрошення ще не надіслані.", "success")
-            return redirect(url_for("event_detail", event_id=event.id))
+            flash("Захід створено. Перевірте отримувачів і підтвердьте розсилку.", "success")
+            return redirect(url_for("event_send", event_id=event.id))
     return page("Новий захід", EVENT_NEW, contacts=Contact.query.order_by(Contact.company,Contact.name).all())
 
 EVENT_DETAIL = """
-<div class="note">Імітація не надсилає листів. Для реальної перевірки пошти оберіть окрему дію «Тестовий email» — вона надсилає максимум один лист на дозволену адресу за захищеним налаштуванням.</div>
-<div class="spacer"></div>
 <div class="row" style="flex-wrap:wrap"><div><p class="eyebrow">{{ event.starts_at|event_date }} · {{ event.location }}</p><h2 style="margin:4px 0">{{ event.title }}</h2><div class="muted">{{ event.description }}</div></div>
 <div class="actions"><a href="{{ url_for('event_export',event_id=event.id) }}" class="btn secondary">↓ Excel</a><a href="{{ url_for('event_csv',event_id=event.id) }}" class="btn secondary">↓ CSV</a></div></div>
 <div class="spacer"></div>
@@ -410,51 +402,24 @@ EVENT_DETAIL = """
 <div class="card"><div class="muted">Учасників</div><div class="metric">{{ total }}</div></div>
 <div class="card"><div class="muted">Підтвердили</div><div class="metric" style="color:#168657">{{ accepted }}</div></div>
 <div class="card"><div class="muted">Відмовилися</div><div class="metric" style="color:#b83e48">{{ declined }}</div></div>
-<div class="card"><div class="muted">Очікують / не надіслано</div><div class="metric" style="color:#ad7c20">{{ pending + unsent }}</div></div>
+<div class="card"><div class="muted">Очікують відповіді</div><div class="metric" style="color:#ad7c20">{{ pending }}</div></div>
 </div>
 <div class="progress"><span style="width:{{ accepted_pct }}%;background:#35ad7d"></span><span style="width:{{ declined_pct }}%;background:#e66e75"></span></div>
-<div class="card section"><h3>Автоматизація — демонстрація</h3><div class="actions">
-{% if unsent > 0 %}<a class="btn" href="{{ url_for('event_send',event_id=event.id) }}">✉ Імітувати розсилку ({{ unsent }}) →</a>{% else %}<span class="tag accepted">✓ Усі запрошення вже імітовано</span>{% endif %}
-<a class="btn gold" href="{{ url_for('send_test_email',event_id=event.id) }}">✉ Тестовий email →</a>
-<form method="post" action="{{ url_for('event_remind',event_id=event.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="audience" value="pending"><button class="btn secondary">Нагадати без відповіді ({{ pending }})</button></form>
-<form method="post" action="{{ url_for('event_remind',event_id=event.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="audience" value="accepted"><button class="btn secondary">Нагадати підтвердженим ({{ accepted }})</button></form>
-</div>{% if unsent == 0 %}<p class="muted">У цьому заході немає нових запрошень для відправлення. Для повного тесту створіть <a href="{{ url_for('event_new') }}" style="color:#1b4f96;text-decoration:underline">новий захід</a> і виберіть учасників.</p>{% endif %}<p class="muted">Запланована автоматична розсилка буде доступна після підключення постачальника пошти та зовнішнього планувальника.</p></div>
-<div class="section card tablewrap"><div class="row"><h2>Звіт по учасниках</h2><input style="max-width:260px" id="finder" placeholder="Пошук..." oninput="filterPeople(this.value)"></div>
-<table id="report"><thead><tr><th>Контакт</th><th>Компанія</th><th>Email</th><th>Статус</th><th>Відповідь</th></tr></thead><tbody>
-{% for inv in invites %}<tr><td><b>{{ inv.contact.name }}</b><div class="muted">{{ inv.contact.position }}</div></td><td>{{ inv.contact.company }}</td><td>{{ inv.contact.email }}</td><td><span class="tag {% if not inv.sent_at %}unsent{% else %}{{ inv.status }}{% endif %}">{{ status_label(inv) }}</span></td>
-<td>{% if inv.sent_at %}<a class="btn secondary small" href="{{ url_for('rsvp', token=inv.token) }}">Форма відповіді →</a>{% else %}<span class="muted">Спершу розсилка</span>{% endif %}</td></tr>{% endfor %}
+<div class="card section"><h3>Запрошення</h3>
+{% if unsent > 0 %}
+<p class="muted">Поки не надіслано: <b>{{ unsent }}</b>. У разі помилки відправлення ви зможете повторити спробу тільки для цих учасників.</p>
+<a class="btn gold" href="{{ url_for('event_send',event_id=event.id) }}">✉ Перевірити та надіслати ({{ unsent }}) →</a>
+{% else %}<p class="tag accepted">✓ Усі запрошення прийняті поштовим сервісом</p>{% endif %}
+</div>
+<div class="section card tablewrap"><div class="row"><h2>Учасники та відповіді</h2><input style="max-width:260px" id="finder" placeholder="Пошук..." oninput="filterPeople(this.value)"></div>
+<table id="report"><thead><tr><th>Контакт</th><th>Компанія</th><th>Email</th><th>Стан запрошення</th></tr></thead><tbody>
+{% for inv in invites %}<tr><td><b>{{ inv.contact.name }}</b><div class="muted">{{ inv.contact.position }}</div></td><td>{{ inv.contact.company }}</td><td>{{ inv.contact.email }}</td><td><span class="tag {% if inv.sent_at %}{{ inv.status }}{% elif inv.contact_id in failed_ids %}declined{% else %}unsent{% endif %}">{% if not inv.sent_at and inv.contact_id in failed_ids %}Помилка відправлення{% else %}{{ status_label(inv) }}{% endif %}</span></td></tr>{% endfor %}
 </tbody></table></div>
-<div class="section card"><h3>Журнал операцій</h3><div class="muted">Змодельованих повідомлень: {{ logs|length }}</div>
-<div class="tablewrap"><table><thead><tr><th>Час (UTC)</th><th>Операція</th><th>Контакт</th></tr></thead><tbody>
-{% for log in logs %}<tr><td>{{ log.created_at.strftime("%d.%m.%Y %H:%M") }}</td><td>{{ {"invitation":"Імітація запрошення","pending":"Імітація нагадування","accepted":"Імітація нагадування підтвердженому","real_test":"Реальний тестовий email"}.get(log.kind,log.kind) }}</td><td>{{ names.get(log.contact_id,"—") }}</td></tr>
-{% else %}<tr><td colspan="3">Поки операцій немає</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="section card"><h3>Журнал надсилань</h3><div class="tablewrap"><table><thead><tr><th>Час (UTC)</th><th>Подія</th><th>Контакт</th></tr></thead><tbody>
+{% for log in logs %}<tr><td>{{ log.created_at.strftime("%d.%m.%Y %H:%M") }}</td><td>{{ {"invitation":"Запрошення прийнято Resend","failed":"Помилка відправлення"}.get(log.kind,log.kind) }}</td><td>{{ names.get(log.contact_id,"—") }}</td></tr>
+{% else %}<tr><td colspan="3">Відправлень ще не було</td></tr>{% endfor %}</tbody></table></div></div>
 <script>function filterPeople(v){document.querySelectorAll("#report tbody tr").forEach(function(tr){tr.style.display=tr.innerText.toLowerCase().includes(v.toLowerCase())?"":"none"})}</script>
 """
-@app.post("/test/create")
-def create_personal_test():
-    recipient = os.environ.get("TEST_RECIPIENT_EMAIL", "").strip().lower()
-    if not EMAIL_RE.fullmatch(recipient):
-        flash("Спочатку налаштуйте TEST_RECIPIENT_EMAIL у Render.", "error")
-        return redirect(url_for("dashboard"))
-    contact = Contact.query.filter_by(email=recipient).first()
-    if contact is None:
-        # This email comes only from the Render environment, never from an untrusted form.
-        contact = Contact(name="Тестовий учасник", company="Персональний тест",
-                          email=recipient, position="", phone="", region="")
-        db.session.add(contact)
-        db.session.flush()
-    start = (datetime.now(ZoneInfo("Europe/Kyiv")) + timedelta(days=7)).strftime("%Y-%m-%dT10:00")
-    event = Event(title="Тестова розсилка Event Assistant",
-                  starts_at=start, location="Онлайн",
-                  description="Перевірка реального email, персонального запрошення та підтвердження участі.")
-    db.session.add(event)
-    db.session.flush()
-    db.session.add(Invitation(event_id=event.id, contact_id=contact.id))
-    db.session.commit()
-    flash("Створено персональний тест лише для одного учасника. Натисніть «Тестовий email» для наступного кроку.", "success")
-    return redirect(url_for("event_detail", event_id=event.id))
-
-
 @app.get("/events/<int:event_id>")
 def event_detail(event_id):
     event = db.get_or_404(Event, event_id)
@@ -465,162 +430,128 @@ def event_detail(event_id):
     pending = sum(x.status == "pending" and x.sent_at is not None for x in invites)
     unsent = sum(x.sent_at is None for x in invites)
     logs = MessageLog.query.filter_by(event_id=event_id).order_by(MessageLog.id.desc()).limit(30).all()
+    failed_ids = {m.contact_id for m in MessageLog.query.filter_by(event_id=event_id, kind="failed").all()}
     return page("Управління заходом", EVENT_DETAIL, event=event, invites=invites, total=total,
                 accepted=accepted, declined=declined, pending=pending, unsent=unsent,
                 accepted_pct=round(accepted / total * 100, 2) if total else 0,
                 declined_pct=round(declined / total * 100, 2) if total else 0,
-                status_label=status_label, logs=logs,
+                status_label=status_label, logs=logs, failed_ids=failed_ids,
                 names={x.contact_id: x.contact.name for x in invites})
 
 SEND_CONFIRM = """
-<div class="card" style="max-width:720px">
-  <h2>Підтвердження імітації розсилки</h2>
-  <p><b>{{ event.title }}</b></p>
-  {% if unsent > 0 %}
-  <div class="note">Запрошення будуть позначені як відправлені для {{ unsent }} учасників. Жоден реальний email не надсилатиметься.</div>
-  <div class="spacer"></div>
-  <form method="post" action="{{ url_for('event_send', event_id=event.id) }}">
-    <input type="hidden" name="_csrf" value="{{ csrf }}">
-    <div class="actions">
-      <button type="submit" class="btn">✓ Підтвердити імітацію ({{ unsent }})</button>
-      <a class="btn secondary" href="{{ url_for('event_detail', event_id=event.id) }}">Повернутися</a>
-    </div>
-  </form>
-  {% else %}
-  <p class="note">Усі запрошення цього заходу вже позначені як відправлені. Повторна імітація не потрібна.</p>
-  <a class="btn secondary" href="{{ url_for('event_detail', event_id=event.id) }}">Повернутися до звіту</a>
-  {% endif %}
+<div class="card" style="max-width:780px">
+<h2>Підтвердження розсилки</h2>
+<p><b>{{ event.title }}</b> · {{ event.starts_at|event_date }}</p>
+{% if unsent %}
+<p>Обрано одержувачів: <b>{{ unsent|length }}</b>. Листи будуть надіслані на адреси:</p>
+<div class="tablewrap"><table><thead><tr><th>Учасник</th><th>Email</th></tr></thead><tbody>
+{% for inv in unsent %}<tr><td>{{ inv.contact.name }}</td><td>{{ inv.contact.email }}</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="spacer"></div>
+{% if blocker %}<div class="note">{{ blocker }}</div>
+{% else %}
+<div class="note">Натиснувши «Підтвердити та надіслати», ви запускаєте реальну відправку на перелічені адреси. Кожен лист міститиме приватні кнопки відповіді. Це не імітація.</div>
+<div class="spacer"></div>
+<form method="post" action="{{ url_for('event_send',event_id=event.id) }}">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="actions">
+<button type="submit" class="btn gold">✓ Підтвердити та надіслати ({{ unsent|length }})</button>
+<a class="btn secondary" href="{{ url_for('event_detail',event_id=event.id) }}">Повернутися без розсилки</a>
+</div></form>
+{% endif %}
+{% else %}<div class="note">Усі запрошення цього заходу вже прийняті поштовим сервісом. Повторне надсилання не потрібне.</div>{% endif %}
+<div class="spacer"></div><a class="btn secondary" href="{{ url_for('event_detail',event_id=event.id) }}">До заходу</a>
 </div>
 """
+
+def email_blocker(unsent):
+    key = os.environ.get("RESEND_API_KEY", "").strip()
+    if not key:
+        return "Не задано RESEND_API_KEY у Render → Environment."
+    sender = os.environ.get("EMAIL_FROM", "Event Assistant <onboarding@resend.dev>").strip()
+    if not sender:
+        return "Не задано EMAIL_FROM."
+    if "onboarding@resend.dev" in sender.lower():
+        # Resend's shared onboarding sender may deliver only to the account owner's email.
+        # Keep the legacy allowlist variable for a single real recipient until a verified domain is configured.
+        allowed = os.environ.get("TEST_RECIPIENT_EMAIL", "").strip().lower()
+        if not EMAIL_RE.fullmatch(allowed):
+            return "Поки використовується onboarding@resend.dev, додайте TEST_RECIPIENT_EMAIL з адресою акаунта Resend у Render."
+        if any(inv.contact.email.lower() != allowed for inv in unsent):
+            return "Відправник onboarding@resend.dev дозволяє надсилати лише на власну адресу акаунта Resend. Для інших учасників підтвердьте власний домен у Resend та задайте EMAIL_FROM."
+    if len(unsent) > 50:
+        return "Для безпечного запуску одна розсилка обмежена 50 адресами. Поділіть список на кілька заходів."
+    return None
+
+def safe_mail_error(error, key):
+    raw = str(getattr(error, "message", None) or str(error) or "Причина невідома")
+    if key:
+        raw = raw.replace(key, "[секрет приховано]")
+    raw = re.sub(r"\b(?:re_|sk_)[A-Za-z0-9_-]{6,}\b", "[секрет приховано]", raw)
+    raw = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[email приховано]", raw)
+    raw = re.sub(r"https?://\S+", "[посилання приховано]", raw)
+    return (type(error).__name__ + ": " + " ".join(raw.split())[:300])
+
+def invitation_email(inv):
+    event, contact = inv.event, inv.contact
+    base_url = os.environ.get("PUBLIC_BASE_URL", "https://event-assistant-demo.onrender.com").rstrip("/")
+    yes = base_url + url_for("rsvp", token=inv.token, choice="accepted")
+    no = base_url + url_for("rsvp", token=inv.token, choice="declined")
+    return (
+        '<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#172b49;line-height:1.6">'
+        '<div style="background:#163e77;color:#fff;padding:22px;border-radius:12px 12px 0 0"><h2>Запрошення на захід</h2></div>'
+        '<div style="padding:24px;border:1px solid #e8edf3;border-radius:0 0 12px 12px">'
+        '<p>Вітаємо, <b>' + html.escape(contact.name) + '</b>!</p>'
+        '<p>Запрошуємо вас на <b>' + html.escape(event.title) + '</b>.</p>'
+        '<p><b>Дата:</b> ' + html.escape(event_date(event.starts_at)) + '</p>'
+        '<p><b>Місце:</b> ' + html.escape(event.location or "Буде уточнено") + '</p>'
+        '<p>' + html.escape(event.description or "").replace("\n", "<br>") + '</p>'
+        '<p style="margin:25px 0"><a href="' + html.escape(yes, quote=True) + '" style="display:inline-block;background:#168657;color:white;text-decoration:none;border-radius:8px;padding:12px 18px;margin:3px">✓ Беру участь</a>'
+        '<a href="' + html.escape(no, quote=True) + '" style="display:inline-block;background:#f3f5f8;color:#2b3f58;text-decoration:none;border-radius:8px;padding:12px 18px;margin:3px">Не зможу</a></p>'
+        '<p style="font-size:12px;color:#78879c">Кожна кнопка відкриває приватну сторінку, де потрібно підтвердити свій вибір. Посилання призначене тільки для вас.</p>'
+        '</div></div>'
+    )
 
 @app.route("/events/<int:event_id>/send", methods=["GET","POST"])
 def event_send(event_id):
     event = db.get_or_404(Event, event_id)
+    unsent = [inv for inv in sorted(event.invitations, key=lambda i: i.contact.email) if inv.sent_at is None]
+    blocker = email_blocker(unsent) if unsent else None
     if request.method == "GET":
-        unsent = sum(1 for inv in event.invitations if inv.sent_at is None)
-        return page("Імітація розсилки", SEND_CONFIRM, event=event, unsent=unsent)
-    count = 0
-    for inv in event.invitations:
-        if inv.sent_at is None:
-            inv.sent_at = utcnow()
-            db.session.add(MessageLog(event_id=event_id, contact_id=inv.contact_id, kind="invitation"))
-            count += 1
-    db.session.commit()
-    flash("Імітовано відправку запрошень: " + str(count), "success")
-    return redirect(url_for("event_detail", event_id=event_id))
-
-REAL_TEST_CONFIRM = """
-<div class="card" style="max-width:720px">
-  <h2>Справжній тестовий лист</h2>
-  <p><b>{{ event.title }}</b></p>
-  {% if not configured %}
-  <div class="note">Пошту ще не підключено. В налаштуваннях Render для цього вебсервісу потрібно додати <code>RESEND_API_KEY</code> і <code>TEST_RECIPIENT_EMAIL</code>. Ключ зберігайте тільки у Render, не в коді GitHub.</div>
-  {% elif not inv %}
-  <div class="note">У цьому заході немає учасника з дозволеною адресою тестування. Переконайтеся, що контакт із email, який указаний у <code>TEST_RECIPIENT_EMAIL</code>, доданий до заходу.</div>
-  {% elif already_sent %}
-  <div class="note">Справжній тестовий лист цьому учаснику в межах цього заходу вже надіслано. Повторне надсилання заблоковано, щоб уникнути дублікатів. Для нового тесту створіть новий захід.</div>
-  {% else %}
-  <div class="note">Після підтвердження Resend відправить <b>ОДИН реальний лист</b> на <b>{{ inv.contact.email }}</b>. У листі буде особисте посилання для підтвердження участі. Іншим учасникам листи не надсилатимуться.</div>
-  <div class="spacer"></div>
-  <form method="post" action="{{ url_for('send_test_email', event_id=event.id) }}">
-    <input type="hidden" name="_csrf" value="{{ csrf }}">
-    <div class="actions">
-      <button type="submit" class="btn gold">✓ Надіслати один тестовий лист</button>
-      <a class="btn secondary" href="{{ url_for('event_detail',event_id=event.id) }}">Скасувати</a>
-    </div>
-  </form>
-  {% endif %}
-  <div class="spacer"></div>
-  <a class="btn secondary" href="{{ url_for('event_detail',event_id=event.id) }}">Повернутися до заходу</a>
-</div>
-"""
-
-@app.route("/events/<int:event_id>/test-email", methods=["GET", "POST"])
-def send_test_email(event_id):
-    event = db.get_or_404(Event, event_id)
-    allow_address = os.environ.get("TEST_RECIPIENT_EMAIL", "").strip().lower()
-    api_key = os.environ.get("RESEND_API_KEY", "").strip()
-    configured = bool(api_key and EMAIL_RE.fullmatch(allow_address))
-    invite = next((i for i in event.invitations if i.contact.email.lower() == allow_address), None) if configured else None
-    already_sent = bool(invite and MessageLog.query.filter_by(event_id=event_id, contact_id=invite.contact_id, kind="real_test").first())
-    if request.method == "GET":
-        return page("Тестова пошта", REAL_TEST_CONFIRM, event=event, inv=invite, configured=configured, already_sent=already_sent)
-    if not configured or invite is None:
-        flash("Спершу налаштуйте Resend і додайте дозволену адресу до учасників заходу.", "error")
-        return redirect(url_for("send_test_email", event_id=event_id))
-    if already_sent:
-        flash("Цей тестовий лист уже надсилали. Створіть новий захід для повторної перевірки.", "error")
-        return redirect(url_for("send_test_email", event_id=event_id))
-    # Server-side allowlist. Never send bulk email from the demo.
-    if invite.contact.email.lower() != allow_address:
-        abort(403)
+        return page("Підтвердження розсилки", SEND_CONFIRM, event=event, unsent=unsent, blocker=blocker)
+    if blocker:
+        flash(blocker, "error")
+        return redirect(url_for("event_send", event_id=event_id))
     import resend
-    resend.api_key = api_key
-    base_url = os.environ.get("PUBLIC_BASE_URL", "https://event-assistant-demo.onrender.com").rstrip("/")
-    link = base_url + url_for("rsvp", token=invite.token)
-    subject = ("Запрошення: " + event.title)[:250]
-    recipient_name = html.escape(invite.contact.name)
-    title = html.escape(event.title)
-    date = html.escape(event_date(event.starts_at))
-    place = html.escape(event.location or "Місце уточнюється")
-    description = html.escape(event.description or "").replace("\n", "<br>")
-    email_html = (
-        '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#192841">'
-        '<h2>Запрошення на захід</h2><p>Вітаємо, <b>' + recipient_name + '</b>!</p>'
-        '<p>Запрошуємо вас на <b>' + title + '</b>.</p>'
-        '<p><b>Дата:</b> ' + date + '<br><b>Місце:</b> ' + place + '</p>'
-        '<p>' + description + '</p>'
-        '<p><a href="' + html.escape(link, quote=True) + '" '
-        'style="display:inline-block;background:#1b4f96;color:white;padding:14px 20px;border-radius:8px;text-decoration:none">'
-        'Підтвердити або відхилити участь</a></p>'
-        '<p style="font-size:12px;color:#6d7d93">Тестове запрошення Event Assistant.</p></div>'
-    )
-    try:
-        response = resend.Emails.send({
-            "from": os.environ.get("EMAIL_FROM", "Event Assistant <onboarding@resend.dev>"),
-            "to": [allow_address],
-            "subject": subject,
-            "html": email_html,
-        })
-        email_id = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
-        if not email_id:
-            raise RuntimeError("Provider response did not contain a message ID")
-    except Exception as error:
-        # Report the provider's actual error instead of guessing that a recipient is invalid.
-        # Never disclose the Resend API key or an email address in logs or the UI.
-        error_type = type(error).__name__
-        status = getattr(error, "status_code", None)
-        raw_reason = str(getattr(error, "message", None) or str(error) or "Причину не вказано")
-        raw_reason = raw_reason.replace(api_key, "[секрет приховано]")
-        raw_reason = re.sub(r"\b(?:re_|sk_)[A-Za-z0-9_-]{6,}\b", "[секрет приховано]", raw_reason)
-        raw_reason = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[email приховано]", raw_reason)
-        raw_reason = re.sub(r"https?://\S+", "[посилання приховано]", raw_reason)
-        safe_reason = " ".join(raw_reason.split())[:350]
-        label = error_type + ((" HTTP " + str(status)) if status else "")
-        app.logger.warning("Real test email failed: %s: %s", label, safe_reason)
-        flash("Помилка тестового email (" + label + "): " + safe_reason, "error")
-        return redirect(url_for("send_test_email", event_id=event_id))
-    db.session.add(MessageLog(event_id=event_id, contact_id=invite.contact_id, kind="real_test"))
-    if invite.sent_at is None:
-        invite.sent_at = utcnow()
-    db.session.commit()
-    flash("Resend прийняв один тестовий лист для відправлення. Перевірте пошту (також папку Спам) та натисніть на посилання участі.", "success")
-    return redirect(url_for("event_detail", event_id=event_id))
-
-
-@app.post("/events/<int:event_id>/remind")
-def event_remind(event_id):
-    event = db.get_or_404(Event, event_id)
-    audience = request.form.get("audience")
-    if audience not in {"pending", "accepted"}:
-        abort(400)
-    count = 0
-    for inv in event.invitations:
-        if inv.sent_at is not None and inv.status == audience:
-            db.session.add(MessageLog(event_id=event_id, contact_id=inv.contact_id, kind=audience))
-            count += 1
-    db.session.commit()
-    flash("Імітовано нагадувань: " + str(count), "success")
+    key = os.environ.get("RESEND_API_KEY", "").strip()
+    resend.api_key = key
+    sender = os.environ.get("EMAIL_FROM", "Event Assistant <onboarding@resend.dev>").strip()
+    delivered_to_provider = 0
+    for inv in unsent:
+        # One unique recipient per call; commit after each success so retries skip accepted requests.
+        try:
+            response = resend.Emails.send({
+                "from": sender,
+                "to": [inv.contact.email.lower()],
+                "subject": ("Запрошення: " + event.title)[:250],
+                "html": invitation_email(inv),
+            })
+            message_id = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
+            if not message_id:
+                raise RuntimeError("Поштовий сервіс не повернув ідентифікатор листа")
+        except Exception as error:
+            reason = safe_mail_error(error, key)
+            app.logger.warning("Invitation email failed for event_id=%s: %s", event_id, reason)
+            db.session.add(MessageLog(event_id=event_id, contact_id=inv.contact_id, kind="failed"))
+            db.session.commit()
+            flash("Помилка надсилання: " + reason + ". Невідправлені запрошення можна надіслати повторно.", "error")
+            break
+        inv.sent_at = utcnow()
+        db.session.add(MessageLog(event_id=event_id, contact_id=inv.contact_id, kind="invitation"))
+        db.session.commit()
+        delivered_to_provider += 1
+    if delivered_to_provider:
+        flash("Resend прийняв запрошень до доставки: " + str(delivered_to_provider) + ". Перевіряйте відповіді у звіті.", "success")
     return redirect(url_for("event_detail", event_id=event_id))
 
 def report_rows(event_id):
@@ -666,10 +597,21 @@ RSVP = """
 <p class="muted">Дата: <b>{{ event.starts_at|event_date }}</b><br>Місце: <b>{{ event.location or "Буде уточнено" }}</b></p>
 <p>{{ event.description }}</p><hr style="border:0;border-top:1px solid #edf0f4;margin:22px 0">
 <p>Вітаємо, <b>{{ contact.name }}</b>! Просимо підтвердити вашу участь.</p>
-{% if inv.status != "pending" %}<p class="note">Поточна відповідь: <b>{{ status_label(inv) }}</b>. Ви можете змінити її нижче.</p>{% endif %}
-<form method="post" class="actions"><button class="btn" name="decision" value="accepted">✓ Беру участь</button>
-<button class="btn secondary" name="decision" value="declined">✕ Не зможу</button></form>
-<p class="muted">Ваше рішення миттєво з'явиться у звіті організатора. Це демонстраційна форма.</p></div>
+{% if inv.status != "pending" %}<p class="note">Поточна відповідь: <b>{{ status_label(inv) }}</b>. Її можна змінити.</p>{% endif %}
+{% if choice %}
+<p><b>Ваш вибір: {% if choice == "accepted" %}Беру участь{% else %}Не зможу{% endif %}</b>. Натисніть «Підтвердити вибір», щоб зберегти відповідь.</p>
+<form method="post" class="actions">
+<input type="hidden" name="decision" value="{{ choice }}">
+<button type="submit" class="btn">✓ Підтвердити вибір</button>
+<a class="btn secondary" href="{{ url_for('rsvp', token=inv.token) }}">Змінити вибір</a>
+</form>
+{% else %}
+<div class="actions">
+<a class="btn" href="{{ url_for('rsvp', token=inv.token, choice='accepted') }}">✓ Беру участь</a>
+<a class="btn secondary" href="{{ url_for('rsvp', token=inv.token, choice='declined') }}">✕ Не зможу</a>
+</div>
+{% endif %}
+<p class="muted">Відповідь побачить організатор заходу. Перехід за посиланням сам по собі відповідь не фіксує.</p></div>
 """
 @app.route("/rsvp/<token>", methods=["GET", "POST"])
 def rsvp(token):
@@ -685,38 +627,15 @@ def rsvp(token):
         db.session.commit()
         flash("Дякуємо! Вашу відповідь збережено.", "success")
         return redirect(url_for("rsvp", token=token))
-    return page("Підтвердження участі", RSVP, inv=inv, event=inv.event, contact=inv.contact, status_label=status_label)
+    choice = request.args.get("choice")
+    if choice not in {"accepted", "declined"}:
+        choice = None
+    return page("Підтвердження участі", RSVP, inv=inv, event=inv.event, contact=inv.contact,
+                status_label=status_label, choice=choice)
 
-def seed_demo():
-    if Contact.query.count():
-        return
-    companies = ["АгроПартнер","Фермер-Сервіс","АгроЛідер","Зелений Простір","Схід-Агро","Поля України"]
-    regions = ["Кіровоградська","Полтавська","Черкаська","Вінницька","Київська","Дніпропетровська"]
-    first = ["Олександр","Ірина","Дмитро","Катерина","Андрій","Наталія"]
-    last = ["Коваленко","Шевченко","Мельник","Бондар","Ткаченко","Петренко"]
-    contacts = []
-    for index in range(36):
-        contact = Contact(name=first[index%6]+" "+last[(index//6+index)%6],company=companies[index%6],
-                          position="Менеджер із продажів" if index%3 else "Керівник напрямку",
-                          region=regions[index%6],email="participant%02d@example.com"%(index+1),
-                          phone="")
-        db.session.add(contact)
-        contacts.append(contact)
-    db.session.flush()
-    event = Event(title="Демонстраційне навчання партнерів", starts_at="2026-12-18T10:00",
-                  location="Кропивницький · конференц-зал",description="Огляд продуктів, практичні кейси та обговорення.")
-    db.session.add(event)
-    db.session.flush()
-    for i,c in enumerate(contacts):
-        s = "accepted" if i<24 else "declined" if i<28 else "pending"
-        db.session.add(Invitation(event_id=event.id,contact_id=c.id,status=s,
-                                  sent_at=utcnow()-timedelta(days=1),
-                                  responded_at=utcnow() if s!="pending" else None))
-    db.session.commit()
-
+# Do not inject simulated events or fake contacts into the real invitation workflow.
 with app.app_context():
     db.create_all()
-    seed_demo()
 
 if __name__ == "__main__":
     app.run(debug=False, port=int(os.environ.get("PORT", 5000)), host="0.0.0.0")
