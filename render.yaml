@@ -1,8 +1,16 @@
 services:
   - type: web
-    name: agro-erp
-    env: python
+    name: event-assistant-demo
+    runtime: python
+    region: frankfurt
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn wsgi:app"
-    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: COOKIE_SECURE
+        value: "1"

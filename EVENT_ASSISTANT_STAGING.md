@@ -1,1 +1,0 @@
-Temporary staging branch for an isolated Event Assistant demonstration. The main AgroERP branch is untouched. This branch will be replaced with a standalone application tree.
