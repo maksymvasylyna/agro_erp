@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from functools import wraps
 
 from flask import Flask, abort, flash, make_response, redirect, render_template_string, request, send_file, session, url_for
@@ -178,7 +179,13 @@ def health():
     return {"ok": True, "name": "event-assistant", "mode": "simulation"}
 
 DASH = """
-<div class="note">Це демонстраційний стенд. Усі початкові контакти вигадані, а кнопки «Надіслати» й «Нагадати» лише реєструють дії — листи не відправляються.</div>
+<div class="note">Це демонстраційний стенд. Звичайна імітація та нагадування не надсилають листів. Реальний тестовий email доступний окремо після підключення Resend — тільки на одну дозволену адресу.</div>
+<div class="spacer"></div>
+<div class="card"><h3>Перевірка справжнього листа через Resend</h3>
+<p class="muted">Створимо окреме навчання тільки для однієї тестової адреси з налаштувань Render. Після створення ти зможеш відкрити захід і підтвердити відправлення одного справжнього листа.</p>
+<form method="post" action="{{ url_for('create_personal_test') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<button type="submit" class="btn gold">+ Створити особистий тест →</button>
+</form></div>
 <div class="spacer"></div>
 <div class="grid">
 <div class="card"><div class="muted">Контакти</div><div class="metric">{{ n_contacts }}</div></div>
@@ -423,6 +430,31 @@ EVENT_DETAIL = """
 {% else %}<tr><td colspan="3">Поки операцій немає</td></tr>{% endfor %}</tbody></table></div></div>
 <script>function filterPeople(v){document.querySelectorAll("#report tbody tr").forEach(function(tr){tr.style.display=tr.innerText.toLowerCase().includes(v.toLowerCase())?"":"none"})}</script>
 """
+@app.post("/test/create")
+def create_personal_test():
+    recipient = os.environ.get("TEST_RECIPIENT_EMAIL", "").strip().lower()
+    if not EMAIL_RE.fullmatch(recipient):
+        flash("Спочатку налаштуйте TEST_RECIPIENT_EMAIL у Render.", "error")
+        return redirect(url_for("dashboard"))
+    contact = Contact.query.filter_by(email=recipient).first()
+    if contact is None:
+        # This email comes only from the Render environment, never from an untrusted form.
+        contact = Contact(name="Тестовий учасник", company="Персональний тест",
+                          email=recipient, position="", phone="", region="")
+        db.session.add(contact)
+        db.session.flush()
+    start = (datetime.now(ZoneInfo("Europe/Kyiv")) + timedelta(days=7)).strftime("%Y-%m-%dT10:00")
+    event = Event(title="Тестова розсилка Event Assistant",
+                  starts_at=start, location="Онлайн",
+                  description="Перевірка реального email, персонального запрошення та підтвердження участі.")
+    db.session.add(event)
+    db.session.flush()
+    db.session.add(Invitation(event_id=event.id, contact_id=contact.id))
+    db.session.commit()
+    flash("Створено персональний тест лише для одного учасника. Натисніть «Тестовий email» для наступного кроку.", "success")
+    return redirect(url_for("event_detail", event_id=event.id))
+
+
 @app.get("/events/<int:event_id>")
 def event_detail(event_id):
     event = db.get_or_404(Event, event_id)
@@ -550,7 +582,8 @@ def send_test_email(event_id):
             "subject": subject,
             "html": email_html,
         })
-        if not isinstance(response, dict) or not response.get("id"):
+        email_id = response.get("id") if isinstance(response, dict) else getattr(response, "id", None)
+        if not email_id:
             raise RuntimeError("Provider response did not contain a message ID")
     except Exception as error:
         app.logger.warning("Real test email failed, type=%s", type(error).__name__)
