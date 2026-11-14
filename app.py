@@ -406,14 +406,14 @@ EVENT_DETAIL = """
 </div>
 <div class="progress"><span style="width:{{ accepted_pct }}%;background:#35ad7d"></span><span style="width:{{ declined_pct }}%;background:#e66e75"></span></div>
 <div class="card section"><h3>Автоматизація — демонстрація</h3><div class="actions">
-<form method="post" action="{{ url_for('event_send',event_id=event.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn">✉ Імітувати розсилку ({{ unsent }})</button></form>
+{% if unsent > 0 %}<a class="btn" href="{{ url_for('event_send',event_id=event.id) }}">✉ Імітувати розсилку ({{ unsent }}) →</a>{% else %}<span class="tag accepted">✓ Усі запрошення вже імітовано</span>{% endif %}
 <form method="post" action="{{ url_for('event_remind',event_id=event.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="audience" value="pending"><button class="btn secondary">Нагадати без відповіді ({{ pending }})</button></form>
 <form method="post" action="{{ url_for('event_remind',event_id=event.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="audience" value="accepted"><button class="btn secondary">Нагадати підтвердженим ({{ accepted }})</button></form>
-</div><p class="muted">Запланована автоматична розсилка буде доступна після підключення постачальника пошти та зовнішнього планувальника.</p></div>
+</div>{% if unsent == 0 %}<p class="muted">У цьому заході немає нових запрошень для відправлення. Для повного тесту створіть <a href="{{ url_for('event_new') }}" style="color:#1b4f96;text-decoration:underline">новий захід</a> і виберіть учасників.</p>{% endif %}<p class="muted">Запланована автоматична розсилка буде доступна після підключення постачальника пошти та зовнішнього планувальника.</p></div>
 <div class="section card tablewrap"><div class="row"><h2>Звіт по учасниках</h2><input style="max-width:260px" id="finder" placeholder="Пошук..." oninput="filterPeople(this.value)"></div>
 <table id="report"><thead><tr><th>Контакт</th><th>Компанія</th><th>Email</th><th>Статус</th><th>Відповідь</th></tr></thead><tbody>
 {% for inv in invites %}<tr><td><b>{{ inv.contact.name }}</b><div class="muted">{{ inv.contact.position }}</div></td><td>{{ inv.contact.company }}</td><td>{{ inv.contact.email }}</td><td><span class="tag {% if not inv.sent_at %}unsent{% else %}{{ inv.status }}{% endif %}">{{ status_label(inv) }}</span></td>
-<td>{% if inv.sent_at %}<a class="btn secondary small" href="{{ url_for('rsvp', token=inv.token) }}" target="_blank" rel="noopener noreferrer">Форма відповіді ↗</a>{% else %}<span class="muted">Спершу розсилка</span>{% endif %}</td></tr>{% endfor %}
+<td>{% if inv.sent_at %}<a class="btn secondary small" href="{{ url_for('rsvp', token=inv.token) }}">Форма відповіді →</a>{% else %}<span class="muted">Спершу розсилка</span>{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 <div class="section card"><h3>Журнал операцій</h3><div class="muted">Змодельованих повідомлень: {{ logs|length }}</div>
 <div class="tablewrap"><table><thead><tr><th>Час (UTC)</th><th>Операція</th><th>Контакт</th></tr></thead><tbody>
@@ -438,9 +438,33 @@ def event_detail(event_id):
                 status_label=status_label, logs=logs,
                 names={x.contact_id: x.contact.name for x in invites})
 
-@app.post("/events/<int:event_id>/send")
+SEND_CONFIRM = """
+<div class="card" style="max-width:720px">
+  <h2>Підтвердження імітації розсилки</h2>
+  <p><b>{{ event.title }}</b></p>
+  {% if unsent > 0 %}
+  <div class="note">Запрошення будуть позначені як відправлені для {{ unsent }} учасників. Жоден реальний email не надсилатиметься.</div>
+  <div class="spacer"></div>
+  <form method="post" action="{{ url_for('event_send', event_id=event.id) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="actions">
+      <button type="submit" class="btn">✓ Підтвердити імітацію ({{ unsent }})</button>
+      <a class="btn secondary" href="{{ url_for('event_detail', event_id=event.id) }}">Повернутися</a>
+    </div>
+  </form>
+  {% else %}
+  <p class="note">Усі запрошення цього заходу вже позначені як відправлені. Повторна імітація не потрібна.</p>
+  <a class="btn secondary" href="{{ url_for('event_detail', event_id=event.id) }}">Повернутися до звіту</a>
+  {% endif %}
+</div>
+"""
+
+@app.route("/events/<int:event_id>/send", methods=["GET","POST"])
 def event_send(event_id):
     event = db.get_or_404(Event, event_id)
+    if request.method == "GET":
+        unsent = sum(1 for inv in event.invitations if inv.sent_at is None)
+        return page("Імітація розсилки", SEND_CONFIRM, event=event, unsent=unsent)
     count = 0
     for inv in event.invitations:
         if inv.sent_at is None:
