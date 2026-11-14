@@ -168,10 +168,35 @@ class EventAssistantTests(unittest.TestCase):
             with patch.object(resend.Emails, "send", side_effect=ValueError("denied")):
                 r = self.client.post("/events/%d/test-email" % event_id, data={"_csrf":csrf}, follow_redirects=True)
                 self.assertEqual(r.status_code, 200)
-                self.assertIn("Resend відхилив", r.get_data(as_text=True))
+                self.assertIn("Помилка тестового email", r.get_data(as_text=True))
         with app.app_context():
             self.assertIsNone(db.session.get(module.Invitation, invitation_id).sent_at)
             self.assertEqual(module.MessageLog.query.filter_by(event_id=event_id, kind="real_test").count(), 0)
+
+    def test_real_mail_error_redacts_api_key_and_email(self):
+        from unittest.mock import patch
+        import resend
+        csrf = self.login()
+        with app.app_context():
+            contact = module.Contact.query.first()
+            event = module.Event(title="Безпечна діагностика", starts_at="2026-12-23T12:00", location="Онлайн")
+            db.session.add(event)
+            db.session.flush()
+            db.session.add(module.Invitation(event_id=event.id, contact_id=contact.id))
+            db.session.commit()
+            event_id, recipient_email = event.id, contact.email
+        key = "re_secretvalue987654"
+        reason = "Invalid recipient " + recipient_email + " with key " + key
+        with patch.dict(os.environ, {"TEST_RECIPIENT_EMAIL":recipient_email, "RESEND_API_KEY":key}):
+            with patch.object(resend.Emails, "send", side_effect=ValueError(reason)):
+                r = self.client.post("/events/%d/test-email" % event_id, data={"_csrf": csrf}, follow_redirects=True)
+        result = r.get_data(as_text=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Помилка тестового email", result)
+        self.assertIn("[секрет приховано]", result)
+        self.assertIn("[email приховано]", result)
+        self.assertNotIn(key, result)
+        self.assertNotIn(recipient_email, result)
 
     def test_send_not_actual_email(self):
         csrf = self.login()
