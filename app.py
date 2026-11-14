@@ -155,7 +155,7 @@ def security_headers(response):
 
 LOGIN = """
 <div class="card" style="max-width:440px"><p class="muted">Вхід до кабінету організатора</p>
-<form method="post"><label>Пароль демоверсії</label><input type="password" name="password" required autofocus>
+<form method="post"><label>Пароль організатора</label><input type="password" name="password" required autofocus>
 <div class="spacer"></div><button class="btn">Увійти →</button></form></div>
 """
 @app.route("/login", methods=["GET", "POST"])
