@@ -62,6 +62,41 @@ class EventAssistantTests(unittest.TestCase):
         with app.app_context():
             self.assertIsNotNone(module.Contact.query.filter_by(email="demo-contact99@example.com").first())
 
+    def test_send_confirmation_get_does_not_change_state(self):
+        csrf = self.login()
+        with app.app_context():
+            c = module.Contact.query.first()
+            event = module.Event(title="Перевірка розсилки", starts_at="2026-12-22T12:00", location="Онлайн")
+            db.session.add(event)
+            db.session.flush()
+            inv = module.Invitation(event_id=event.id, contact_id=c.id)
+            db.session.add(inv)
+            db.session.commit()
+            event_id, inv_id = event.id, inv.id
+        confirmation = self.client.get("/events/%d/send" % event_id)
+        self.assertEqual(confirmation.status_code, 200)
+        self.assertIn("Підтвердити імітацію", confirmation.get_data(as_text=True))
+        with app.app_context():
+            self.assertIsNone(db.session.get(module.Invitation, inv_id).sent_at)
+        result = self.client.post("/events/%d/send" % event_id,
+                                  data={"_csrf": csrf}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        with app.app_context():
+            self.assertIsNotNone(db.session.get(module.Invitation, inv_id).sent_at)
+            self.assertEqual(module.MessageLog.query.filter_by(event_id=event_id, kind="invitation").count(), 1)
+        # Sending twice must be idempotent.
+        second = self.client.post("/events/%d/send" % event_id,
+                                  data={"_csrf": csrf}, follow_redirects=True)
+        self.assertEqual(second.status_code, 200)
+        with app.app_context():
+            self.assertEqual(module.MessageLog.query.filter_by(event_id=event_id, kind="invitation").count(), 1)
+
+    def test_send_demo_event_already_sent_message(self):
+        self.login()
+        response = self.client.get("/events/1/send")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("вже позначені", response.get_data(as_text=True))
+
     def test_send_not_actual_email(self):
         csrf = self.login()
         with app.app_context():
