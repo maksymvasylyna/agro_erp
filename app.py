@@ -284,8 +284,8 @@ def contacts_import():
     return redirect(url_for("contacts"))
 
 EVENT_NEW = """
-<div class="two"><div class="card"><h2>Інформація про захід</h2>
 <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="two"><div class="card"><h2>Інформація про захід</h2>
 <label>Назва заходу *</label><input name="title" placeholder="Навчання для партнерів" required maxlength="220">
 <div class="fields"><div><label>Дата і час *</label><input type="datetime-local" name="starts_at" required></div>
 <div><label>Місце проведення</label><input name="location" placeholder="Місто, адреса або онлайн"></div></div>
@@ -298,7 +298,7 @@ EVENT_NEW = """
 {% for p in contacts %}<label class="person"><input type="checkbox" name="contact_ids" value="{{ p.id }}" onchange="countSelected()">
 <span><b>{{ p.name }}</b><small>{{ p.company }} · {{ p.region }}</small></span></label>{% endfor %}
 </div><p class="muted">Запрошення з'являться в звіті після створення заходу. У демо відправка лише моделюється.</p>
-</form></div></div>
+</div></div></form>
 <script>
 function countSelected(){document.getElementById("selected").textContent=document.querySelectorAll("#people input:checked").length+" обрано"}
 function filterPeople(v){document.querySelectorAll("#people .person").forEach(function(p){p.style.display=p.innerText.toLowerCase().includes(v.toLowerCase())?"":"none"})}
