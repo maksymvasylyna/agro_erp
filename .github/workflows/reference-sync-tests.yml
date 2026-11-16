@@ -1,0 +1,31 @@
+name: AgroERP historical reference synchronization tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wsgi.py"
+      - "scripts/sync_field_history_references.py"
+      - "tests/test_reference_sync.py"
+      - ".github/workflows/reference-sync-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python requirements
+        run: python -m pip install -r requirements.txt
+      - name: Check catalog migration against temporary SQLite only
+        env:
+          DATABASE_URL: sqlite:///:memory:
+          SECRET_KEY: ci-test-only-not-production-secret-2026
+        run: python -m unittest discover -s tests -p "test_reference_sync.py" -v
