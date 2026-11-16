@@ -1,0 +1,40 @@
+name: AgroERP field and structure integration tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "config.py"
+      - "app.py"
+      - "modules/reference/fields/**"
+      - "modules/structure/**"
+      - "modules/plans/models.py"
+      - "modules/purchases/payer_allocation/models.py"
+      - "tests/test_fields_seasonal.py"
+      - ".github/workflows/fields-integration-tests.yml"
+  pull_request:
+    paths:
+      - "modules/reference/fields/**"
+      - "modules/structure/**"
+      - "tests/test_fields_seasonal.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-fields-and-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run isolated SQLite integration tests (never production database)
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "ci-secret-2026-test-only-change-not-a-production-key"
+        run: python -m unittest discover -s tests -p "test_fields_seasonal.py" -v
