@@ -8,7 +8,7 @@ from decimal import Decimal
 from admin_auth import admin_required
 from urllib.parse import urlsplit
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_wtf import FlaskForm
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -17,10 +17,11 @@ from sqlalchemy.orm import joinedload, selectinload
 from extensions import db
 from modules.reference.fields.field_models import Field
 from modules.reference.fields.forms import (
-    ActionForm, FieldCreateForm, FieldFilterForm, FieldNameForm, PlantingForm,
+    ActionForm, FieldCreateForm, FieldNameForm, PlantingForm,
     SeasonCreateForm, SeasonFieldForm,
 )
 from modules.reference.fields.season_models import FieldPlanting, FieldSeason, Season
+from modules.reference.clusters.models import Cluster
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
 
@@ -98,33 +99,48 @@ def _save_errors(form):
     flash(" ".join(messages) or "Перевірте дані форми.", "warning")
 
 
+def _facet_selection(key, available_ids):
+    """Read an inclusive multi-select; no parameter means all current choices.
+
+    Never expand unknown IDs into "all", even if a stale URL is submitted.
+    """
+    available = set(available_ids)
+    raw_values = request.args.getlist(key)
+    if not raw_values:
+        return sorted(available), available
+    if "__none__" in raw_values:
+        return [], set()
+    selected = set()
+    for raw in raw_values:
+        try:
+            value = int(raw)
+        except (ValueError, TypeError):
+            continue
+        if value in available:
+            selected.add(value)
+    return sorted(selected), selected
+
+
+def _facet_options(ids, model):
+    if not ids:
+        return []
+    return model.query.filter(model.id.in_(ids)).order_by(model.name).all()
+
+
 @fields_bp.route("/fields")
 def index():
     ctx = _view_context()
     season = ctx["season"]
-    form = FieldFilterForm(request.args)
     term = (request.args.get("q") or "").strip()
-    rows = []
+    all_rows = []
     unassigned = []
     archived = Field.query.filter(Field.is_active.is_(False)).order_by(Field.name).all()
-    total = Decimal("0.00")
-    planted = Decimal("0.00")
 
     if season:
         query = _season_fields(season.id).join(Field, FieldSeason.field_id == Field.id)
-        if form.cluster.data:
-            query = query.filter(FieldSeason.cluster_id == form.cluster.data.id)
-        if form.company.data:
-            query = query.filter(FieldSeason.company_id == form.company.data.id)
-        if form.culture.data:
-            query = query.filter(
-                FieldSeason.plantings.any(FieldPlanting.culture_id == form.culture.data.id)
-            )
         if term:
             query = query.filter(Field.name.ilike(f"%{term}%"))
-        rows = query.order_by(FieldSeason.company_id, Field.name).all()
-        total = sum((fs.area for fs in rows), Decimal("0.00"))
-        planted = sum((fs.planted_area for fs in rows), Decimal("0.00"))
+        all_rows = query.order_by(FieldSeason.company_id, Field.name).all()
 
         assigned = db.session.query(FieldSeason.field_id).filter(
             FieldSeason.season_id == season.id
@@ -135,13 +151,69 @@ def index():
             .order_by(Field.name)
             .all()
         )
-    return render_template(
-        "fields/index.html",
+
+    # Each facet contains only values represented in the selected season,
+    # after applying the preceding filters (and optional field-number search).
+    cluster_ids = {row.cluster_id for row in all_rows}
+    selected_clusters, cluster_set = _facet_selection("cluster", cluster_ids)
+    cluster_rows = [row for row in all_rows if row.cluster_id in cluster_set]
+
+    company_ids = {row.company_id for row in cluster_rows}
+    selected_companies, company_set = _facet_selection("company", company_ids)
+    company_rows = [row for row in cluster_rows if row.company_id in company_set]
+
+    culture_ids = {p.culture_id for row in company_rows for p in row.plantings}
+    selected_cultures, culture_set = _facet_selection("culture", culture_ids)
+    raw_cultures = request.args.getlist("culture")
+    # Without an explicit crop restriction, retain unplanted seasonal fields.
+    culture_is_filtered = bool(raw_cultures) and ("__none__" in raw_cultures or culture_set != culture_ids)
+    rows = [
+        row for row in company_rows
+        if not culture_is_filtered or any(p.culture_id in culture_set for p in row.plantings)
+    ]
+
+    visible_plantings = {
+        row.id: [
+            p for p in row.plantings
+            if not culture_is_filtered or p.culture_id in culture_set
+        ]
+        for row in rows
+    }
+    total = sum((row.area for row in rows), Decimal("0.00"))
+    planted = sum(
+        (p.area for plantings in visible_plantings.values() for p in plantings),
+        Decimal("0.00"),
+    )
+    options = {
+        "cluster": _facet_options(cluster_ids, Cluster),
+        "company": _facet_options(company_ids, Company),
+        "culture": _facet_options(culture_ids, Culture),
+    }
+    checked = {
+        "cluster": selected_clusters,
+        "company": selected_companies,
+        "culture": selected_cultures,
+    }
+    context = dict(
         **ctx,
-        rows=rows, unassigned=unassigned, archived=archived, total=total, planted=planted,
-        form=form, term=term,
+        rows=rows, unassigned=unassigned, archived=archived,
+        total=total, planted=planted, term=term,
+        visible_plantings=visible_plantings, options=options, checked=checked,
         create_url=url_for("fields.create"),
     )
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        html = render_template("fields/_results.html", **context)
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify({
+                "html": html,
+                "options": {
+                    key: [{"id": item.id, "name": item.name} for item in entries]
+                    for key, entries in options.items()
+                },
+                "checked": checked,
+            })
+        return html
+    return render_template("fields/index.html", **context)
 
 
 @fields_bp.route("/fields/seasons")

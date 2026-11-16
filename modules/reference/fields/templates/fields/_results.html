@@ -1,0 +1,47 @@
+<section id="fields-results" aria-live="polite">
+  <div class="row g-2 mb-3">
+    <div class="col-sm-4"><div class="card card-body erp-form-card h-100">
+      <span class="text-muted small">Полів у сезоні (за фільтрами)</span><strong>{{ rows|length }}</strong>
+    </div></div>
+    <div class="col-sm-4"><div class="card card-body erp-form-card h-100">
+      <span class="text-muted small">Фізична площа (за фільтрами)</span><strong>{{ '%.2f'|format(total) }} га</strong>
+    </div></div>
+    <div class="col-sm-4"><div class="card card-body erp-form-card h-100">
+      <span class="text-muted small">Посівна площа (за фільтрами)</span><strong>{{ '%.2f'|format(planted) }} га</strong>
+    </div></div>
+  </div>
+  <table class="table table-bordered table-striped table-hover align-middle erp-reference-table">
+    <thead class="text-center">
+      <tr>
+        <th>Поле</th><th>Кластер</th><th>Підприємство</th>
+        <th>Культура / посівна площа</th><th class="text-end">Фізична площа, га</th><th>Дії</th>
+      </tr>
+    </thead>
+    <tbody class="text-center">
+      {% for row in rows %}
+        <tr>
+          <td class="text-start fw-semibold">{{ row.field.name }}</td>
+          <td>{{ row.cluster.name }}</td>
+          <td>{{ row.company.name }}</td>
+          <td class="text-start">
+            {% for planting in visible_plantings[row.id] %}
+              <div>{{ planting.culture.name }} — {{ '%.2f'|format(planting.area) }} га</div>
+            {% else %}
+              <span class="text-muted">Культуру не визначено</span>
+            {% endfor %}
+            {% if row.unallocated_area > 0 %}
+              <div class="text-muted small">Не розподілено: {{ '%.2f'|format(row.unallocated_area) }} га</div>
+            {% endif %}
+          </td>
+          <td class="text-end">{{ '%.2f'|format(row.area) }}</td>
+          <td><div class="d-flex flex-wrap justify-content-center gap-1">
+            <a href="{{ url_for('fields.detail', id=row.field_id) }}" class="btn btn-sm btn-primary">Картка поля</a>
+            {% if erp_is_admin %}<a href="{{ url_for('fields.permanent_delete', id=row.field_id) }}" class="btn btn-sm btn-outline-danger">Видалити</a>{% endif %}
+          </div></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted">За вибраним сезоном або фільтрами полів немає.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
