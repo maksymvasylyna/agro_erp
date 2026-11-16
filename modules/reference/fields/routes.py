@@ -4,7 +4,9 @@ All new season-specific writes go to field_seasons/field_plantings. Old
 fields.area / fields.culture_id remain unchanged by seasonal edits so the
 existing 26 operational plans do not silently change interpretation.
 """
+import secrets
 from decimal import Decimal
+from flask import current_app
 from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
@@ -17,7 +19,7 @@ from extensions import db
 from modules.reference.fields.field_models import Field
 from modules.reference.fields.forms import (
     ActionForm, FieldCreateForm, FieldFilterForm, FieldNameForm, PlantingForm,
-    SeasonCreateForm, SeasonFieldForm,
+    SeasonCreateForm, SeasonFieldForm, FieldPermanentDeleteForm,
 )
 from modules.reference.fields.season_models import FieldPlanting, FieldSeason, Season
 from modules.reference.companies.models import Company
@@ -105,6 +107,7 @@ def index():
     term = (request.args.get("q") or "").strip()
     rows = []
     unassigned = []
+    archived = Field.query.filter(Field.is_active.is_(False)).order_by(Field.name).all()
     total = Decimal("0.00")
     planted = Decimal("0.00")
 
@@ -136,7 +139,7 @@ def index():
     return render_template(
         "fields/index.html",
         **ctx,
-        rows=rows, unassigned=unassigned, total=total, planted=planted,
+        rows=rows, unassigned=unassigned, archived=archived, total=total, planted=planted,
         form=form, term=term,
         create_url=url_for("fields.create"),
     )
@@ -440,6 +443,94 @@ def edit(id):
                 return redirect(url_for("fields.detail", id=id))
     return render_template("fields/form.html", form=form, view_mode="edit",
                            title="Редагувати номер поля", field=field)
+
+
+def _permanent_delete_blocker(field):
+    """Return a reason deletion is unsafe, or None for an unused field.
+
+    Protect plans/purchases and cross-season history. Database FK constraints
+    remain the final backstop for dependencies introduced by other modules.
+    """
+    from modules.plans.models import Plan
+    from modules.purchases.payer_allocation.models import PayerAllocation
+
+    if Plan.query.filter_by(field_id=field.id).first():
+        return "Поле використовується у планах. Спочатку розберіться з планами або архівуйте поле."
+    if PayerAllocation.query.filter_by(field_id=field.id).first():
+        return "Поле використовується в розподілі закупівель. Остаточне видалення заблоковано."
+
+    records = FieldSeason.query.filter_by(field_id=field.id).all()
+    if len(records) > 1:
+        return "Поле вже має історію в кількох сезонах. Щоб зберегти сівозміну, доступна лише архівація."
+    if records and records[0].season.is_closed:
+        return "Поле належить до закритого сезону. Його історію не можна видаляти."
+    return None
+
+
+def _permanent_delete_enabled():
+    """Require administrator-owned secrets; public AgroERP has no user login."""
+    password = current_app.config.get("FIELD_DELETE_ADMIN_PASSWORD")
+    session_secret = current_app.config.get("SECRET_KEY")
+    return (
+        isinstance(password, str) and len(password) >= 16
+        and isinstance(session_secret, str) and len(session_secret) >= 32
+        and session_secret not in ("dev-key", "dev-change-me")
+    )
+
+
+@fields_bp.route("/fields/<int:id>/permanent-delete", methods=["GET", "POST"])
+def permanent_delete(id):
+    """Irreversibly remove at most one open-season record and its field.
+
+    The action is only accessible with a separate configured admin password,
+    CSRF, exact field name confirmation, and a no-dependencies check.
+    """
+    field = Field.query.get_or_404(id)
+    blocker = _permanent_delete_blocker(field)
+    enabled = _permanent_delete_enabled()
+    form = FieldPermanentDeleteForm()
+
+    if request.method == "POST":
+        if not form.validate_on_submit():
+            abort(400, description="Форма підтвердження недійсна.")
+        if not enabled:
+            abort(403, description="Адміністратор не налаштував захищене остаточне видалення.")
+        if blocker:
+            flash(blocker, "warning")
+            return redirect(url_for("fields.permanent_delete", id=id))
+        if (form.confirm_name.data or "").strip() != field.name:
+            flash("Номер або назва поля не збігається. Видалення скасовано.", "warning")
+            return redirect(url_for("fields.permanent_delete", id=id))
+        expected_password = current_app.config["FIELD_DELETE_ADMIN_PASSWORD"]
+        if not secrets.compare_digest(form.admin_password.data or "", expected_password):
+            flash("Неправильний пароль адміністратора. Видалення скасовано.", "warning")
+            return redirect(url_for("fields.permanent_delete", id=id))
+
+        # Re-check at the moment of mutation and rely on database FK constraints
+        # to fail closed if another module has linked this field in the meantime.
+        if _permanent_delete_blocker(field):
+            flash("Поле вже використовується в інших даних. Видалення скасовано.", "danger")
+            return redirect(url_for("fields.permanent_delete", id=id))
+        field_label = field.name
+        try:
+            for record in FieldSeason.query.filter_by(field_id=id).all():
+                db.session.delete(record)  # Only one open season is allowed.
+            db.session.flush()  # Removes dependent plantings before their parent field.
+            db.session.delete(field)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Поле пов’язане з іншими даними і не може бути видалене. Скористайтеся архівацією.", "danger")
+            return redirect(url_for("fields.permanent_delete", id=id))
+
+        flash(f"Поле «{field_label}» та його єдиний сезонний запис остаточно видалено.", "success")
+        return redirect(url_for("fields.index"))
+
+    return render_template(
+        "fields/permanent_delete.html",
+        field=field, form=form, blocker=blocker, enabled=enabled,
+        seasonal_count=FieldSeason.query.filter_by(field_id=id).count(),
+    )
 
 
 @fields_bp.post("/fields/<int:id>/delete")

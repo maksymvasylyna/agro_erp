@@ -16,6 +16,7 @@
     <span class="text-muted small">Постійний ID: {{ field.id }} · {{ 'Активне' if field.is_active else 'Архівне' }} поле</span>
     <div class="d-flex flex-wrap gap-2">
       <a href="{{ url_for('fields.edit', id=field.id) }}" class="btn btn-sm btn-outline-secondary">Змінити номер поля</a>
+      <a href="{{ url_for('fields.permanent_delete', id=field.id) }}" class="btn btn-sm btn-outline-danger">Видалити назавжди</a>
       {% if field.is_active %}
         <form method="post" action="{{ url_for('fields.delete', id=field.id) }}"
               onsubmit="return confirm('Архівувати поле? Історія та плани залишаться.');">

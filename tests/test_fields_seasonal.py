@@ -14,6 +14,7 @@ from modules.reference.companies.models import Company  # noqa: E402
 from modules.reference.cultures.models import Culture  # noqa: E402
 from modules.reference.fields.field_models import Field  # noqa: E402
 from modules.reference.fields.season_models import Season, FieldSeason, FieldPlanting  # noqa: E402
+from modules.plans.models import Plan  # noqa: E402
 
 
 class FieldSeasonsTest(unittest.TestCase):
@@ -328,6 +329,75 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertEqual(new_year.status_code, 200)
         self.assertNotIn("Підприємство А</td>", new_year.get_data(as_text=True))
         self.assertEqual(db.session.get(Field, self.field_id).area, 100.0)
+
+
+    def test_manual_delete_requires_admin_secret_and_exact_field_name(self):
+        self.set_year(2026)
+        self.assertEqual(self.client.post("/fields/create", data={
+            "name": "ТЕСТОВЕ ПОЛЕ", "cluster": self.cluster_a,
+            "company": self.company_a, "area": "75.00", "culture": self.crop_b,
+        }).status_code, 302)
+        new_field = Field.query.filter_by(name="ТЕСТОВЕ ПОЛЕ").one()
+        path = f"/fields/{new_field.id}/permanent-delete"
+        self.assertIn("Видалити", self.client.get("/fields").get_data(as_text=True))
+        self.assertEqual(self.client.get(path).status_code, 200)
+
+        # A public site must never delete without separately configured admin access.
+        self.assertEqual(self.client.post(path, data={
+            "confirm_name": new_field.name, "admin_password": "some-password"
+        }).status_code, 403)
+        self.assertIsNotNone(db.session.get(Field, new_field.id))
+
+        self.app.config["FIELD_DELETE_ADMIN_PASSWORD"] = "long-distinct-admin-secret-2026"
+        for name, password in [
+            ("WRONG", "long-distinct-admin-secret-2026"),
+            (new_field.name, "wrong-admin-password"),
+        ]:
+            attempt = self.client.post(path, data={
+                "confirm_name": name, "admin_password": password,
+            })
+            self.assertEqual(attempt.status_code, 302)
+            self.assertIsNotNone(db.session.get(Field, new_field.id))
+
+        removed = self.client.post(path, data={
+            "confirm_name": new_field.name,
+            "admin_password": "long-distinct-admin-secret-2026",
+        })
+        self.assertEqual(removed.status_code, 302)
+        self.assertIsNone(db.session.get(Field, new_field.id))
+        self.assertFalse(FieldSeason.query.filter_by(field_id=new_field.id).first())
+        self.assertTrue(Field.query.filter_by(name="СТАРЕ 001").first())
+
+    def test_manual_delete_protects_linked_plans_multiseason_and_closed_year(self):
+        self.app.config["FIELD_DELETE_ADMIN_PASSWORD"] = "long-distinct-admin-secret-2026"
+        field = db.session.get(Field, self.field_id)
+        path = f"/fields/{field.id}/permanent-delete"
+        db.session.add(Plan(field_id=field.id))
+        db.session.commit()
+        self.assertIn("планах", self.client.get(path).get_data(as_text=True))
+        attempt = self.client.post(path, data={
+            "confirm_name": field.name,
+            "admin_password": "long-distinct-admin-secret-2026",
+        })
+        self.assertEqual(attempt.status_code, 302)
+        self.assertIsNotNone(db.session.get(Field, field.id))
+        Plan.query.filter_by(field_id=field.id).delete()
+        db.session.commit()
+
+        # Two harvest years count as protected historical data.
+        for year in (2026, 2027):
+            self.set_year(year)
+            self.client.post(f"/fields/{field.id}/season", data={
+                "field-cluster": self.cluster_a, "field-company": self.company_a,
+                "field-area": "50.00",
+            })
+        self.assertIn("кількох сезонах", self.client.get(path).get_data(as_text=True))
+        self.assertEqual(self.client.post(path, data={
+            "confirm_name": field.name,
+            "admin_password": "long-distinct-admin-secret-2026",
+        }).status_code, 302)
+        self.assertEqual(FieldSeason.query.filter_by(field_id=field.id).count(), 2)
+        self.assertIsNotNone(db.session.get(Field, field.id))
 
 
 if __name__ == "__main__":
