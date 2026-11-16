@@ -34,6 +34,8 @@ class HistoryImportTest(unittest.TestCase):
             Culture(name="Пшениця озима"), Culture(name="Соняшник"),
             Culture(name="Кукурудза на зерно")
         ])
+        # The production reference sync has already introduced 2020-2025.
+        db.session.add(Season(year=2020))
         db.session.commit()
 
         # Existing active field and a legacy 2026 rotation that must be
@@ -140,7 +142,7 @@ class HistoryImportTest(unittest.TestCase):
     def test_duplicate_or_inconsistent_source_refused(self):
         bad = json.loads(json.dumps(self.payload))
         bad["fields"].append(bad["fields"][0])
-        with self.assertRaisesRegex(ValueError, "кількості фізичних"):
+        with self.assertRaisesRegex(ValueError, "кількість фізичних"):
             self._import(bad)
         self.assertEqual(FieldSeason.query.count(), 3)
 
