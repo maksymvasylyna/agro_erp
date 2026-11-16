@@ -1,4 +1,6 @@
 def register_blueprints(app):
+    from admin_auth import admin_bp
+    app.register_blueprint(admin_bp)
     from modules.reference.routes import bp as reference_bp
     from modules.reference.units.routes import bp as units_bp
     from modules.reference.categories.routes import bp as categories_bp

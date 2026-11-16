@@ -2,6 +2,7 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 from flask import Flask, render_template, flash, redirect, request, url_for
+from datetime import timedelta
 from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlparse
 from config import Config
@@ -11,6 +12,9 @@ from register_blueprints import register_blueprints
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
     if not app.config.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = "dev-change-me"  # щоб flash точно працював у dev
@@ -19,6 +23,11 @@ def create_app():
 
     db.init_app(app)
     register_blueprints(app)
+
+    @app.context_processor
+    def inject_admin_context():
+        from admin_auth import is_admin, AdminLogoutForm
+        return {"erp_is_admin": is_admin(), "erp_logout_form": AdminLogoutForm()}
 
     # Імпорт моделей (зв’язки)
     from modules.reference.products.models import Product

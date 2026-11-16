@@ -14,6 +14,10 @@ class Config:
     SQLALCHEMY_DATABASE_URI = uri or f"sqlite:///{os.path.join(basedir, 'instance', 'agro_erp.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Optional admin-only control for IRREVERSIBLE field removal.
-    # Never fall back to SECRET_KEY or embed a password in source code.
-    FIELD_DELETE_ADMIN_PASSWORD = os.environ.get('FIELD_DELETE_ADMIN_PASSWORD')
+    # One administrator credential for the application's admin session.
+    # Keep compatibility with already configured season/field passwords.
+    ADMIN_PASSWORD = (
+        os.environ.get('ADMIN_PASSWORD')
+        or os.environ.get('SEASON_ADMIN_PASSWORD')
+        or os.environ.get('FIELD_DELETE_ADMIN_PASSWORD')
+    )

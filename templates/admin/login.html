@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Вхід адміністратора — AgroERP{% endblock %}
+{% block header %}Адміністратор AgroERP{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card erp-form-card">
+      <div class="card-body">
+        {% if not enabled %}
+          <div class="alert alert-warning">
+            Адміністративний вхід ще не налаштовано. Потрібен чинний пароль адміністратора
+            сезонів або <code>ADMIN_PASSWORD</code> та надійний <code>SECRET_KEY</code> у Render.
+          </div>
+        {% else %}
+          <p class="small text-muted">Один вхід для адміністративних дій. Сесія діє до 8 годин.</p>
+          <form method="post" action="{{ url_for('admin_auth.login') }}">
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="next" value="{{ next_target }}">
+            <div class="mb-3">
+              {{ form.password.label(class="form-label") }}
+              {{ form.password(class="form-control", autocomplete="current-password", required=true) }}
+            </div>
+            {{ form.submit(class="btn btn-primary") }}
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -37,6 +37,17 @@
 </head>
 <body>
   <div class="container mt-4">
+    <div class="d-flex justify-content-end align-items-center mb-2">
+      {% if erp_is_admin %}
+        <form method="post" action="{{ url_for('admin_auth.logout') }}" class="d-flex align-items-center gap-2">
+          <span class="small text-muted">Адміністратор</span>
+          {{ erp_logout_form.hidden_tag() }}
+          <button type="submit" class="btn btn-sm btn-outline-secondary">Вийти</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('admin_auth.login', next=request.full_path.rstrip('?')) }}" class="small text-muted">Вхід адміністратора</a>
+      {% endif %}
+    </div>
     {% block page_top %}{% endblock %}
     <h1 class="erp-page-title mb-4">{% block header %}Agro ERP{% endblock %}</h1>
 

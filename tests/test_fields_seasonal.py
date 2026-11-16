@@ -331,7 +331,18 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertEqual(db.session.get(Field, self.field_id).area, 100.0)
 
 
-    def test_manual_delete_requires_admin_secret_and_exact_field_name(self):
+
+    def _enter_admin(self, redirect_target="/fields"):
+        self.app.config["ADMIN_PASSWORD"] = "long-distinct-admin-secret-2026"
+        response = self.client.get("/admin/login", query_string={"next": redirect_target})
+        self.assertEqual(response.status_code, 200)
+        login = self.client.post("/admin/login", data={
+            "password": "long-distinct-admin-secret-2026", "next": redirect_target,
+        })
+        self.assertEqual(login.status_code, 302)
+        self.assertEqual(login.location, redirect_target)
+
+    def test_admin_login_and_removal_of_unused_field(self):
         self.set_year(2026)
         self.assertEqual(self.client.post("/fields/create", data={
             "name": "ТЕСТОВЕ ПОЛЕ", "cluster": self.cluster_a,
@@ -339,52 +350,47 @@ class FieldSeasonsTest(unittest.TestCase):
         }).status_code, 302)
         new_field = Field.query.filter_by(name="ТЕСТОВЕ ПОЛЕ").one()
         path = f"/fields/{new_field.id}/permanent-delete"
-        self.assertIn("Видалити", self.client.get("/fields").get_data(as_text=True))
-        self.assertEqual(self.client.get(path).status_code, 200)
 
-        # A public site must never delete without separately configured admin access.
-        self.assertEqual(self.client.post(path, data={
-            "confirm_name": new_field.name, "admin_password": "some-password"
-        }).status_code, 403)
+        # Unauthorized users cannot see deletion links or call deletion directly.
+        html = self.client.get("/fields").get_data(as_text=True)
+        self.assertNotIn('href="' + path + '"', html)
+        self.assertEqual(self.client.get(path).status_code, 302)
+        self.assertIn("/admin/login", self.client.get(path).location)
+        self.assertEqual(self.client.post(path).status_code, 403)
         self.assertIsNotNone(db.session.get(Field, new_field.id))
+        self.assertIn("ще не налаштовано", self.client.get("/admin/login").get_data(as_text=True))
 
-        self.app.config["FIELD_DELETE_ADMIN_PASSWORD"] = "long-distinct-admin-secret-2026"
-        for name, password in [
-            ("WRONG", "long-distinct-admin-secret-2026"),
-            (new_field.name, "wrong-admin-password"),
-        ]:
-            attempt = self.client.post(path, data={
-                "confirm_name": name, "admin_password": password,
-            })
-            self.assertEqual(attempt.status_code, 302)
-            self.assertIsNotNone(db.session.get(Field, new_field.id))
+        self._enter_admin(path)
+        admin_page = self.client.get("/fields").get_data(as_text=True)
+        self.assertIn('href="' + path + '"', admin_page)
+        confirm = self.client.get(path)
+        self.assertEqual(confirm.status_code, 200)
+        self.assertIn("Видалити назавжди", confirm.get_data(as_text=True))
+        self.assertNotIn("Пароль адміністратора", confirm.get_data(as_text=True))
 
-        removed = self.client.post(path, data={
-            "confirm_name": new_field.name,
-            "admin_password": "long-distinct-admin-secret-2026",
-        })
-        self.assertEqual(removed.status_code, 302)
+        deleted = self.client.post(path)
+        self.assertEqual(deleted.status_code, 302)
         self.assertIsNone(db.session.get(Field, new_field.id))
         self.assertFalse(FieldSeason.query.filter_by(field_id=new_field.id).first())
         self.assertTrue(Field.query.filter_by(name="СТАРЕ 001").first())
 
-    def test_manual_delete_protects_linked_plans_multiseason_and_closed_year(self):
-        self.app.config["FIELD_DELETE_ADMIN_PASSWORD"] = "long-distinct-admin-secret-2026"
+        # Signing out revokes administrative rights immediately.
+        self.assertEqual(self.client.post("/admin/logout").status_code, 302)
+        self.assertEqual(self.client.post(f"/fields/{self.field_id}/permanent-delete").status_code, 403)
+        self.assertNotIn(f'href="/fields/{self.field_id}/permanent-delete"', self.client.get("/fields").get_data(as_text=True))
+
+    def test_manual_delete_protects_plans_and_multiseason_history(self):
+        self._enter_admin()
         field = db.session.get(Field, self.field_id)
         path = f"/fields/{field.id}/permanent-delete"
         db.session.add(Plan(field_id=field.id))
         db.session.commit()
         self.assertIn("планах", self.client.get(path).get_data(as_text=True))
-        attempt = self.client.post(path, data={
-            "confirm_name": field.name,
-            "admin_password": "long-distinct-admin-secret-2026",
-        })
-        self.assertEqual(attempt.status_code, 302)
+        self.assertEqual(self.client.post(path).status_code, 302)
         self.assertIsNotNone(db.session.get(Field, field.id))
         Plan.query.filter_by(field_id=field.id).delete()
         db.session.commit()
 
-        # Two harvest years count as protected historical data.
         for year in (2026, 2027):
             self.set_year(year)
             self.client.post(f"/fields/{field.id}/season", data={
@@ -392,10 +398,7 @@ class FieldSeasonsTest(unittest.TestCase):
                 "field-area": "50.00",
             })
         self.assertIn("кількох сезонах", self.client.get(path).get_data(as_text=True))
-        self.assertEqual(self.client.post(path, data={
-            "confirm_name": field.name,
-            "admin_password": "long-distinct-admin-secret-2026",
-        }).status_code, 302)
+        self.assertEqual(self.client.post(path).status_code, 302)
         self.assertEqual(FieldSeason.query.filter_by(field_id=field.id).count(), 2)
         self.assertIsNotNone(db.session.get(Field, field.id))
 

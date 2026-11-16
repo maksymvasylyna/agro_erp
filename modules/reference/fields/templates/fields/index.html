@@ -82,7 +82,7 @@
       <td>
         <div class="d-flex flex-wrap justify-content-center gap-1">
           <a href="{{ url_for('fields.detail', id=row.field_id) }}" class="btn btn-sm btn-primary">Картка поля</a>
-          <a href="{{ url_for('fields.permanent_delete', id=row.field_id) }}" class="btn btn-sm btn-outline-danger">Видалити</a>
+          {% if erp_is_admin %}<a href="{{ url_for('fields.permanent_delete', id=row.field_id) }}" class="btn btn-sm btn-outline-danger">Видалити</a>{% endif %}
         </div>
       </td>
     </tr>
@@ -111,7 +111,7 @@
                 <td>{{ item.company.name if item.company else '—' }}</td>
                 <td>
                   <a class="btn btn-sm btn-outline-primary" href="{{ url_for('fields.detail', id=item.id) }}">Прив'язати до сезону</a>
-                  <a class="btn btn-sm btn-outline-danger" href="{{ url_for('fields.permanent_delete', id=item.id) }}">Видалити</a>
+                  {% if erp_is_admin %}<a class="btn btn-sm btn-outline-danger" href="{{ url_for('fields.permanent_delete', id=item.id) }}">Видалити</a>{% endif %}
                 </td>
               </tr>
             {% else %}
@@ -140,7 +140,7 @@
             <td>{{ item.company.name if item.company else '—' }}</td>
             <td>
               <a class="btn btn-sm btn-outline-primary" href="{{ url_for('fields.detail', id=item.id) }}">Картка</a>
-              <a class="btn btn-sm btn-outline-danger" href="{{ url_for('fields.permanent_delete', id=item.id) }}">Видалити</a>
+              {% if erp_is_admin %}<a class="btn btn-sm btn-outline-danger" href="{{ url_for('fields.permanent_delete', id=item.id) }}">Видалити</a>{% endif %}
             </td>
           </tr>
         {% else %}

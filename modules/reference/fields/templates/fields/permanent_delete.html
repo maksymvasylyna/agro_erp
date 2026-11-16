@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from 'base.html' import erp_navigation with context %}
-{% block title %}Остаточне видалення поля {{ field.name }}{% endblock %}
-{% block header %}Видалити поле назавжди{% endblock %}
+{% block title %}Видалення поля {{ field.name }}{% endblock %}
+{% block header %}Остаточне видалення поля{% endblock %}
 
 {% block content %}
 <section class="erp-reference-page">
@@ -9,37 +9,18 @@
   <div class="card erp-form-card">
     <div class="card-body">
       <h2 class="h5">Поле «{{ field.name }}» (ID {{ field.id }})</h2>
-      <p class="mb-2">
-        Остаточне видалення <strong>не можна скасувати</strong>. Поле зникне
-        з довідника та звітів. Якщо є один відкритий сезон, його посіви та
-        площі також будуть видалені.
-      </p>
+      <p>Цю операцію неможливо скасувати. Поле зникне з довідника і звітів.
+        Якщо є один відкритий сезон, його посіви також будуть видалені.</p>
       <p class="text-muted small">Сезонних записів: {{ seasonal_count }}</p>
       {% if blocker %}
         <div class="alert alert-warning" role="alert">{{ blocker }}</div>
-        <p class="text-muted">Можна скористатися архівацією в картці поля.</p>
-      {% elif not enabled %}
-        <div class="alert alert-warning" role="alert">
-          Постійне видалення вимкнене. Адміністратор має налаштувати
-          <code>FIELD_DELETE_ADMIN_PASSWORD</code> (від 16 символів)
-          і надійний <code>SECRET_KEY</code> (від 32 символів) у Render.
-        </div>
+        <p class="text-muted small">Для збереження історії скористайтеся архівацією.</p>
       {% else %}
-        <form method="post" action="{{ url_for('fields.permanent_delete', id=field.id) }}">
+        <form method="post" action="{{ url_for('fields.permanent_delete', id=field.id) }}"
+              onsubmit="return confirm('Остаточно видалити це поле? Відновлення неможливе.');">
           {{ form.hidden_tag() }}
-          <div class="mb-3">
-            {{ form.confirm_name.label(class="form-label") }}
-            <p class="small text-muted mb-1">Для підтвердження введіть точно: <strong>{{ field.name }}</strong></p>
-            {{ form.confirm_name(class="form-control", autocomplete="off", required=true) }}
-          </div>
-          <div class="mb-3">
-            {{ form.admin_password.label(class="form-label") }}
-            {{ form.admin_password(class="form-control", autocomplete="off", required=true) }}
-          </div>
-          <div class="d-flex flex-wrap gap-2">
-            {{ form.submit(class="btn btn-danger") }}
-            <a href="{{ url_for('fields.detail', id=field.id) }}" class="btn btn-outline-secondary">Скасувати</a>
-          </div>
+          <button type="submit" class="btn btn-danger">Видалити назавжди</button>
+          <a href="{{ url_for('fields.detail', id=field.id) }}" class="btn btn-outline-secondary">Скасувати</a>
         </form>
       {% endif %}
     </div>

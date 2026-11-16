@@ -1,7 +1,7 @@
 """Input validation for permanent fields, seasons and crop rotation."""
 from decimal import Decimal
 from flask_wtf import FlaskForm
-from wtforms import DecimalField, IntegerField, PasswordField, StringField, SubmitField
+from wtforms import DecimalField, IntegerField, StringField, SubmitField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 from wtforms_sqlalchemy.fields import QuerySelectField
 
@@ -110,15 +110,3 @@ class SeasonCreateForm(FlaskForm):
 class ActionForm(FlaskForm):
     """CSRF-protected form for seasonal copy, closing and archiving."""
 
-class FieldPermanentDeleteForm(FlaskForm):
-    """Two-step confirmation for irreversibly deleting an unreferenced field."""
-
-    confirm_name = StringField(
-        "Підтвердіть номер / назву поля",
-        validators=[DataRequired(message="Введіть назву поля для підтвердження.")],
-    )
-    admin_password = PasswordField(
-        "Пароль адміністратора",
-        validators=[DataRequired(message="Вкажіть пароль адміністратора.")],
-    )
-    submit = SubmitField("Видалити назавжди")

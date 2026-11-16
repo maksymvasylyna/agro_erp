@@ -4,9 +4,8 @@ All new season-specific writes go to field_seasons/field_plantings. Old
 fields.area / fields.culture_id remain unchanged by seasonal edits so the
 existing 26 operational plans do not silently change interpretation.
 """
-import secrets
 from decimal import Decimal
-from flask import current_app
+from admin_auth import admin_required
 from urllib.parse import urlsplit
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
@@ -19,7 +18,7 @@ from extensions import db
 from modules.reference.fields.field_models import Field
 from modules.reference.fields.forms import (
     ActionForm, FieldCreateForm, FieldFilterForm, FieldNameForm, PlantingForm,
-    SeasonCreateForm, SeasonFieldForm, FieldPermanentDeleteForm,
+    SeasonCreateForm, SeasonFieldForm,
 )
 from modules.reference.fields.season_models import FieldPlanting, FieldSeason, Season
 from modules.reference.companies.models import Company
@@ -467,68 +466,46 @@ def _permanent_delete_blocker(field):
     return None
 
 
-def _permanent_delete_enabled():
-    """Require administrator-owned secrets; public AgroERP has no user login."""
-    password = current_app.config.get("FIELD_DELETE_ADMIN_PASSWORD")
-    session_secret = current_app.config.get("SECRET_KEY")
-    return (
-        isinstance(password, str) and len(password) >= 16
-        and isinstance(session_secret, str) and len(session_secret) >= 32
-        and session_secret not in ("dev-key", "dev-change-me")
-    )
-
 
 @fields_bp.route("/fields/<int:id>/permanent-delete", methods=["GET", "POST"])
+@admin_required
 def permanent_delete(id):
-    """Irreversibly remove at most one open-season record and its field.
+    """Allow one authenticated administrator to delete an unused field.
 
-    The action is only accessible with a separate configured admin password,
-    CSRF, exact field name confirmation, and a no-dependencies check.
+    Hidden links are not security; GET and POST both enforce the admin role.
+    Other operational references and historical/closed seasons remain protected.
     """
     field = Field.query.get_or_404(id)
     blocker = _permanent_delete_blocker(field)
-    enabled = _permanent_delete_enabled()
-    form = FieldPermanentDeleteForm()
+    form = ActionForm()
 
     if request.method == "POST":
         if not form.validate_on_submit():
-            abort(400, description="Форма підтвердження недійсна.")
-        if not enabled:
-            abort(403, description="Адміністратор не налаштував захищене остаточне видалення.")
+            abort(400, description="Невірне підтвердження видалення.")
         if blocker:
             flash(blocker, "warning")
             return redirect(url_for("fields.permanent_delete", id=id))
-        if (form.confirm_name.data or "").strip() != field.name:
-            flash("Номер або назва поля не збігається. Видалення скасовано.", "warning")
-            return redirect(url_for("fields.permanent_delete", id=id))
-        expected_password = current_app.config["FIELD_DELETE_ADMIN_PASSWORD"]
-        if not secrets.compare_digest(form.admin_password.data or "", expected_password):
-            flash("Неправильний пароль адміністратора. Видалення скасовано.", "warning")
-            return redirect(url_for("fields.permanent_delete", id=id))
 
-        # Re-check at the moment of mutation and rely on database FK constraints
-        # to fail closed if another module has linked this field in the meantime.
-        if _permanent_delete_blocker(field):
-            flash("Поле вже використовується в інших даних. Видалення скасовано.", "danger")
-            return redirect(url_for("fields.permanent_delete", id=id))
         field_label = field.name
         try:
             for record in FieldSeason.query.filter_by(field_id=id).all():
-                db.session.delete(record)  # Only one open season is allowed.
-            db.session.flush()  # Removes dependent plantings before their parent field.
+                db.session.delete(record)
+            db.session.flush()
             db.session.delete(field)
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            flash("Поле пов’язане з іншими даними і не може бути видалене. Скористайтеся архівацією.", "danger")
+            flash(
+                "Поле пов’язане з іншими даними. "
+                "Скористайтеся архівацією.", "danger",
+            )
             return redirect(url_for("fields.permanent_delete", id=id))
-
-        flash(f"Поле «{field_label}» та його єдиний сезонний запис остаточно видалено.", "success")
+        flash(f"Поле «{field_label}» остаточно видалено.", "success")
         return redirect(url_for("fields.index"))
 
     return render_template(
         "fields/permanent_delete.html",
-        field=field, form=form, blocker=blocker, enabled=enabled,
+        field=field, form=form, blocker=blocker,
         seasonal_count=FieldSeason.query.filter_by(field_id=id).count(),
     )
 
