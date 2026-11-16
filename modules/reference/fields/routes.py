@@ -21,6 +21,7 @@ from modules.reference.fields.forms import (
     SeasonCreateForm, SeasonFieldForm,
 )
 from modules.reference.fields.season_models import FieldPlanting, FieldSeason, Season
+from modules.reference.clusters.models import Cluster
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
 
