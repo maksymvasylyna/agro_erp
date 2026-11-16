@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from extensions import db
 from modules.reference.fields.field_models import Field
 from modules.reference.fields.forms import (
-    ActionForm, FieldCreateForm, FieldFilterForm, FieldNameForm, PlantingForm,
+    ActionForm, FieldCreateForm, FieldNameForm, PlantingForm,
     SeasonCreateForm, SeasonFieldForm,
 )
 from modules.reference.fields.season_models import FieldPlanting, FieldSeason, Season
@@ -165,7 +165,7 @@ def index():
     selected_cultures, culture_set = _facet_selection("culture", culture_ids)
     raw_cultures = request.args.getlist("culture")
     # Without an explicit crop restriction, retain unplanted seasonal fields.
-    culture_is_filtered = bool(raw_cultures) and culture_set != culture_ids
+    culture_is_filtered = bool(raw_cultures) and ("__none__" in raw_cultures or culture_set != culture_ids)
     rows = [
         row for row in company_rows
         if not culture_is_filtered or any(p.culture_id in culture_set for p in row.plantings)
