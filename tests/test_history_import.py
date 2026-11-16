@@ -2,6 +2,7 @@
 import json
 import os
 import unittest
+from decimal import Decimal
 
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ.pop("RENDER_DATABASE_URL", None)
@@ -121,7 +122,7 @@ class HistoryImportTest(unittest.TestCase):
         historical = FieldSeason.query.join(Season).filter(
             FieldSeason.field_id == self.old_id, Season.year == 2026
         ).one()
-        self.assertEqual(historical.area, 110.20)
+        self.assertEqual(historical.area, Decimal("110.20"))
         self.assertEqual(len(historical.plantings), 1)
         # The original 2026 planting (99 ha sunflower) must be replaced.
         self.assertEqual(historical.plantings[0].culture.name, "Пшениця озима")
@@ -129,7 +130,7 @@ class HistoryImportTest(unittest.TestCase):
             FieldPlanting.note == "Джерело: Соняшник сторонній"
         ).one()
         self.assertEqual(external.culture.name, "Соняшник")
-        self.assertEqual(external.area, 22.22)
+        self.assertEqual(external.area, Decimal("22.22"))
         again = self._import()
         self.assertTrue(again["skipped"])
         self.assertEqual(FieldSeason.query.count(), 4)
