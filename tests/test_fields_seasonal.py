@@ -238,6 +238,27 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertIn("СТАРЕ 001", next_year["html"])
         self.assertNotIn("НОВЕ 002", next_year["html"])
 
+    def test_field_directory_retains_unplanted_fields_until_crop_filter(self):
+        self.set_year(2026)
+        season = Season.query.filter_by(year=2026).one()
+        db.session.add(FieldSeason(
+            season_id=season.id, field_id=self.field_id,
+            cluster_id=self.cluster_a, company_id=self.company_a, area=100,
+        ))
+        db.session.commit()
+        headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+
+        response = self.client.get("/fields", headers=headers).get_json()
+        self.assertEqual(response["options"]["culture"], [])
+        self.assertIn("СТАРЕ 001", response["html"])
+        self.assertIn("Культуру не визначено", response["html"])
+
+        filtered = self.client.get(
+            "/fields", query_string={"culture": "__none__"}, headers=headers
+        ).get_json()
+        self.assertNotIn("СТАРЕ 001", filtered["html"])
+        self.assertIn("полів немає", filtered["html"])
+
     def test_copy_only_into_empty_year_and_closed_year_rejects_edit(self):
         self.set_year(2027)
         field = db.session.get(Field, self.field_id)
