@@ -4,7 +4,7 @@
 {% block title_text %}Поля — сезонність{% endblock %}
 {% block header_text %}Поля{% if active_year %} — урожай {{ active_year }}{% endif %}{% endblock %}
 {% block page_top %}
-  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.full_path.rstrip('?')) }}
+  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), url_for('fields.index')) }}
 {% endblock %}
 
 {% block before_table %}
