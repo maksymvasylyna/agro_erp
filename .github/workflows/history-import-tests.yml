@@ -1,0 +1,31 @@
+name: AgroERP historical field import validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wsgi.py"
+      - "scripts/import_field_history_2020_2026.py"
+      - "tests/test_history_import.py"
+      - ".github/workflows/history-import-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
+      - name: Validate import in isolated SQLite (never connect to Render DB)
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "ci-history-import-test-only-2026"
+        run: python -m unittest discover -s tests -p "test_history_import.py" -v

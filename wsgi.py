@@ -11,3 +11,13 @@ if os.environ.get("AGROERP_SYNC_FIELD_REFS_2020_2026") == "1":
     with app.app_context():
         report = sync_reference_dictionaries(dry_run=False)
         app.logger.warning("AgroERP historical reference synchronization: %s", report)
+
+
+# Data is securely staged through temporary Render environment variables,
+# NOT in this public repository. A transaction and checksum guard both the
+# import and any repeated gunicorn worker startups.
+if os.environ.get("AGROERP_FIELD_HISTORY_IMPORT") == "1":
+    from scripts.import_field_history_2020_2026 import import_from_environment
+    with app.app_context():
+        result = import_from_environment()
+        app.logger.warning("AgroERP 2020-2026 field history import: %s", result)
