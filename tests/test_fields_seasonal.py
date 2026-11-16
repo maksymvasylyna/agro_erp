@@ -217,12 +217,12 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertIn("25.00 га", html)
         self.assertIn("Фізична площа відібраних полів", html)
         # A crop filter may not inflate physical area or include other crops in planted totals.
-        crop_page = self.client.get("/structure/fields", query_string={"culture": self.crop_a})
+        crop_page = self.client.get("/structure/fields", query_string={"cultures": self.crop_a})
         self.assertEqual(crop_page.status_code, 200)
         crop_html = crop_page.get_data(as_text=True)
         self.assertIn("90.00 га", crop_html)
         self.assertIn("40.00 га", crop_html)
-        self.assertNotIn("Соняшник —", crop_html)
+        self.assertNotIn("<td>Соняшник</td>", crop_html)
 
         self.set_year(2027)
         next_year = self.client.get("/structure/fields")
