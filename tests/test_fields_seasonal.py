@@ -146,6 +146,98 @@ class FieldSeasonsTest(unittest.TestCase):
             "culture": self.crop_b,
         }).status_code, 200)
 
+    def test_directory_facets_respect_season_cascade_and_search(self):
+        """Only seasonal planting choices appear; AJAX and page agree."""
+        s2026 = Season.query.filter_by(year=2026).one()
+        s2027 = Season.query.filter_by(year=2027).one()
+        old = db.session.get(Field, self.field_id)
+        other = Field(
+            name="НОВЕ 002", cluster_id=self.cluster_b,
+            company_id=self.company_b, culture_id=self.crop_b,
+            area=70, is_active=True,
+        )
+        unused = Culture(name="Ріпак — відсутній у посівах")
+        db.session.add_all([other, unused])
+        db.session.flush()
+        a26 = FieldSeason(
+            season_id=s2026.id, field_id=old.id, cluster_id=self.cluster_a,
+            company_id=self.company_a, area=90,
+        )
+        b26 = FieldSeason(
+            season_id=s2026.id, field_id=other.id, cluster_id=self.cluster_b,
+            company_id=self.company_b, area=70,
+        )
+        a27 = FieldSeason(
+            season_id=s2027.id, field_id=old.id, cluster_id=self.cluster_a,
+            company_id=self.company_a, area=95,
+        )
+        db.session.add_all([a26, b26, a27])
+        db.session.flush()
+        db.session.add_all([
+            FieldPlanting(field_season_id=a26.id, culture_id=self.crop_a, area=60),
+            FieldPlanting(field_season_id=b26.id, culture_id=self.crop_b, area=70),
+            FieldPlanting(field_season_id=a27.id, culture_id=self.crop_b, area=95),
+        ])
+        db.session.commit()
+
+        self.set_year(2026)
+        page = self.client.get("/fields").get_data(as_text=True)
+        self.assertIn("field-directory-filters.js", page)
+        self.assertIn('data-directory-trigger="culture"', page)
+        self.assertNotIn("Ріпак — відсутній у посівах", page)
+
+        headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+        response = self.client.get("/fields", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(
+            {row["name"] for row in data["options"]["culture"]},
+            {"Пшениця", "Соняшник"},
+        )
+        self.assertEqual(len(data["options"]["cluster"]), 2)
+        self.assertIn("СТАРЕ 001", data["html"])
+        self.assertIn("НОВЕ 002", data["html"])
+
+        one_cluster = self.client.get(
+            "/fields", query_string={"cluster": str(self.cluster_a)}, headers=headers
+        ).get_json()
+        self.assertEqual(
+            [row["id"] for row in one_cluster["options"]["company"]],
+            [self.company_a],
+        )
+        self.assertEqual(
+            [row["id"] for row in one_cluster["options"]["culture"]],
+            [self.crop_a],
+        )
+        self.assertIn("СТАРЕ 001", one_cluster["html"])
+        self.assertNotIn("НОВЕ 002", one_cluster["html"])
+
+        # Unknown and explicitly empty filters never widen to "all".
+        for value in ("999999", "__none__"):
+            empty = self.client.get(
+                "/fields", query_string={"culture": value}, headers=headers
+            ).get_json()
+            self.assertIn("полів немає", empty["html"])
+            self.assertNotIn("СТАРЕ 001", empty["html"])
+
+        searched = self.client.get(
+            "/fields", query_string={"q": "НОВЕ"}, headers=headers
+        ).get_json()
+        self.assertEqual(
+            [row["id"] for row in searched["options"]["culture"]],
+            [self.crop_b],
+        )
+
+        # Season switch must remove crops which exist only in other years.
+        self.set_year(2027)
+        next_year = self.client.get("/fields", headers=headers).get_json()
+        self.assertEqual(
+            [row["id"] for row in next_year["options"]["culture"]],
+            [self.crop_b],
+        )
+        self.assertIn("СТАРЕ 001", next_year["html"])
+        self.assertNotIn("НОВЕ 002", next_year["html"])
+
     def test_copy_only_into_empty_year_and_closed_year_rejects_edit(self):
         self.set_year(2027)
         field = db.session.get(Field, self.field_id)
