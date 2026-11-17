@@ -1,200 +1,116 @@
 {% extends "base.html" %}
 {% from 'base.html' import erp_navigation with context %}
 {% block title %}Сівозміна | AgroERP{% endblock %}
-{% block header %}🌾 Історія сівозміни{% endblock %}
+{% block header %}🌾 Сівозміна{% endblock %}
 
 {% block content %}
 <section class="erp-reference-page rotation-page" id="rotation-page">
   {{ erp_navigation(url_for('structure.index'), url_for('index')) }}
-
-  <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start mb-3">
-    <div>
-      <h2 class="h5 mb-1">Сівозміна за всіма сезонами</h2>
-      <p class="mb-0 text-muted small">
-        Дані з довідника «Поля». Роки показано горизонтально: площа та культура.
-        Цей звіт доступний лише для перегляду.
-      </p>
-    </div>
-    <a id="rotation-csv" class="btn btn-primary btn-sm"
-       href="{{ url_for('rotation.export_csv') }}">Експорт CSV для Excel</a>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <p class="small text-muted mb-0">
+      Історія полів за всіма роками. Для відбору натисніть ▾ біля культури потрібного року.
+    </p>
+    <a class="btn btn-sm btn-outline-primary" id="rotation-export"
+       href="{{ url_for('rotation.export_csv') }}">Експорт CSV</a>
   </div>
-
-  <div class="rotation-filter-card mb-3">
-    <div class="row g-2 align-items-end">
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-year-from">Показувати з року</label>
-        <select class="form-select form-select-sm" id="rotation-year-from" data-rot-param="year_from">
-          {% for year in all_years %}
-          <option value="{{ year }}" {% if year == year_from %}selected{% endif %}>{{ year }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-year-to">По рік</label>
-        <select class="form-select form-select-sm" id="rotation-year-to" data-rot-param="year_to">
-          {% for year in all_years %}
-          <option value="{{ year }}" {% if year == year_to %}selected{% endif %}>{{ year }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-crop-year">Культура в році</label>
-        <select class="form-select form-select-sm" id="rotation-crop-year" data-rot-param="crop_year">
-          <option value="">Будь-який рік</option>
-          {% for year in all_years %}
-          <option value="{{ year }}" {% if year == crop_year %}selected{% endif %}>{{ year }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-view">Вигляд</label>
-        <select class="form-select form-select-sm" id="rotation-view" data-rot-param="view">
-          <option value="fields" {% if mode == 'fields' %}selected{% endif %}>За полями</option>
-          <option value="masses" {% if mode == 'masses' %}selected{% endif %}>За масивами</option>
-        </select>
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label small mb-1" for="rotation-query">Пошук номера поля</label>
-        <input type="search" id="rotation-query" data-rot-param="q" maxlength="100"
-               class="form-control form-control-sm" autocomplete="off"
-               placeholder="Наприклад, АКПР 091" value="{{ field_query }}">
-      </div>
-    </div>
-
-    <div class="rotation-facet-grid mt-3">
-      {% for key, title in [('clusters', 'Кластери'), ('companies', 'Підприємства'), ('masses', 'Масиви'), ('cultures', 'Культури')] %}
-      <details class="rotation-facet" data-rot-facet="{{ key }}">
-        <summary class="rotation-facet-summary">
-          <span>{{ title }} <small class="text-muted" data-rot-caption="{{ key }}">
-          {% if checked[key]|length == facets[key]|length %}Усі ({{ facets[key]|length }})
-          {% else %}{{ checked[key]|length }} із {{ facets[key]|length }}{% endif %}
-          </small></span>
-          <span aria-hidden="true">▾</span>
-        </summary>
-        <div class="rotation-facet-popup">
-          <div class="d-flex flex-wrap gap-2 mb-2">
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-rot-all="{{ key }}">Вибрати всі</button>
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-rot-none="{{ key }}">Зняти всі</button>
-          </div>
-          <input type="search" data-rot-option-search="{{ key }}"
-                 class="form-control form-control-sm mb-2"
-                 aria-label="Пошук у фільтрі {{ title }}"
-                 placeholder="Знайти у списку…">
-          <div class="rotation-facet-options" data-rot-options="{{ key }}">
-            {% for option in facets[key] %}
-            <label class="rotation-option">
-              <input class="form-check-input" type="checkbox"
-                     data-rot-check="{{ key }}" value="{{ option.id }}"
-                     {% if option.id in checked[key] %}checked{% endif %}>
-              <span>{{ option.name }}</span>
-            </label>
-            {% else %}
-            <span class="small text-muted">Немає варіантів</span>
-            {% endfor %}
-          </div>
-        </div>
-      </details>
-      {% endfor %}
-    </div>
-
-    <div class="row g-2 mt-1 align-items-end">
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-area-from">Площа від, га</label>
-        <input type="number" id="rotation-area-from" min="0" step="0.01"
-               data-rot-param="area_min" class="form-control form-control-sm"
-               value="{{ area_min if area_min is not none else '' }}">
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-area-to">Площа до, га</label>
-        <input type="number" id="rotation-area-to" min="0" step="0.01"
-               data-rot-param="area_max" class="form-control form-control-sm"
-               value="{{ area_max if area_max is not none else '' }}">
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label small mb-1" for="rotation-per-page">Рядків на сторінці</label>
-        <select class="form-select form-select-sm" id="rotation-per-page" data-rot-param="per_page">
-          {% for n in [50, 100, 250] %}
-          <option value="{{ n }}" {% if n == per_page %}selected{% endif %}>{{ n }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-6 col-md-auto">
-        <button type="button" class="btn btn-outline-secondary btn-sm w-100"
-                id="rotation-reset">Скинути всі фільтри</button>
-      </div>
-      <div class="col-12 col-md-auto ms-md-auto small text-muted" role="status" aria-live="polite"
-           id="rotation-status"></div>
-    </div>
-  </div>
-
-  <p class="small text-muted mb-2">
-    Вибрані культури шукаються у зазначеному році або в будь-якому році періоду;
-    історія знайденого поля залишається видимою повністю.
-    Площа фільтрується за будь-яким із показаних років.
-    «Масив» поки визначається за префіксом номера поля, а не за географічною межею.
-  </p>
-
-  <div id="rotation-results" aria-live="polite">
+  <div id="rotation-results">
     {% include "rotation/_table.html" %}
   </div>
-  <noscript><p class="text-danger">Для динамічної фільтрації увімкніть JavaScript.</p></noscript>
 </section>
+
+{# The single popup lives outside the scrolling table so it cannot be clipped. #}
+<div id="rotation-crop-menu" class="rotation-crop-menu" hidden role="dialog"
+     aria-modal="false" aria-label="Фільтр культури за роком">
+  <div class="fw-semibold mb-2" id="rotation-menu-title"></div>
+  <input id="rotation-crop-search" type="search" class="form-control form-control-sm mb-2"
+         placeholder="Пошук культури…" aria-label="Пошук культури" autocomplete="off">
+  <label class="d-flex gap-2 align-items-center small pb-2 mb-1 border-bottom">
+    <input type="checkbox" class="form-check-input mt-0" id="rotation-select-all">
+    <span>Вибрати всі</span>
+  </label>
+  <div id="rotation-menu-options" class="rotation-menu-options"></div>
+  <div class="d-flex justify-content-between gap-2 mt-3">
+    <button type="button" class="btn btn-sm btn-outline-secondary"
+            id="rotation-clear">Очистити фільтр</button>
+    <button type="button" class="btn btn-sm btn-primary"
+            id="rotation-apply">Застосувати</button>
+  </div>
+</div>
 
 <style>
   body > .container { max-width: calc(100vw - 30px); }
-  .rotation-page { --rot-ink: #193b69; --rot-gold: #d8ae4d; }
-  .rotation-filter-card { background: #f4f7fb; border: 1px solid #dce5ef; border-radius: .75rem; padding: 1rem; }
-  .rotation-filter-card .form-label { font-weight: 600; color: var(--rot-ink); }
-  .rotation-facet-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
-  .rotation-facet { position: relative; min-width: 0; }
-  .rotation-facet-summary {
-    display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-    background: #fff; border: 1px solid #bacbdc; border-radius: .42rem;
-    padding: .45rem .65rem; font-weight: 600; color: var(--rot-ink);
-    list-style: none; white-space: nowrap; gap: .3rem;
+  .rotation-page { --rotation-blue: #193b69; --rotation-gold: #d8ae4d; }
+  .rotation-table-container {
+    max-height: 75vh; overflow: auto; border: 1px solid #dce5ef;
+    border-radius: .5rem; background: #fff;
   }
-  .rotation-facet-summary::-webkit-details-marker { display:none; }
-  .rotation-facet[open] .rotation-facet-summary { border-color: #285a93; box-shadow: 0 0 0 2px #d7e3f4; }
-  .rotation-facet-popup {
-    position: absolute; z-index: 40; top: calc(100% + 3px); left: 0;
-    width: max(100%, 275px); max-width: min(370px, 90vw);
-    padding: .7rem; border: 1px solid #bacbdc; border-radius: .55rem;
-    background: #fff; box-shadow: 0 6px 20px rgba(25,59,105,.12);
+  .rotation-grid {
+    width: max-content; min-width: 100%; margin-bottom: 0;
+    font-size: .83rem; font-variant-numeric: tabular-nums;
   }
-  .rotation-facet-options { max-height: 250px; overflow: auto; }
-  .rotation-option { display:flex; align-items: flex-start; gap:.55rem; padding: .35rem .3rem; cursor:pointer; font-size: .88rem; border-radius: .3rem; }
-  .rotation-option:hover { background: #ecf2f8; }
-  .rotation-option span { overflow-wrap:anywhere; }
-  .rotation-option input { flex: 0 0 auto; margin-top: .22rem; }
-  .rotation-table-wrap { overflow: auto; max-height: 68vh; border: 1px solid #dce5ef; border-radius: .65rem; }
-  .rotation-grid { width: max-content; min-width: 100%; table-layout: fixed; margin-bottom:0; font-size: .835rem; font-variant-numeric: tabular-nums; }
-  .rotation-grid th, .rotation-grid td { border: 1px solid #dfe7ef; padding: .42rem .6rem; vertical-align: top; }
-  .rotation-grid .rot-pin-cluster { position: sticky; left: 0; min-width: 110px; width: 110px; }
-  .rotation-grid .rot-pin-company { position: sticky; left: 110px; min-width: 185px; width: 185px; }
-  .rotation-grid .rot-pin-mass { position: sticky; left: 295px; min-width: 105px; width: 105px; }
-  .rotation-grid .rot-pin-field { position: sticky; left: 400px; min-width: 133px; width: 133px; border-right: 2px solid #b8cae0; }
-  .rotation-grid .rot-year-area { min-width: 110px; width: 110px; text-align: right; white-space: nowrap; }
-  .rotation-grid .rot-year-crop { min-width: 175px; width: 175px; white-space: normal; }
-  .rotation-grid thead th { position: sticky; z-index: 7; background: #193b69; color: #fff; text-align: center; }
-  .rotation-grid thead tr:first-child th { top: 0; height: 43px; border-bottom: 2px solid #d8ae4d; }
-  .rotation-grid thead tr:nth-child(2) th { top: 43px; background: #eaf1f9; color: #193b69; }
-  .rotation-grid thead th[class*="rot-pin"] { z-index: 12; }
-  .rotation-grid tbody td[class*="rot-pin"] { z-index: 2; background: #fff; }
+  .rotation-grid th, .rotation-grid td {
+    border: 1px solid #e0e6ee; padding: .43rem .55rem; vertical-align: middle;
+  }
+  .rotation-grid thead th {
+    position: sticky; color: #fff; background: var(--rotation-blue);
+    text-align: center; z-index: 5; white-space: nowrap;
+  }
+  .rotation-grid thead tr:first-child th { top: 0; height: 39px; border-bottom: 2px solid var(--rotation-gold); }
+  .rotation-grid thead tr:nth-child(2) th { top: 39px; background: #eaf1f9; color: var(--rotation-blue); }
+  .rotation-grid .rot-company {
+    width: 215px; min-width: 215px; max-width: 215px;
+    left: 0; position: sticky; z-index: 3;
+  }
+  .rotation-grid .rot-field {
+    width: 135px; min-width: 135px; left: 215px;
+    position: sticky; z-index: 3; border-right: 2px solid #b1c4de;
+  }
+  .rotation-grid thead th.rot-company, .rotation-grid thead th.rot-field { z-index: 8; }
+  .rotation-grid tbody td.rot-company, .rotation-grid tbody td.rot-field { background: #fff; }
   .rotation-grid tbody tr:nth-child(even) td { background: #f7f9fc; }
-  .rotation-grid tbody tr:hover td { background: #edf4fc; }
-  .rotation-grid .rot-crop-item { padding: .08rem 0; }
-  .rotation-grid .rot-crop-item + .rot-crop-item { border-top: 1px dotted #d4dce5; margin-top:.16rem; padding-top:.22rem; }
-  .rotation-grid tfoot td { background: #fff4d9; font-weight: 650; }
-  .rotation-scroll-hint { font-size: .78rem; color: #69798a; }
-  @media(max-width:950px) {
-    .rotation-facet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .rotation-grid .rot-pin-cluster, .rotation-grid .rot-pin-company,
-    .rotation-grid .rot-pin-mass, .rotation-grid .rot-pin-field { position:static; }
+  .rotation-grid tbody tr:nth-child(even) td.rot-company,
+  .rotation-grid tbody tr:nth-child(even) td.rot-field { background: #f7f9fc; }
+  .rotation-grid tbody tr:hover td,
+  .rotation-grid tbody tr:hover td.rot-company,
+  .rotation-grid tbody tr:hover td.rot-field { background: #eaf3ff; }
+  .rotation-grid .rot-area { min-width: 108px; text-align: right; white-space: nowrap; }
+  .rotation-grid .rot-crop { min-width: 170px; max-width: 220px; white-space: normal; }
+  .rotation-grid .rot-crop-item + .rot-crop-item {
+    border-top: 1px dotted #d6dfe8; margin-top: .2rem; padding-top: .2rem;
   }
-  @media(max-width:540px) {
-    .rotation-facet-grid { grid-template-columns: 1fr; }
-    .rotation-facet-popup { position: relative; width: 100%; }
+  .rotation-grid tfoot td { font-weight: 600; background: #fff3d6; }
+  .rotation-crop-filter {
+    font-size: .86rem; background: transparent; border: 1px solid #9aacc2;
+    padding: .05rem .35rem; border-radius: .2rem; color: var(--rotation-blue);
+    margin-left: .3rem; cursor: pointer;
+  }
+  .rotation-crop-filter:hover, .rotation-crop-filter:focus-visible {
+    background: #d1e3f5; border-color: #285a93;
+  }
+  .rotation-crop-filter.is-active {
+    background: #d8ae4d; border-color: #b18c30; color: #172d45; font-weight: 700;
+  }
+  .rotation-crop-menu {
+    position: fixed; z-index: 1500; width: 284px; max-width: calc(100vw - 20px);
+    background: #fff; color: #23364b; border: 1px solid #bacadd;
+    box-shadow: 0 10px 25px #1a304a33; padding: .85rem; border-radius: .55rem;
+  }
+  .rotation-crop-menu[hidden] { display: none !important; }
+  .rotation-menu-options { max-height: 245px; overflow-y: auto; }
+  .rotation-crop-option {
+    display: flex; gap: .55rem; align-items: flex-start;
+    padding: .32rem .25rem; border-radius: .2rem; cursor: pointer; font-size: .86rem;
+  }
+  .rotation-crop-option:hover { background: #ecf2f8; }
+  .rotation-crop-option[hidden] { display: none !important; }
+  .rotation-crop-option input { flex: 0 0 auto; margin-top: .16rem; }
+  #rotation-status { font-size: .86rem; }
+  @media (max-width: 720px) {
+    .rotation-grid .rot-company, .rotation-grid .rot-field { position: static; }
   }
 </style>
+<script>
+  window.agroRotationFilters = {{ year_filters|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/rotation-report.js') }}" defer></script>
 {% endblock %}

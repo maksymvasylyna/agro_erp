@@ -1,239 +1,173 @@
-/* AgroERP read-only crop rotation: cascading multi-select filters, no Apply button. */
+/* Simple Excel-style crop filters: one popup per year, no controls above table. */
 (function () {
   "use strict";
   const root = document.getElementById("rotation-page");
-  if (!root) return;
+  const popup = document.getElementById("rotation-crop-menu");
+  if (!root || !popup) return;
 
-  const endpoint = "/structure/rotation";
-  const csvEndpoint = "/structure/rotation/csv";
-  const facetOrder = ["clusters", "companies", "masses", "cultures"];
+  const search = document.getElementById("rotation-crop-search");
+  const all = document.getElementById("rotation-select-all");
+  const optionsList = document.getElementById("rotation-menu-options");
+  const apply = document.getElementById("rotation-apply");
+  const clear = document.getElementById("rotation-clear");
+  const title = document.getElementById("rotation-menu-title");
+  const exportLink = document.getElementById("rotation-export");
   const results = document.getElementById("rotation-results");
-  const status = document.getElementById("rotation-status");
-  const csvLink = document.getElementById("rotation-csv");
-  const searchInput = document.getElementById("rotation-query");
-  let currentController = null;
+
+  let filterOptions = window.agroRotationFilters || {};
+  let currentYear = null;
+  let trigger = null;
+  let requestController = null;
   let serial = 0;
-  let searchTimer = null;
 
-  function params() {
-    return new URLSearchParams(window.location.search);
+  function inputs() {
+    return Array.from(optionsList.querySelectorAll("input[type=checkbox]"));
   }
 
-  function syncCsv(p) {
-    const url = new URL(csvEndpoint, window.location.origin);
-    url.search = p.toString();
-    csvLink.href = url.toString();
+  function syncAll() {
+    const boxes = inputs();
+    const checked = boxes.filter(box => box.checked).length;
+    all.checked = boxes.length > 0 && checked === boxes.length;
+    all.indeterminate = checked > 0 && checked < boxes.length;
   }
 
-  function clearFollowing(p, key) {
-    const i = facetOrder.indexOf(key);
-    if (i !== -1) {
-      facetOrder.slice(i + 1).forEach(function (later) {
-        p.delete(later);
-      });
-    }
-  }
-
-  function buildOption(key, item, checked) {
-    const label = document.createElement("label");
-    label.className = "rotation-option";
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.className = "form-check-input";
-    box.setAttribute("data-rot-check", key);
-    box.value = String(item.id);
-    box.checked = checked.has(String(item.id));
-    const name = document.createElement("span");
-    name.textContent = item.name;
-    label.append(box, name);
-    return label;
-  }
-
-  function filterOptionSearch(key) {
-    const field = document.querySelector('[data-rot-option-search="' + key + '"]');
-    const panel = document.querySelector('[data-rot-options="' + key + '"]');
-    if (!field || !panel) return;
-    const term = field.value.trim().toLocaleLowerCase("uk");
-    panel.querySelectorAll("label.rotation-option").forEach(function (label) {
+  function filterSearch() {
+    const term = search.value.trim().toLocaleLowerCase("uk");
+    optionsList.querySelectorAll(".rotation-crop-option").forEach(label => {
       label.hidden = !label.textContent.toLocaleLowerCase("uk").includes(term);
     });
   }
 
-  function renderFacets(facets, checked) {
-    facetOrder.forEach(function (key) {
-      const holder = document.querySelector('[data-rot-options="' + key + '"]');
-      const caption = document.querySelector('[data-rot-caption="' + key + '"]');
-      if (!holder) return;
-      const options = facets[key] || [];
-      const current = new Set((checked[key] || []).map(String));
-      const nodes = options.map(function (item) { return buildOption(key, item, current); });
-      if (!nodes.length) {
-        const empty = document.createElement("span");
-        empty.className = "small text-muted";
-        empty.textContent = "Немає варіантів";
-        nodes.push(empty);
-      }
-      holder.replaceChildren(...nodes);
-      if (caption) {
-        caption.textContent = current.size === options.length
-          ? "Усі (" + options.length + ")"
-          : current.size + " із " + options.length;
-      }
-      filterOptionSearch(key);
-    });
+  function position() {
+    if (!trigger || popup.hidden) return;
+    const bounds = trigger.getBoundingClientRect();
+    const width = popup.offsetWidth;
+    const height = popup.offsetHeight;
+    const left = Math.max(10, Math.min(bounds.left, window.innerWidth - width - 10));
+    let top = bounds.bottom + 6;
+    if (top + height > window.innerHeight - 10) {
+      top = Math.max(10, bounds.top - height - 6);
+    }
+    popup.style.left = left + "px";
+    popup.style.top = top + "px";
   }
 
-  async function load(p, changeHistory) {
-    const current = ++serial;
-    if (currentController) currentController.abort();
-    currentController = new AbortController();
-    status.textContent = "Оновлюємо звіт…";
+  function close() {
+    popup.hidden = true;
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+    currentYear = null;
+    trigger = null;
+  }
 
-    const url = new URL(endpoint, window.location.origin);
-    url.search = p.toString();
+  function open(year, button) {
+    if (currentYear === year && !popup.hidden) {
+      close();
+      return;
+    }
+    close();
+    currentYear = year;
+    trigger = button;
+    const config = filterOptions[String(year)] || { options: [], checked: [] };
+    const checked = new Set(config.checked.map(String));
+    title.textContent = "Культура · " + year;
+    search.value = "";
+    optionsList.replaceChildren();
+    config.options.forEach(item => {
+      const label = document.createElement("label");
+      label.className = "rotation-crop-option";
+      const input = document.createElement("input");
+      input.className = "form-check-input";
+      input.type = "checkbox";
+      input.value = String(item.id);
+      input.checked = checked.has(input.value);
+      const name = document.createElement("span");
+      name.textContent = String(item.name);
+      label.append(input, name);
+      optionsList.appendChild(label);
+    });
+    syncAll();
+    popup.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    position();
+    search.focus();
+  }
+
+  async function refresh(params) {
+    const currentRequest = ++serial;
+    if (requestController) requestController.abort();
+    requestController = new AbortController();
+    const status = document.getElementById("rotation-status");
+    if (status) status.textContent = "Оновлення…";
+    const url = new URL("/structure/rotation", window.location.origin);
+    url.search = params.toString();
     try {
       const response = await fetch(url.toString(), {
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-          "Accept": "application/json"
-        },
-        signal: currentController.signal,
-        credentials: "same-origin"
+        headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
+        credentials: "same-origin",
+        signal: requestController.signal
       });
-      if (!response.ok) throw new Error("Помилка запиту: HTTP " + response.status);
-      const payload = await response.json();
-      if (current !== serial) return;
-      results.innerHTML = payload.html;
-      renderFacets(payload.facets, payload.checked);
-      syncCsv(p);
-      if (changeHistory) {
-        const location = new URL(url.toString());
-        window.history.replaceState({}, "", location.pathname + location.search);
-      }
-      status.textContent = "Показано " + payload.field_count + " полів";
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const data = await response.json();
+      if (currentRequest !== serial) return;
+      filterOptions = data.filters;
+      results.innerHTML = data.html;
+      const exportUrl = new URL("/structure/rotation/csv", window.location.origin);
+      exportUrl.search = params.toString();
+      exportLink.href = exportUrl.toString();
+      window.history.replaceState({}, "", url.pathname + url.search);
     } catch (error) {
       if (error.name === "AbortError") return;
-      status.textContent = "Не вдалося оновити: " + error.message;
+      if (status) status.textContent = "Не вдалося оновити таблицю. " + error.message;
     }
   }
 
-  function fromControls(key, value) {
-    const p = params();
-    p.delete("page");
-    if (value === "" || value == null) {
-      p.delete(key);
-    } else {
-      p.set(key, String(value));
-    }
-    if (key === "year_from" || key === "year_to") {
-      const from = Number(p.get("year_from") || document.getElementById("rotation-year-from").value);
-      const to = Number(p.get("year_to") || document.getElementById("rotation-year-to").value);
-      if (from > to) {
-        if (key === "year_from") {
-          document.getElementById("rotation-year-to").value = String(from);
-          p.set("year_to", String(from));
-        } else {
-          document.getElementById("rotation-year-from").value = String(to);
-          p.set("year_from", String(to));
-        }
+  function updateYear(clearOnly) {
+    if (currentYear == null) return;
+    const year = currentYear;
+    const selected = inputs().filter(x => x.checked).map(x => x.value);
+    const length = inputs().length;
+    const params = new URLSearchParams(window.location.search);
+    const key = "crop_" + year;
+    params.delete(key);
+    if (!clearOnly) {
+      if (selected.length === 0) params.append(key, "__none__");
+      else if (selected.length !== length) {
+        selected.forEach(value => params.append(key, value));
       }
-      // A prior crop year may no longer be in the visible year range.
-      const cropYear = Number(p.get("crop_year"));
-      if (cropYear && (cropYear < Number(p.get("year_from")) ||
-          cropYear > Number(p.get("year_to")))) {
-        p.delete("crop_year");
-        document.getElementById("rotation-crop-year").value = "";
-      }
-      facetOrder.forEach(function (item) { p.delete(item); });
     }
-    if (key === "crop_year") {
-      p.delete("cultures");
-    }
-    load(p, true);
+    close();
+    refresh(params);
   }
 
-  function fromFacet(key, method) {
-    const p = params();
-    p.delete(key);
-    p.delete("page");
-    if (method === "none") {
-      p.append(key, "__none__");
-    } else if (method !== "all") {
-      const inputs = Array.from(document.querySelectorAll('[data-rot-check="' + key + '"]'));
-      const selected = inputs.filter(function (item) { return item.checked; });
-      if (!selected.length) {
-        p.append(key, "__none__");
-      } else if (selected.length < inputs.length) {
-        selected.forEach(function (item) { p.append(key, item.value); });
-      }
-    }
-    clearFollowing(p, key);
-    load(p, true);
-  }
-
-  // Facet checkboxes are dynamically re-rendered after every response.
-  root.addEventListener("change", function (event) {
-    const box = event.target.closest("[data-rot-check]");
-    if (box) {
-      fromFacet(box.getAttribute("data-rot-check"), "checks");
-      return;
-    }
-    const control = event.target.closest("[data-rot-param]");
-    if (control && control !== searchInput) {
-      fromControls(control.getAttribute("data-rot-param"), control.value);
+  root.addEventListener("click", event => {
+    const button = event.target.closest("[data-rotation-year]");
+    if (button) {
+      event.stopPropagation();
+      open(Number(button.getAttribute("data-rotation-year")), button);
     }
   });
 
-  root.addEventListener("input", function (event) {
-    if (event.target === searchInput) {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(function () {
-        fromControls("q", searchInput.value.trim());
-      }, 320);
-      return;
-    }
-    const lookup = event.target.closest("[data-rot-option-search]");
-    if (lookup) filterOptionSearch(lookup.getAttribute("data-rot-option-search"));
+  search.addEventListener("input", filterSearch);
+  optionsList.addEventListener("change", syncAll);
+  all.addEventListener("change", () => {
+    const visible = inputs().filter(box => !box.closest(".rotation-crop-option").hidden);
+    visible.forEach(box => { box.checked = all.checked; });
+    syncAll();
   });
+  apply.addEventListener("click", () => updateYear(false));
+  clear.addEventListener("click", () => updateYear(true));
 
-  root.addEventListener("click", function (event) {
-    const all = event.target.closest("[data-rot-all]");
-    const none = event.target.closest("[data-rot-none]");
-    const nextPage = event.target.closest("[data-rot-page]");
-    if (all) return fromFacet(all.getAttribute("data-rot-all"), "all");
-    if (none) return fromFacet(none.getAttribute("data-rot-none"), "none");
-    if (nextPage && !nextPage.disabled) {
-      const p = params();
-      p.set("page", nextPage.getAttribute("data-rot-page"));
-      load(p, true);
-    }
+  document.addEventListener("click", event => {
+    if (!popup.hidden && !popup.contains(event.target) &&
+        !event.target.closest("[data-rotation-year]")) close();
   });
-
-  document.getElementById("rotation-reset").addEventListener("click", function () {
-    clearTimeout(searchTimer);
-    root.querySelectorAll("[data-rot-param]").forEach(function (control) {
-      const defaultOption = control.querySelector("option");
-      if (control.tagName === "SELECT") {
-        if (control.id === "rotation-year-to") {
-          control.value = control.options[control.options.length - 1].value;
-        } else {
-          control.value = defaultOption ? defaultOption.value : "";
-        }
-      } else control.value = "";
-    });
-    root.querySelectorAll("[data-rot-option-search]").forEach(function (box) { box.value = ""; });
-    load(new URLSearchParams(), true);
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") close();
   });
+  window.addEventListener("resize", position);
+  window.addEventListener("scroll", position, true);
 
-  // Close sibling facet menus but allow checking multiple options in one menu.
-  root.querySelectorAll("[data-rot-facet]").forEach(function (facet) {
-    facet.addEventListener("toggle", function () {
-      if (!facet.open) return;
-      root.querySelectorAll("[data-rot-facet]").forEach(function (other) {
-        if (other !== facet) other.open = false;
-      });
-    });
-  });
-
-  syncCsv(params());
+  const initial = new URL("/structure/rotation/csv", window.location.origin);
+  initial.search = window.location.search;
+  exportLink.href = initial.toString();
 })();

@@ -2,7 +2,7 @@ name: AgroERP crop rotation read-only report
 
 on:
   push:
-    branches: [main, feature/crop-rotation-readonly]
+    branches: [main, feature/crop-rotation-readonly, feature/rotation-excel-filters]
     paths:
       - "modules/structure/rotation/**"
       - "modules/structure/templates/structure/index.html"

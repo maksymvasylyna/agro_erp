@@ -1,99 +1,74 @@
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-  <div class="small">
-    <strong>Полів: {{ field_count }}</strong>
-    {% if mode == "masses" %} · Умовних масивів: {{ group_count }}{% endif %}
-    · Років: {{ years|length }}
-    <span class="text-muted">· Показано рядків: {{ page_rows|length }} із {{ group_count }}</span>
-  </div>
-  <div class="d-flex flex-wrap gap-2 align-items-center">
-    <button class="btn btn-outline-secondary btn-sm" type="button" data-rot-page="{{ page_num - 1 }}"
-            {% if page_num <= 1 %}disabled{% endif %}>← Попередня</button>
-    <span class="small text-muted">Сторінка {{ page_num }} із {{ total_pages }}</span>
-    <button class="btn btn-outline-secondary btn-sm" type="button" data-rot-page="{{ page_num + 1 }}"
-            {% if page_num >= total_pages %}disabled{% endif %}>Наступна →</button>
-  </div>
+<div class="d-flex flex-wrap justify-content-between gap-2 align-items-center mb-2 small text-muted">
+  <span>Полів: <strong>{{ field_count }}</strong></span>
+  <span id="rotation-status" role="status" aria-live="polite"></span>
 </div>
-<div class="rotation-scroll-hint mb-1">Прокручуйте таблицю горизонтально, щоб побачити всі роки. Перші стовпці закріплені на широкому екрані.</div>
-<div class="rotation-table-wrap" role="region" aria-label="Таблиця історії сівозміни" tabindex="0">
-  <table class="table rotation-grid">
+<div class="rotation-table-container" tabindex="0" role="region"
+     aria-label="Таблиця сівозміни за роками">
+  <table class="table rotation-grid" id="rotation-table">
     <thead>
       <tr>
-        <th class="rot-pin-cluster" rowspan="2" scope="col">Кластер</th>
-        <th class="rot-pin-company" rowspan="2" scope="col">Підприємство</th>
-        <th class="rot-pin-mass" rowspan="2" scope="col">Масив*</th>
-        <th class="rot-pin-field" rowspan="2" scope="col">{{ 'Масив / кількість полів' if mode == 'masses' else 'Номер поля' }}</th>
+        <th rowspan="2" class="rot-company" scope="col">Підприємство</th>
+        <th rowspan="2" class="rot-field" scope="col">Номер поля</th>
         {% for year in years %}
         <th colspan="2" scope="colgroup">{{ year }}</th>
         {% endfor %}
       </tr>
       <tr>
         {% for year in years %}
-        <th class="rot-year-area" scope="col">Площа, га</th>
-        <th class="rot-year-crop" scope="col">Культура</th>
+        <th class="rot-area" scope="col">Площа, га</th>
+        <th class="rot-crop" scope="col">
+          Культура
+          <button type="button"
+                  class="rotation-crop-filter {% if year in active_years %}is-active{% endif %}"
+                  data-rotation-year="{{ year }}"
+                  title="Фільтр культури за {{ year }} рік"
+                  aria-label="Фільтрувати культури за {{ year }} рік"
+                  aria-expanded="false" aria-haspopup="dialog">▾</button>
+        </th>
         {% endfor %}
       </tr>
     </thead>
     <tbody>
-      {% for row in page_rows %}
+      {% for row in rows %}
       <tr>
-        <td class="rot-pin-cluster">{{ row.cluster }}</td>
-        <td class="rot-pin-company">{{ row.company }}</td>
-        <td class="rot-pin-mass">{{ row.mass }}</td>
-        <td class="rot-pin-field">
-          {% if mode == 'masses' %}
-            <strong>{{ row.name }}</strong>
-            <div class="small text-muted">{{ row.field_count }} полів</div>
-          {% else %}
-            <strong>{{ row.name }}</strong>
-          {% endif %}
-        </td>
+        <td class="rot-company">{{ row.company_name }}</td>
+        <td class="rot-field">{{ row.field_name }}</td>
         {% for year in years %}
         {% set cell = row.years.get(year) %}
-        <td class="rot-year-area">{% if cell %}{{ '%.2f'|format(cell.area)|replace('.', ',') }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-        <td class="rot-year-crop">
-          {% if cell and cell.crops %}
-            {% for crop in cell.crops %}
-              <div class="rot-crop-item" {% if crop.note %}title="{{ crop.note }}"{% endif %}>
-                {{ crop.name }}
-                {% if mode == 'masses' or cell.crops|length > 1 or crop.area != cell.area %}
-                <span class="small text-muted">({{ '%.2f'|format(crop.area)|replace('.', ',') }} га)</span>
-                {% endif %}
-                {% if crop.note %}<span class="small text-muted" title="{{ crop.note }}">ⓘ</span>{% endif %}
-              </div>
+        <td class="rot-area">
+          {% if cell %}{{ '%.2f'|format(cell.area)|replace('.', ',') }}{% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td class="rot-crop">
+          {% if cell and cell.plantings %}
+            {% for crop in cell.plantings %}
+            <div class="rot-crop-item" {% if crop.note %}title="{{ crop.note }}"{% endif %}>
+              {{ crop.name }}
+              {% if cell.plantings|length > 1 or crop.area != cell.area %}
+              <span class="small text-muted">({{ '%.2f'|format(crop.area)|replace('.', ',') }} га)</span>
+              {% endif %}
+              {% if crop.note %}<span class="small" title="{{ crop.note }}">ⓘ</span>{% endif %}
+            </div>
             {% endfor %}
           {% else %}<span class="text-muted">—</span>{% endif %}
         </td>
         {% endfor %}
       </tr>
       {% else %}
-      <tr><td colspan="{{ 4 + 2 * years|length }}" class="text-center text-muted py-4">
-        Немає полів за вибраними фільтрами.
-      </td></tr>
+      <tr>
+        <td colspan="{{ 2 + years|length * 2 }}" class="text-muted text-center py-4">
+          Немає полів за вибраними культурами.
+        </td>
+      </tr>
       {% endfor %}
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="4" class="text-end">
-          Разом за відібраними полями ({{ field_count }}), площі за роками:
-        </td>
+        <td colspan="2" class="text-end">Разом площа полів</td>
         {% for year in years %}
-        <td class="rot-year-area">{{ '%.2f'|format(totals[year])|replace('.', ',') }}</td>
+        <td class="rot-area">{{ '%.2f'|format(totals[year])|replace('.', ',') }}</td>
         <td class="small">{{ year_counts[year] }} полів</td>
         {% endfor %}
       </tr>
     </tfoot>
   </table>
-</div>
-<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mt-2">
-  <small class="text-muted">
-    * Масив — умовна група за початковим кодом номера поля.
-    Площі в підсумку належать усім відібраним полям, незалежно від культури, за якою їх знайдено.
-  </small>
-  <div class="d-flex gap-2 align-items-center">
-    <button class="btn btn-outline-secondary btn-sm" type="button" data-rot-page="{{ page_num - 1 }}"
-            {% if page_num <= 1 %}disabled{% endif %}>←</button>
-    <span class="small">{{ page_num }} / {{ total_pages }}</span>
-    <button class="btn btn-outline-secondary btn-sm" type="button" data-rot-page="{{ page_num + 1 }}"
-            {% if page_num >= total_pages %}disabled{% endif %}>→</button>
-  </div>
 </div>

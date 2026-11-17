@@ -90,151 +90,140 @@ class RotationReportTest(unittest.TestCase):
         db.drop_all()
         self.ctx.pop()
 
-    def test_structure_menu_and_multi_year_view(self):
+    def test_wide_excel_layout_and_no_top_filter_controls(self):
         menu = self.client.get("/structure")
         self.assertEqual(menu.status_code, 200)
         self.assertIn("/structure/rotation", menu.get_data(as_text=True))
-        response = self.client.get("/structure/rotation")
-        self.assertEqual(response.status_code, 200)
-        html = response.get_data(as_text=True)
-        self.assertIn("2020", html)
-        self.assertIn("2021", html)
-        self.assertIn("2027", html)
-        self.assertIn("2028", html)  # dynamically read from Season
+        page = self.client.get("/structure/rotation")
+        self.assertEqual(page.status_code, 200)
+        html = page.get_data(as_text=True)
+        self.assertIn("Підприємство", html)
+        self.assertIn("Номер поля", html)
+        for year in (2020, 2021, 2026, 2027, 2028):
+            self.assertIn('data-rotation-year="' + str(year) + '"', html)
         self.assertIn("АКПР 001", html)
-        self.assertIn("МТ2 001", html)  # archived field with rotation history
-        self.assertIn("лише для перегляду", html)
-        self.assertNotIn("Зберегти зміни", html)
-        self.assertNotIn("Видалити поле", html)
+        self.assertIn("МТ2 001", html)  # archived history must remain
         self.assertIn("100,00", html)
         self.assertIn("Пшениця озима", html)
+        self.assertNotIn('data-rot-param=', html)
+        self.assertNotIn("rotation-filter-card", html)
+        self.assertNotIn('data-rot-page=', html)
+        self.assertNotIn("Кластери", html)
+        self.assertNotIn("За масивами", html)
+        self.assertNotIn("Площа від, га", html)
+        self.assertNotIn("Зберегти зміни", html)
 
-    def test_crop_in_selected_year_retains_whole_rotation(self):
-        params = {"crop_year": 2020, "cultures": self.sunflower.id}
-        response = self.client.get("/structure/rotation", query_string=params)
-        self.assertEqual(response.status_code, 200)
-        html = response.get_data(as_text=True)
+    def test_year_specific_crop_filter_shows_full_history(self):
+        page = self.client.get("/structure/rotation", query_string={
+            "crop_2020": str(self.sunflower.id)
+        })
+        self.assertEqual(page.status_code, 200)
+        html = page.get_data(as_text=True)
+        self.assertIn("Полів: <strong>1</strong>", html)
         self.assertIn("АКПР 001", html)
-        self.assertNotIn("<strong>АКПР 002</strong>", html)
-        self.assertIn("90,00", html)  # later wheat remains visible
+        self.assertNotIn("<td class=\"rot-field\">АКПР 002</td>", html)
+        self.assertIn("90,00", html)  # 2021 is still visible
         self.assertIn("Пшениця озима", html)
-        self.assertIn("Полів: 1", html)
+        self.assertIn('class="rotation-crop-filter is-active"', html)
 
-        # In any year both field A and B match sunflower.
-        every_year = self.client.get("/structure/rotation", query_string={
-            "cultures": self.sunflower.id,
-        }).get_data(as_text=True)
-        self.assertIn("<strong>АКПР 001</strong>", every_year)
-        self.assertIn("<strong>АКПР 002</strong>", every_year)
+    def test_filters_combine_across_years_and_or_within_year(self):
+        # A had sunflower in 2020 but wheat in 2021. B was reversed.
+        both = self.client.get("/structure/rotation", query_string=[
+            ("crop_2020", str(self.sunflower.id)),
+            ("crop_2021", str(self.wheat.id)),
+        ])
+        self.assertIn("Полів: <strong>1</strong>", both.get_data(as_text=True))
+        self.assertIn("АКПР 001", both.get_data(as_text=True))
 
-    def test_cluster_company_and_mass_cascade(self):
-        response = self.client.get("/structure/rotation", query_string={
-            "clusters": self.cluster1, "companies": self.company1.id,
-            "masses": "АКПР", "view": "masses",
+        impossible = self.client.get("/structure/rotation", query_string=[
+            ("crop_2020", str(self.sunflower.id)),
+            ("crop_2021", str(self.sunflower.id)),
+        ])
+        self.assertIn("Полів: <strong>0</strong>", impossible.get_data(as_text=True))
+
+        # Choosing several crops inside 2020 is an OR.
+        many = self.client.get("/structure/rotation", query_string=[
+            ("crop_2020", str(self.sunflower.id)),
+            ("crop_2020", str(self.wheat.id)),
+        ])
+        self.assertIn("Полів: <strong>2</strong>", many.get_data(as_text=True))
+
+    def test_excel_blank_and_invalid_filter_do_not_expand_results(self):
+        blank = self.client.get("/structure/rotation", query_string={
+            "crop_2020": "__empty__"
         })
-        self.assertEqual(response.status_code, 200)
-        html = response.get_data(as_text=True)
-        self.assertIn("АКПР", html)
-        self.assertIn("2 полів", html)
-        self.assertIn("150,00", html)  # 2020: 100 + 50
-        self.assertIn("140,00", html)  # 2021: 90 + 50
-        self.assertNotIn("<strong>МТ2 001</strong>", html)
+        text = blank.get_data(as_text=True)
+        self.assertIn("Полів: <strong>2</strong>", text)
+        self.assertIn("АКБ 999", text)
+        self.assertIn("МТ2 001", text)
+        self.assertNotIn("<td class=\"rot-field\">АКПР 001</td>", text)
 
-        selected = self.client.get("/structure/rotation", query_string={
-            "clusters": self.cluster1, "companies": self.company2.id,
-        }, headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"})
-        self.assertEqual(selected.status_code, 200)
-        self.assertEqual(selected.json["field_count"], 0)
-        self.assertEqual(len(selected.json["facets"]["companies"]), 1)
-
-    def test_area_bounds_match_same_year_and_query_filter(self):
-        # Field A: 100 / 90 / 88; the requested 92..95 range never occurs.
-        impossible = self.client.get("/structure/rotation", query_string={
-            "q": "АКПР 001", "area_min": 92, "area_max": 95,
-        })
-        self.assertIn("Полів: 0", impossible.get_data(as_text=True))
-        valid = self.client.get("/structure/rotation", query_string={
-            "q": "АКПР 001", "area_min": 85, "area_max": 95,
-        })
-        self.assertIn("Полів: 1", valid.get_data(as_text=True))
-        # Field D has an area but no planting; still show it with no crop filter.
-        blank = self.client.get("/structure/rotation", query_string={"q": "АКБ 999"})
-        self.assertIn("Полів: 1", blank.get_data(as_text=True))
-
-    def test_ajax_and_explicit_empty_facets(self):
-        headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
-        response = self.client.get("/structure/rotation", headers=headers)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json["field_count"], 4)
-        self.assertIn("data-rot-page", response.json["html"])
-        self.assertIn("clusters", response.json["facets"])
-        self.assertEqual(
-            {x["name"] for x in response.json["facets"]["cultures"]},
-            {"Соняшник", "Пшениця озима", "Кукурудза на зерно"},
-        )
         empty = self.client.get("/structure/rotation", query_string={
-            "clusters": "__none__",
-        }, headers=headers)
-        self.assertEqual(empty.json["field_count"], 0)
+            "crop_2020": "__none__"
+        })
+        self.assertIn("Полів: <strong>0</strong>", empty.get_data(as_text=True))
         malformed = self.client.get("/structure/rotation", query_string={
-            "clusters": "not-an-id",
-        }, headers=headers)
-        self.assertEqual(malformed.json["field_count"], 0)
+            "crop_2020": "not-a-real-culture"
+        })
+        self.assertIn("Полів: <strong>0</strong>", malformed.get_data(as_text=True))
 
-    def test_csv_matches_filters_and_is_excel_friendly(self):
+    def test_ajax_options_for_each_year_and_csv_respects_filters(self):
+        ajax = self.client.get("/structure/rotation", headers={
+            "X-Requested-With": "XMLHttpRequest", "Accept": "application/json",
+        })
+        self.assertEqual(ajax.status_code, 200)
+        self.assertEqual(ajax.json["field_count"], 4)
+        self.assertIn('data-rotation-year="2020"', ajax.json["html"])
+        opts = ajax.json["filters"]
+        self.assertIn("2020", opts)
+        self.assertIn("2028", opts)
+        names = {x["name"] for x in opts["2020"]["options"]}
+        self.assertIn("Соняшник", names)
+        self.assertIn("Пшениця озима", names)
+        self.assertIn("(Порожньо)", names)
+
         response = self.client.get("/structure/rotation/csv", query_string={
-            "year_from": 2020, "year_to": 2021, "q": "АКПР 001",
+            "crop_2020": str(self.sunflower.id),
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.mimetype, "text/csv")
-        text = response.get_data(as_text=True)
-        self.assertTrue(text.startswith("\ufeff"))
-        rows = list(csv.reader(io.StringIO(text.lstrip("\ufeff")), delimiter=";"))
-        self.assertEqual(len(rows), 2)
-        self.assertEqual(rows[0][-4:], [
-            "2020 Площа, га", "2020 Культура", "2021 Площа, га", "2021 Культура"
-        ])
-        self.assertEqual(rows[1][-4:], ["100,00", "Соняшник", "90,00", "Пшениця озима"])
-        self.assertEqual(rows[1][3], "АКПР 001")
+        raw = response.get_data(as_text=True)
+        self.assertTrue(raw.startswith("\ufeff"))
+        records = list(csv.reader(io.StringIO(raw.lstrip("\ufeff")), delimiter=";"))
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0][:2], ["Підприємство", "Номер поля"])
+        self.assertEqual(records[1][1], "АКПР 001")
+        self.assertEqual(records[1][2:6],
+                         ["100,00", "Соняшник", "90,00", "Пшениця озима"])
 
-    def test_read_only_and_malformed_filters(self):
-        before = (Field.query.count(), FieldSeason.query.count(), FieldPlanting.query.count())
+    def test_read_only_and_export_not_limited_to_first_page(self):
+        before = (Field.query.count(), FieldSeason.query.count(),
+                  FieldPlanting.query.count())
         self.assertEqual(self.client.post("/structure/rotation").status_code, 405)
         self.assertEqual(self.client.post("/structure/rotation/csv").status_code, 405)
-        for params in [
-            {"year_from": 2017}, {"year_from": 2028, "year_to": 2020},
-            {"crop_year": 2020, "year_from": 2021}, {"area_min": "-2"},
-            {"area_min": "NaN"}, {"view": "evil"}, {"page": "-1"},
-            {"per_page": "999999"},
-        ]:
-            self.assertEqual(self.client.get("/structure/rotation", query_string=params).status_code, 400, params)
-        self.client.get("/structure/rotation")
-        self.client.get("/structure/rotation/csv")
-        self.assertEqual(
-            (Field.query.count(), FieldSeason.query.count(), FieldPlanting.query.count()),
-            before,
-        )
 
-    def test_pagination_only_changes_visible_page_not_totals(self):
         for i in range(55):
-            extra = self.add_field(f"ДОД {i:03d}", self.company1)
-            self.sow(extra, 2020, "1.00", [(self.sunflower, "1.00")])
+            field = self.add_field(f"ДОД {i:03d}", self.company1)
+            self.sow(field, 2020, "1.00", [(self.sunflower, "1.00")])
         db.session.commit()
-        html = self.client.get("/structure/rotation", query_string={
-            "per_page": 50, "page": 2,
+
+        page = self.client.get("/structure/rotation", query_string={
+            "crop_2020": str(self.sunflower.id)
         }).get_data(as_text=True)
-        self.assertIn("Сторінка 2 із 2", html)
-        self.assertIn("Полів: 59", html)
-        self.assertIn("Показано рядків: 9 із 59", html)
-        self.assertIn("205,00", html)  # 2020: 100 + 50 + 55
-        csv_response = self.client.get("/structure/rotation/csv", query_string={
-            "per_page": 50, "page": 2, "year_from": 2020, "year_to": 2020
+        self.assertIn("Полів: <strong>56</strong>", page)
+        self.assertIn("ДОД 054", page)
+        self.assertIn("155,00", page)  # 100 + 55
+
+        response = self.client.get("/structure/rotation/csv", query_string={
+            "crop_2020": str(self.sunflower.id)
         })
-        rows = list(csv.reader(io.StringIO(
-            csv_response.get_data(as_text=True).lstrip("\ufeff")
+        records = list(csv.reader(io.StringIO(
+            response.get_data(as_text=True).lstrip("\ufeff")
         ), delimiter=";"))
-        # All 2020 fields, not only the nine on page two.
-        self.assertEqual(len(rows), 1 + 57)
+        self.assertEqual(len(records), 1 + 56)
+        self.assertEqual(Field.query.count(), before[0] + 55)
+        self.assertEqual(FieldSeason.query.count(), before[1] + 55)
+        self.assertEqual(FieldPlanting.query.count(), before[2] + 55)
 
 
 if __name__ == "__main__":
