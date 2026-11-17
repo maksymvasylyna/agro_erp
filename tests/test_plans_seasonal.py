@@ -106,20 +106,20 @@ class PlanningSeasonsTests(unittest.TestCase):
         self.assertEqual(b.treatments[0].quantity, 200.0)
 
         self.year(2026)
-        page = self.client.get("/plans/ready/").get_data(as_text=True())
+        page = self.client.get("/plans/ready/").get_data(as_text=True)
         self.assertIn(f"<td>{a.id}</td>", page)
         self.assertNotIn(f"<td>{b.id}</td>", page)
         self.assertIn("сезон 2026", page)
         self.assertEqual(self.client.get(f"/plans/ready/{b.id}").status_code, 404)
 
         self.year(2027)
-        page = self.client.get("/plans/ready/").get_data(as_text=True())
+        page = self.client.get("/plans/ready/").get_data(as_text=True)
         self.assertIn(f"<td>{b.id}</td>", page)
         self.assertNotIn(f"<td>{a.id}</td>", page)
         self.assertEqual(self.client.get(f"/plans/ready/{a.id}").status_code, 404)
 
         self.year(2024)
-        page = self.client.get("/plans/ready/").get_data(as_text=True())
+        page = self.client.get("/plans/ready/").get_data(as_text=True)
         self.assertIn("У сезоні 2024 готових планів немає", page)
 
     def test_all_summaries_and_pdf_are_season_filtered(self):
@@ -132,10 +132,10 @@ class PlanningSeasonsTests(unittest.TestCase):
         self.assertEqual(
             self.client.get("/plans/ready/").status_code, 200
         )
-        page = self.client.get("/approved_plans/").get_data(as_text=True())
+        page = self.client.get("/approved_plans/").get_data(as_text=True)
         self.assertIn("2026", page)
         self.assertEqual(page.count("👁️ Перегляд"), 1)
-        summary = self.client.get("/plans/summary/").get_data(as_text=True())
+        summary = self.client.get("/plans/summary/").get_data(as_text=True)
         self.assertIn("250.00", summary)
         self.assertNotIn("200.00", summary)
         wrong = Plan.query.filter_by(season_id=self.ids["season_2027"]).one()
@@ -149,7 +149,7 @@ class PlanningSeasonsTests(unittest.TestCase):
         self.year(2026)
         form = self.client.get(
             f"/new_plans/create/{self.ids['field']}"
-        ).get_data(as_text=True())
+        ).get_data(as_text=True)
         self.assertIn(f'value="{self.ids["season_2026"]}"', form)
         self.assertIn("100.00 га", form)
         self.assertNotIn("999.0 га", form)
@@ -162,7 +162,7 @@ class PlanningSeasonsTests(unittest.TestCase):
         self.assertEqual(Plan.query.count(), 0)
         selected = self.client.get(
             f"/new_plans/select_field/{self.ids['cluster']}/{self.ids['company']}"
-        ).get_data(as_text=True())
+        ).get_data(as_text=True)
         self.assertIn("80.00 га", selected)
         self.assertIn("Соняшник", selected)
 
@@ -170,12 +170,12 @@ class PlanningSeasonsTests(unittest.TestCase):
         self.year(2024)
         page = self.client.get(
             "/new_plans/bulk_template/select_fields"
-        ).get_data(as_text=True())
+        ).get_data(as_text=True)
         self.assertNotIn("ТЕСТ 001</td>", page)
         self.year(2027)
         page = self.client.get(
             "/new_plans/bulk_template/select_fields"
-        ).get_data(as_text=True())
+        ).get_data(as_text=True)
         self.assertIn("ТЕСТ 001", page)
         self.assertIn("80.00", page)
         self.assertNotIn("999.0", page)
