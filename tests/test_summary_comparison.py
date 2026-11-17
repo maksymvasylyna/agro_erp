@@ -166,6 +166,25 @@ class SummaryYearComparisonTests(unittest.TestCase):
         self.assertEqual(result["overall"]["compared"][0]["area"], Decimal("0.00"))
         self.assertIsNone(result["overall"]["compared"][0]["percent"])
 
+    def test_global_year_controls_baseline_and_is_not_checkable(self):
+        switch = self.client.get(
+            "/fields/select-season",
+            query_string={"year": 2024, "next": "/summary_structure/"},
+        )
+        self.assertEqual(switch.status_code, 302)
+        response = self.get_comparison(2025, 2026)
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Порівняння посівних площ: 2024 з 2026, 2025", html)
+        self.assertIn("Основний сезон: 2024", html)
+        self.assertNotIn('type="checkbox" name="years" value="2024"', html)
+        data = _multi_comparison_context(self.s24, [self.s26, self.s25], None)
+        self.assertEqual(data["overall"]["base"], Decimal("50.00"))
+        self.assertEqual(data["overall"]["compared"][0]["area"], Decimal("175.00"))
+        self.assertEqual(data["overall"]["compared"][1]["area"], Decimal("140.00"))
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["harvest_year"], 2024)
+
     def test_invalid_multi_year_selection_is_rejected(self):
         bad = [
             [2026], [2050], ["oops"], [""],
