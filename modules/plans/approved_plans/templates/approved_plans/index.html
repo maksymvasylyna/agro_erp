@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'base.html' import erp_season_controls %}
 
 {% block title %}Затверджені плани{% endblock %}
 {% block header %}✅ Затверджені плани{% endblock %}
@@ -13,6 +14,8 @@
 </a>
 </div>
 
+{{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.path) }}
+<p class="small text-muted">Затверджені плани тільки за сезон {{ active_year }}.</p>
 <!-- 🔍 Форма фільтрації -->
 <form method="GET" class="row g-2 mb-4">
   <div class="col-md-3">

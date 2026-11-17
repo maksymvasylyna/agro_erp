@@ -383,7 +383,7 @@ class FieldSeasonsTest(unittest.TestCase):
         self._enter_admin()
         field = db.session.get(Field, self.field_id)
         path = f"/fields/{field.id}/permanent-delete"
-        db.session.add(Plan(field_id=field.id))
+        db.session.add(Plan(field_id=field.id, season_id=Season.query.filter_by(year=2027).one().id))
         db.session.commit()
         self.assertIn("планах", self.client.get(path).get_data(as_text=True))
         self.assertEqual(self.client.post(path).status_code, 302)

@@ -3,6 +3,7 @@ from extensions import db
 from flask import request, render_template, redirect, url_for, flash
 from . import bp
 from modules.plans.models import Plan, Treatment
+from modules.plans.season import context, current, plan_or_404
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
@@ -18,7 +19,7 @@ def index():
     product_id = request.args.get('product_id', type=int)
 
     # ⏬ Базовий запит: лише затверджені плани
-    plans_query = Plan.query.filter_by(is_approved=True).options(
+    plans_query = Plan.query.filter_by(is_approved=True, season_id=current().id).options(
         joinedload(Plan.field),
         joinedload(Plan.treatments).joinedload(Treatment.product)
     )
@@ -44,11 +45,11 @@ def index():
         companies=companies,
         cultures=cultures,
         selected_company=company_id,
-        selected_culture=culture_id,
+        selected_culture=culture_id, **context()
     )
 @bp.route('/unlock/<int:plan_id>')
 def unlock_plan(plan_id):
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
 
     if plan.is_approved:
         plan.is_approved = False
@@ -61,7 +62,7 @@ def unlock_plan(plan_id):
 
 @bp.route('/<int:plan_id>')
 def view_plan(plan_id):
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
     field = plan.field
     treatments = plan.treatments
 
@@ -74,7 +75,7 @@ def view_plan(plan_id):
 
 @bp.route('/<int:plan_id>/unapprove', methods=['POST'])
 def unapprove_plan(plan_id):
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
     plan.is_approved = False
     db.session.commit()
     flash(f'План №{plan.id} знову перенесено до "Готових" ⬅️', 'info')
@@ -99,7 +100,7 @@ def export_pdf():
     culture_id = request.args.get('culture_id', type=int)
 
     # 🟩 Фільтрація затверджених планів
-    plans_query = Plan.query.filter_by(status='готовий', is_approved=True)
+    plans_query = Plan.query.filter_by(status='готовий', is_approved=True, season_id=current().id)
 
     if company_id:
         plans_query = plans_query.join(Plan.field).filter(Field.company_id == company_id)
@@ -168,7 +169,7 @@ def export_plan_pdf(plan_id):
     from flask import send_file
     from modules.plans.models import Plan, Treatment
 
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)

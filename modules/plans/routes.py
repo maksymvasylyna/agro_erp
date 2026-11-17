@@ -1,11 +1,12 @@
 # modules/plans/routes.py
 from flask import Blueprint, render_template
+from modules.plans.season import context
 
 plans_bp = Blueprint('plans', __name__, template_folder='templates')
 
 @plans_bp.route('/')
 def hub():
-    return render_template('plans/hub.html')
+    return render_template('plans/hub.html', **context())
 
 
 

@@ -11,6 +11,7 @@
 
 <form method="POST">
   {{ form.hidden_tag() }}
+  <input type="hidden" name="season_id" value="{{ plan.season_id }}">
 
   <table class="table table-bordered text-center align-middle" id="treatments-table">
     <thead class="table-success">

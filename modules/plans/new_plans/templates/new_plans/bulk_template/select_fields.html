@@ -9,7 +9,7 @@
 </div>
 
 <div class="container mt-4">
-  <h2 class="text-success mb-4">✏️ Створення кількох планів</h2>
+  <h2 class="text-success mb-4">✏️ Створення кількох планів · {{ active_year }}</h2>
 
   <!-- Форма фільтрації -->
   <form method="get" class="card shadow-sm rounded-2 border-success mb-4">
@@ -41,6 +41,7 @@
   </form>
 
   <form method="post">
+    <input type="hidden" name="season_id" value="{{ season.id }}">
     <table class="table table-hover table-striped table-bordered text-center align-middle">
       <thead class="table-success">
         <tr>
@@ -58,9 +59,9 @@
             <input type="checkbox" class="form-check-input" name="field_ids" value="{{ field.id }}">
           </td>
           <td>{{ field.name }}</td>
-          <td>{{ field.area }}</td>
-          <td>{{ field.culture.name if field.culture else '—' }}</td>
-          <td>{{ field.company.name if field.company else '—' }}</td>
+          <td>{{ season_labels[field.id]['area'] }}</td>
+          <td>{{ season_labels[field.id]['culture'] }}</td>
+          <td>{{ season_labels[field.id]['company'] }}</td>
         </tr>
         {% endfor %}
       </tbody>

@@ -4,6 +4,7 @@ from extensions import db
 
 from modules.plans.forms import PlanForm
 from modules.plans.models import Plan, Treatment
+from modules.plans.season import context, current, plan_or_404, validate_posted_season, writable
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
@@ -23,7 +24,7 @@ def index():
     culture_id = request.args.get('culture_id', type=int)
 
     # Показуємо лише "готові" і НЕ затверджені
-    plans_query = Plan.query.filter_by(status='готовий', is_approved=False)
+    plans_query = Plan.query.filter_by(status='готовий', is_approved=False, season_id=current().id)
 
     if company_id:
         plans_query = plans_query.join(Plan.field).filter(Field.company_id == company_id)
@@ -40,18 +41,18 @@ def index():
         'ready_plans/index.html',
         plans=plans,
         companies=companies,
-        cultures=cultures
+        cultures=cultures, **context()
     )
 
 @ready_plans_bp.route('/<int:plan_id>')
 def view_plan(plan_id):
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
     return render_template('ready_plans/view.html', plan=plan)
 
 @ready_plans_bp.route('/delete/<int:plan_id>', methods=['POST'])
 def delete_plan(plan_id):
     """Якщо план не затверджений — видаляємо; якщо затверджений — роззатверджуємо."""
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
 
     if plan.is_approved:
         plan.is_approved = False
@@ -66,8 +67,11 @@ def delete_plan(plan_id):
 
 @ready_plans_bp.route('/<int:plan_id>/edit', methods=['GET', 'POST'])
 def edit_plan(plan_id):
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
     form = PlanForm()
+    if request.method == 'POST':
+        writable()
+        validate_posted_season(plan.season)
 
     # Довідники
     treatment_types = TreatmentType.query.all()
@@ -143,12 +147,12 @@ def edit_plan(plan_id):
         form=form,
         plan=plan,
         treatment_types=treatment_types,
-        products_data=products_data
+        products_data=products_data, **context()
     )
 
 @ready_plans_bp.route('/approve_plan/<int:plan_id>')
 def approve_plan(plan_id):
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
 
     if not plan.is_approved:
         plan.is_approved = True
@@ -168,7 +172,7 @@ def bulk_approve():
         flash("❗ Не обрано жодного плану для затвердження", "warning")
         return redirect(url_for('ready_plans.index'))
 
-    plans = Plan.query.filter(Plan.id.in_(ids), Plan.is_approved.is_(False)).all()
+    plans = Plan.query.filter(Plan.id.in_(ids), Plan.is_approved.is_(False), Plan.season_id == writable().id).all()
 
     for plan in plans:
         plan.is_approved = True
@@ -207,7 +211,7 @@ def export_pdf():
     company_id = request.args.get('company_id', type=int)
     culture_id = request.args.get('culture_id', type=int)
 
-    plans_query = Plan.query.filter_by(status='готовий', is_approved=False)
+    plans_query = Plan.query.filter_by(status='готовий', is_approved=False, season_id=current().id)
 
     if company_id:
         plans_query = plans_query.join(Plan.field).filter(Field.company_id == company_id)
@@ -253,7 +257,7 @@ def export_single_plan_pdf(plan_id):
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    plan = Plan.query.get_or_404(plan_id)
+    plan = plan_or_404(plan_id)
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)

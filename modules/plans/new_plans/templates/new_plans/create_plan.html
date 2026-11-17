@@ -11,13 +11,15 @@
 
 <!-- Інфо про поле -->
 <div class="mb-3 d-flex gap-4">
+  <div><strong>Сезон:</strong> {{ active_year }}</div>
   <div><strong>Поле:</strong> {{ field.name }}</div>
-  <div><strong>Площа:</strong> {{ field.area }} га</div>
-  <div><strong>Культура:</strong> {{ field.culture.name if field.culture else '—' }}</div>
+  <div><strong>Площа:</strong> {{ season_field.area }} га</div>
+  <div><strong>Культура:</strong> {{ culture_label }}</div>
 </div>
 
-<form method="POST">
+<form method="POST" id="create-plan-form">
   {{ form.hidden_tag() }}
+  <input type="hidden" name="season_id" value="{{ season.id }}">
 
   <table class="table table-bordered text-center align-middle" id="treatments-table">
     <thead class="table-success">
@@ -130,7 +132,7 @@
 
     // Функція для обчислення кількості
     function updateQuantity() {
-      const area = Number("{{ field.area|round(3) }}".replace(',', '.'));  // площа поля передається з Jinja
+      const area = Number("{{ season_field.area|round(3) }}".replace(',', '.'));  // площа поля передається з Jinja
       const rate = parseFloat(rateInput.value);
       if (!isNaN(rate)) {
         const quantity = area * rate;
@@ -173,7 +175,7 @@
   });
 
   document.getElementById('submit-plan').addEventListener('click', function () {
-    document.querySelector('form').submit();
+    document.getElementById('create-plan-form').submit();
   });
 
   document.getElementById('exit-without-saving').addEventListener('click', function () {

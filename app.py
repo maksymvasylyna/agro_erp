@@ -44,6 +44,8 @@ def create_app():
     from modules.reference.fields.season_models import Season, FieldSeason, FieldPlanting
 
     with app.app_context():
+        from modules.plans.migration import ensure_schema as ensure_plans_schema
+        ensure_plans_schema()
         db.create_all()
         # Add empty seasons only; legacy fields have no verified year and must
         # never be silently attributed to 2026 or 2027.

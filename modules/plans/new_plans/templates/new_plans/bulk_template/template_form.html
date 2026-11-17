@@ -6,16 +6,17 @@
 {% block content %}
 
 <div class="mb-3">
-  <strong>Обрано полів:</strong> {{ fields|length }}
+  <strong>Сезон:</strong> {{ active_year }} · <strong>Обрано полів:</strong> {{ fields|length }}
 </div>
 <ul>
   {% for field in fields %}
-    <li>{{ field.name }} ({{ field.area }} га, {{ field.culture.name if field.culture else '—' }})</li>
+    <li>{{ field.name }} ({{ season_labels[field.id]['area'] }} га, {{ season_labels[field.id]['culture'] }})</li>
   {% endfor %}
 </ul>
 
 <form method="POST">
   {{ form.hidden_tag() }}
+  <input type="hidden" name="season_id" value="{{ season.id }}">
   <input type="hidden" name="field_ids" value="{{ field_ids }}">
 
   <table class="table table-bordered text-center align-middle" id="treatments-table">
@@ -96,7 +97,7 @@
     const quantityInput = newRow.querySelector('.quantity-field');
 
     function updateQuantity() {
-      const total_area = {{ fields|map(attribute='area')|sum }};
+      const total_area = {{ total_area }};
       const rate = parseFloat((rateInput.value || '').replace(',', '.'));
 
       if (!isNaN(rate)) {

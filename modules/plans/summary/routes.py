@@ -15,6 +15,7 @@ from extensions import db
 from . import summary_bp
 
 from modules.plans.models import Plan, Treatment
+from modules.plans.season import context, current
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
 from modules.reference.cultures.models import Culture
@@ -51,7 +52,7 @@ def build_summary_query(selected_company=None, selected_culture=None, selected_p
         .outerjoin(Culture, Field.culture_id == Culture.id)
         .join(Product, Treatment.product_id == Product.id)
         .join(Unit, Product.unit_id == Unit.id)
-        .filter(Plan.is_approved == True)
+        .filter(Plan.is_approved == True, Plan.season_id == current().id)
     )
 
     if selected_company:
@@ -112,7 +113,7 @@ def index():
         selected_culture=selected_culture,
         selected_product=selected_product,
         total_quantity=total_quantity,
-        total_unit=total_unit
+        total_unit=total_unit, **context()
     )
 
 

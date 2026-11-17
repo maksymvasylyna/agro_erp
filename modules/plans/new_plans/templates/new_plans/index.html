@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'base.html' import erp_season_controls %}
 
 {% block title %}Нові плани{% endblock %}
 {% block header %}✏️ Нові плани{% endblock %}
@@ -8,7 +9,9 @@
   <a href="{{ url_for('plans.hub') }}" class="btn btn-outline-secondary">⬅️ Назад до планів</a>
 </div>
 
+{{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.path) }}
 <div class="container mt-4">
+  <p class="small text-muted">Створення планів на сезон {{ active_year or '—' }}.</p>
   <div class="row g-3">
     <div class="col-md-6">
       <a href="{{ url_for('new_plans.select_cluster') }}" class="text-decoration-none">

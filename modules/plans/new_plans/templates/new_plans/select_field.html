@@ -15,11 +15,8 @@
       <div class="card h-100">
         <div class="card-body text-center">
           <h5 class="card-title">{{ field.name }}</h5>
-          {% if field.culture %}
-            <p class="card-text">🌱 Культура: {{ field.culture.name }}</p>
-          {% else %}
-            <p class="text-muted">Без культури</p>
-          {% endif %}
+          <p class="card-text">🌱 Культура: {{ season_labels[field.id]['culture'] }}</p>
+          <p class="small text-muted">Сезон {{ active_year }} · {{ season_labels[field.id]['area'] }} га</p>
           <a href="{{ url_for('new_plans.create_plan', field_id=field.id) }}"
              class="btn btn-outline-primary w-100 mt-2">
              ➕ Додати план
