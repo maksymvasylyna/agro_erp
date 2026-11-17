@@ -21,16 +21,16 @@
       <a href="{{ url_for('summary_structure.index', cluster_id=selected_cluster) }}"
          class="btn btn-outline-secondary" id="close-year-comparison">Закрити порівняння</a>
     {% elif default_comparison_year %}
-      <a href="{{ url_for('summary_structure.index', cluster_id=selected_cluster, compare_year=default_comparison_year) }}"
+      <a href="{{ url_for('summary_structure.index', cluster_id=selected_cluster, year_a=default_comparison_year, year_b=active_year) }}"
          class="btn btn-outline-primary" id="open-year-comparison">Порівняти роки</a>
     {% endif %}
   </div>
   <a href="{{ url_for('fields_structure.index') }}" class="btn btn-outline-primary">Структура по полях</a>
 </div>
-<form method="get" action="{{ url_for('summary_structure.index') }}" class="row align-items-end g-2 mb-3">
+<form method="get" action="{{ url_for('summary_structure.index') }}" class="row align-items-end g-2 mb-3" id="summary-report-filters">
   <div class="col-auto">
     <label for="cluster_id" class="form-label">Кластер</label>
-    <select id="cluster_id" name="cluster_id" class="form-select" onchange="this.form.submit()">
+    <select id="cluster_id" name="cluster_id" class="form-select" onchange="this.form.requestSubmit()">
       <option value="">Усі кластери</option>
       {% for item in cluster_options %}
         <option value="{{ item.id }}" {% if item.id == selected_cluster %}selected{% endif %}>{{ item.name }}</option>
@@ -39,25 +39,40 @@
   </div>
   {% if comparison %}
   <div class="col-auto">
-    <label for="compare_year" class="form-label">Порівняти з роком</label>
-    <select id="compare_year" name="compare_year" class="form-select" onchange="this.form.submit()">
+    <label for="year_a" class="form-label">Рік 1 — база</label>
+    <select id="year_a" name="year_a" class="form-select" required>
       {% for candidate in comparison_options %}
         <option value="{{ candidate.year }}" {% if candidate.year == comparison.previous_year %}selected{% endif %}>{{ candidate.year }}</option>
       {% endfor %}
     </select>
   </div>
-  {% endif %}
+  <div class="col-auto">
+    <label for="year_b" class="form-label">Рік 2 — порівнюємо</label>
+    <select id="year_b" name="year_b" class="form-select" required>
+      {% for candidate in comparison_options %}
+        <option value="{{ candidate.year }}" {% if candidate.year == comparison.current_year %}selected{% endif %}>{{ candidate.year }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-primary" type="submit" id="apply-year-comparison">Порівняти</button>
+  </div>
+  <div class="col-12 text-danger small" id="comparison-year-error" role="alert" hidden>
+    Для порівняння виберіть два різні роки.
+  </div>
+  {% else %}
   <div class="col-auto">
     <noscript><button class="btn btn-success" type="submit">Застосувати</button></noscript>
   </div>
+  {% endif %}
 </form>
 {% if comparison %}
   <section class="compare-report" id="year-comparison-report">
-    <h4 class="mb-2">Порівняння посівних площ: {{ comparison.current_year }} і {{ comparison.previous_year }}</h4>
+    <h4 class="mb-2">Порівняння посівних площ: {{ comparison.previous_year }} і {{ comparison.current_year }}</h4>
     <p class="small text-muted">
-      Робочий сезон залишається {{ comparison.current_year }}.
-      Різниця = {{ comparison.current_year }} мінус {{ comparison.previous_year }}.
-      Відсоток розраховується від попереднього року; «—» означає, що в попередньому році площа дорівнювала нулю.
+      Робочий сезон AgroERP залишається {{ active_year }} незалежно від вибраних для порівняння років.
+      Різниця = рік 2 ({{ comparison.current_year }}) мінус рік 1 ({{ comparison.previous_year }}).
+      Відсоток розраховується від року 1; «—» означає, що в базовому році площа дорівнювала нулю.
       Враховано лише посівні площі. Фільтр кластера однаковий для обох років.
     </p>
 
@@ -179,5 +194,33 @@
     </tbody>
   </table>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% if comparison %}
+<script>
+(function () {
+  const form = document.getElementById("summary-report-filters");
+  const first = document.getElementById("year_a");
+  const second = document.getElementById("year_b");
+  const error = document.getElementById("comparison-year-error");
+  if (!form || !first || !second || !error) return;
+
+  form.addEventListener("submit", function (event) {
+    if (first.value === second.value) {
+      event.preventDefault();
+      error.hidden = false;
+      second.focus();
+    } else {
+      error.hidden = true;
+    }
+  });
+  [first, second].forEach(function (selector) {
+    selector.addEventListener("change", function () { error.hidden = true; });
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

@@ -79,31 +79,42 @@ def _summary_context():
             cluster_totals[row.cluster][row.culture] += allocation
             grand_totals[row.culture] += allocation
 
+    # The report's comparison years are read-only selections independent
+    # of the one globally selected working season.
     comparison = None
-    comparison_options = [
-        candidate for candidate in common["seasons"]
-        if season is not None and candidate.id != season.id
-    ]
+    comparison_options = common["seasons"]
+    seasons_by_year = {item.year: item for item in comparison_options}
     previous_options = [
-        candidate for candidate in comparison_options
-        if candidate.year < season.year
-    ] if season else []
+        item for item in comparison_options
+        if season is not None and item.year < season.year
+    ]
     default_comparison_year = (
         previous_options[0].year if previous_options else
-        (comparison_options[0].year if comparison_options else None)
+        next((item.year for item in comparison_options
+              if season is not None and item.id != season.id), None)
     )
 
-    if "compare_year" in request.args:
-        raw_year = request.args.get("compare_year", "")
+    if "year_a" in request.args or "year_b" in request.args:
+        # Require both years: never silently bind an unspecified side to the
+        # working season, because that could unexpectedly alter a comparison.
         try:
-            comparison_year = int(raw_year)
+            year_a = int(request.args["year_a"])
+            year_b = int(request.args["year_b"])
+        except (KeyError, ValueError, TypeError):
+            abort(400, description="Оберіть два коректні роки для порівняння.")
+        earlier = seasons_by_year.get(year_a)
+        later = seasons_by_year.get(year_b)
+        if earlier is None or later is None or year_a == year_b:
+            abort(400, description="Для порівняння потрібні два різні наявні роки.")
+        comparison = _comparison_context(later, earlier, selected_cluster)
+    elif "compare_year" in request.args:
+        # Keep previously shared comparison links functional.
+        try:
+            comparison_year = int(request.args["compare_year"])
         except (ValueError, TypeError):
             abort(400, description="Некоректний рік порівняння.")
-        other = next(
-            (item for item in comparison_options if item.year == comparison_year),
-            None,
-        )
-        if season is None or other is None:
+        other = seasons_by_year.get(comparison_year)
+        if season is None or other is None or other.id == season.id:
             abort(400, description="Виберіть інший наявний сезон для порівняння.")
         comparison = _comparison_context(season, other, selected_cluster)
 
