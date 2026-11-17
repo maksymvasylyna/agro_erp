@@ -1,0 +1,36 @@
+name: AgroERP area summary year-comparison tests
+
+on:
+  push:
+    branches: [main, feature/summary-year-comparison]
+    paths:
+      - "modules/structure/summary_structure/**"
+      - "tests/test_summary_comparison.py"
+      - ".github/workflows/summary-comparison-tests.yml"
+  pull_request:
+    paths:
+      - "modules/structure/summary_structure/**"
+      - "tests/test_summary_comparison.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-year-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify comparison and existing field/structure behavior
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "test-only-year-comparison-secret"
+        run: |
+          python -m unittest discover -s tests -p "test_summary_comparison.py" -v
+          python -m unittest discover -s tests -p "test_fields_seasonal.py" -v

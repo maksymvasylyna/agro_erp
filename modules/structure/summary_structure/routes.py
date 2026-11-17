@@ -9,7 +9,7 @@ from html import escape
 from io import BytesIO
 from pathlib import Path
 
-from flask import Blueprint, render_template, request, send_file
+from flask import Blueprint, abort, render_template, request, send_file
 from sqlalchemy import func
 
 from extensions import db
@@ -79,7 +79,38 @@ def _summary_context():
             cluster_totals[row.cluster][row.culture] += allocation
             grand_totals[row.culture] += allocation
 
+    comparison = None
+    comparison_options = [
+        candidate for candidate in common["seasons"]
+        if season is not None and candidate.id != season.id
+    ]
+    previous_options = [
+        candidate for candidate in comparison_options
+        if candidate.year < season.year
+    ] if season else []
+    default_comparison_year = (
+        previous_options[0].year if previous_options else
+        (comparison_options[0].year if comparison_options else None)
+    )
+
+    if "compare_year" in request.args:
+        raw_year = request.args.get("compare_year", "")
+        try:
+            comparison_year = int(raw_year)
+        except (ValueError, TypeError):
+            abort(400, description="Некоректний рік порівняння.")
+        other = next(
+            (item for item in comparison_options if item.year == comparison_year),
+            None,
+        )
+        if season is None or other is None:
+            abort(400, description="Виберіть інший наявний сезон для порівняння.")
+        comparison = _comparison_context(season, other, selected_cluster)
+
     return dict(
+        comparison=comparison,
+        comparison_options=comparison_options,
+        default_comparison_year=default_comparison_year,
         **common,
         matrix=matrix,
         crops=crops,
@@ -89,6 +120,125 @@ def _summary_context():
         selected_cluster=selected_cluster,
     )
 
+
+
+def _delta_row(previous, current):
+    """Comparable area totals, without division by zero."""
+    before, after = Decimal(previous), Decimal(current)
+    difference = after - before
+    return {
+        "before": before,
+        "after": after,
+        "difference": difference,
+        "percent": (difference * 100 / before).quantize(Decimal("0.1"))
+        if before else None,
+    }
+
+
+def _comparison_context(current_season, other_season, selected_cluster):
+    """Read-only, ID-based reconciliation of two seasons.
+
+    A field that changes company, cluster, or crop correctly moves between
+    those categories. A culture/company that exists in only one year is kept
+    with zero area in the other. Only planted area is compared.
+    """
+    query = (
+        db.session.query(
+            FieldSeason.season_id.label("season_id"),
+            Cluster.id.label("cluster_id"),
+            Cluster.name.label("cluster"),
+            Company.id.label("company_id"),
+            Company.name.label("company"),
+            Culture.id.label("culture_id"),
+            Culture.name.label("culture"),
+            func.sum(FieldPlanting.area).label("area"),
+        )
+        .select_from(FieldPlanting)
+        .join(FieldSeason, FieldSeason.id == FieldPlanting.field_season_id)
+        .join(Cluster, Cluster.id == FieldSeason.cluster_id)
+        .join(Company, Company.id == FieldSeason.company_id)
+        .join(Culture, Culture.id == FieldPlanting.culture_id)
+        .filter(FieldSeason.season_id.in_((current_season.id, other_season.id)))
+    )
+    if selected_cluster is not None:
+        query = query.filter(FieldSeason.cluster_id == selected_cluster)
+
+    query = query.group_by(
+        FieldSeason.season_id, Cluster.id, Cluster.name,
+        Company.id, Company.name, Culture.id, Culture.name,
+    )
+    allocations = {}
+    labels = {"clusters": {}, "companies": {}, "cultures": {}}
+    for row in query.all():
+        key = (row.cluster_id, row.company_id, row.culture_id)
+        allocations.setdefault(key, {})[row.season_id] = Decimal(row.area or 0)
+        labels["clusters"][row.cluster_id] = row.cluster
+        labels["companies"][(row.cluster_id, row.company_id)] = row.company
+        labels["cultures"][row.culture_id] = row.culture
+
+    crops = defaultdict(lambda: [ZERO, ZERO])
+    companies = defaultdict(lambda: [ZERO, ZERO])
+    company_crops = defaultdict(lambda: [ZERO, ZERO])
+    clusters = defaultdict(lambda: [ZERO, ZERO])
+    overall = [ZERO, ZERO]
+    for (cluster_id, company_id, culture_id), years in allocations.items():
+        previous = years.get(other_season.id, ZERO)
+        present = years.get(current_season.id, ZERO)
+        amounts = (previous, present)
+        for index, value in enumerate(amounts):
+            crops[culture_id][index] += value
+            companies[(cluster_id, company_id)][index] += value
+            company_crops[(cluster_id, company_id, culture_id)][index] += value
+            clusters[cluster_id][index] += value
+            overall[index] += value
+
+    crop_rows = [
+        {"name": labels["cultures"][crop_id], **_delta_row(*crops[crop_id])}
+        for crop_id in sorted(crops, key=lambda key: labels["cultures"][key].casefold())
+    ]
+    cluster_rows = []
+    for cluster_id in sorted(clusters, key=lambda key: labels["clusters"][key].casefold()):
+        company_rows = []
+        pairs = sorted(
+            [key for key in companies if key[0] == cluster_id],
+            key=lambda key: labels["companies"][key].casefold(),
+        )
+        for key in pairs:
+            culture_rows = [
+                {"name": labels["cultures"][crop_id],
+                 **_delta_row(*company_crops[(key[0], key[1], crop_id)])}
+                for cid, coid, crop_id in sorted(
+                    [item for item in company_crops if item[:2] == key],
+                    key=lambda item: labels["cultures"][item[2]].casefold(),
+                )
+            ]
+            company_rows.append({
+                "name": labels["companies"][key],
+                "cultures": culture_rows,
+                **_delta_row(*companies[key]),
+            })
+        cluster_rows.append({
+            "name": labels["clusters"][cluster_id],
+            "companies": company_rows,
+            **_delta_row(*clusters[cluster_id]),
+        })
+
+    return {
+        "previous_year": other_season.year,
+        "current_year": current_season.year,
+        "crop_rows": crop_rows,
+        "cluster_rows": cluster_rows,
+        "overall": _delta_row(*overall),
+    }
+
+
+@bp.app_template_filter("ua_difference_percent")
+def ua_difference_percent(value):
+    if value is None:
+        return "—"
+    number = Decimal(value)
+    sign = "+" if number > 0 else ""
+    return sign + f"{number:.1f}".replace(".", ",") + "%"
 
 @bp.route("/", methods=["GET"])
 def index():
