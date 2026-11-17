@@ -4,41 +4,45 @@
 {% block header %}🌾 Структура посівних площ{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-3">
-  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">🏠 На головну</a>
-</div>
+<nav class="erp-page-nav d-flex justify-content-start mb-4" aria-label="Навігація сторінки">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-secondary erp-nav-button">← До головного меню</a>
+</nav>
 
-<div class="container mt-4">
-  <div class="row g-3">
-    <div class="col-md-4">
-      <a href="{{ url_for('fields_structure.index') }}" class="text-decoration-none">
-        <div class="card shadow-sm rounded-2 border-success">
-          <div class="card-body text-center">
-            <h5 class="card-title text-success mb-0">📋 Структура по полях</h5>
-          </div>
-        </div>
-      </a>
+{# Reuse the same tile-card design as the AgroERP main menu. #}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2" aria-hidden="true">📋</div>
+        <h2 class="h5 card-title mb-1">Структура по полях</h2>
+        <div class="tile-subtle small">Поля, культури та площі вибраного сезону.</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('fields_structure.index') }}"
+         aria-label="Відкрити структуру по полях"></a>
     </div>
+  </div>
 
-    <div class="col-md-4">
-      <a href="{{ url_for('summary_structure.index') }}" class="text-decoration-none">
-        <div class="card shadow-sm rounded-2 border-success">
-          <div class="card-body text-center">
-            <h5 class="card-title text-success mb-0">📊 Загальна структура</h5>
-          </div>
-        </div>
-      </a>
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2" aria-hidden="true">📊</div>
+        <h2 class="h5 card-title mb-1">Загальна структура</h2>
+        <div class="tile-subtle small">Зведені площі та розподіл за культурами.</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('summary_structure.index') }}"
+         aria-label="Відкрити загальну структуру посівних площ"></a>
     </div>
+  </div>
 
-    <div class="col-md-4">
-      <a href="{{ url_for('rotation.index') }}" class="text-decoration-none">
-        <div class="card shadow-sm rounded-2" style="border: 1px solid #d8ae4d;">
-          <div class="card-body text-center">
-            <h5 class="card-title mb-1" style="color: #193b69;">🌱 Сівозміна</h5>
-            <p class="card-text text-muted small mb-0">Історія полів за роками · фільтри культур у колонках</p>
-          </div>
-        </div>
-      </a>
+  <div class="col">
+    <div class="card h-100 border-0 tile-card position-relative">
+      <div class="card-body p-4">
+        <div class="tile-emoji mb-2" aria-hidden="true">🌱</div>
+        <h2 class="h5 card-title mb-1">Сівозміна</h2>
+        <div class="tile-subtle small">Історія полів за роками з фільтрами культур.</div>
+      </div>
+      <a class="stretched-link" href="{{ url_for('rotation.index') }}"
+         aria-label="Відкрити історію сівозміни"></a>
     </div>
   </div>
 </div>
