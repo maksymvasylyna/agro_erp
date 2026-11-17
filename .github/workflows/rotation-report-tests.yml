@@ -1,0 +1,40 @@
+name: AgroERP crop rotation read-only report
+
+on:
+  push:
+    branches: [main, feature/crop-rotation-readonly]
+    paths:
+      - "modules/structure/rotation/**"
+      - "modules/structure/templates/structure/index.html"
+      - "static/js/rotation-report.js"
+      - "register_blueprints.py"
+      - "tests/test_rotation_report.py"
+      - ".github/workflows/rotation-report-tests.yml"
+  pull_request:
+    paths:
+      - "modules/structure/rotation/**"
+      - "tests/test_rotation_report.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Test read-only rotation report on disposable SQLite
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "ci-rotation-report-test-only-2026"
+        run: |
+          python -m unittest discover -s tests -p "test_rotation_report.py" -v
+          python -m unittest discover -s tests -p "test_fields_seasonal.py" -v
+          python -m unittest discover -s tests -p "test_history_import.py" -v
