@@ -119,6 +119,7 @@ class PlanningSeasonsTests(unittest.TestCase):
                       self.client.get("/").get_data(as_text=True))
 
     def test_current_year_only_and_empty_season(self):
+        self.year(2026)
         self.assertIn("2026", self.client.get("/plans/").get_data(as_text=True))
         r26 = self.post_plan(2026)
         self.assertEqual(r26.status_code, 302)
