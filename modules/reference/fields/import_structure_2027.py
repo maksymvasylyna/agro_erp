@@ -203,14 +203,14 @@ def run_import():
             """), {
                 "season": season["id"], "field": field_id,
                 "company": company["id"], "cluster": company["cluster_id"],
-                "area": area,
+                "area": str(area),
             }).scalar_one()
             conn.execute(text("""
                 INSERT INTO field_plantings
                   (field_season_id, culture_id, area, note)
                 VALUES (:record, :crop, :area, NULL)
             """), {
-                "record": record_id, "crop": crop_id, "area": area,
+                "record": record_id, "crop": crop_id, "area": str(area),
             })
             new_records += 1
             new_plantings += 1
