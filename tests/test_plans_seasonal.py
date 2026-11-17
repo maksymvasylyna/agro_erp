@@ -92,6 +92,32 @@ class PlanningSeasonsTests(unittest.TestCase):
             },
         )
 
+    def test_home_is_the_only_season_selector(self):
+        self.year(2026)
+        home = self.client.get("/")
+        self.assertEqual(home.status_code, 200)
+        html = home.get_data(as_text=True)
+        self.assertEqual(html.count('id="global-season-select"'), 1)
+        self.assertIn('value="2026" selected', html)
+        paths = (
+            "/plans/", "/new_plans/", "/plans/ready/",
+            "/approved_plans/", "/plans/summary/", "/fields",
+            "/fields/seasons", f"/fields/{self.ids['field']}",
+            "/structure/fields", "/summary_structure/",
+        )
+        for path in paths:
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertNotIn('id="global-season-select"',
+                             response.get_data(as_text=True), path)
+        self.year(2027)
+        html = self.client.get("/").get_data(as_text=True)
+        self.assertIn('value="2027" selected', html)
+        self.assertIn("сезону 2027", self.client.get("/plans/").get_data(as_text=True))
+        self.year(2026)
+        self.assertIn('value="2026" selected',
+                      self.client.get("/").get_data(as_text=True))
+
     def test_current_year_only_and_empty_season(self):
         self.assertIn("2026", self.client.get("/plans/").get_data(as_text=True))
         r26 = self.post_plan(2026)

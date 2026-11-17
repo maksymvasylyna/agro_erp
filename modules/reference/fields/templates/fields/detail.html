@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% from 'base.html' import erp_navigation, erp_season_controls with context %}
+{% from 'base.html' import erp_navigation with context %}
 {% from 'reference/_cluster_company_fields.html' import cluster_company_fields with context %}
 
 {% block title %}Поле {{ field.name }} — сівозміна{% endblock %}
 {% block header %}Поле {{ field.name }} · Сівозміна{% endblock %}
 {% block page_top %}
-  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.full_path.rstrip('?')) }}
+  <div class="text-muted small mb-2">Сезон урожаю: {{ active_year or '—' }}</div>
 {% endblock %}
 
 {% block content %}

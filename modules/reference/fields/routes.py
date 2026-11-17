@@ -189,7 +189,6 @@ def create_season():
             flash("Не вдалося створити сезон: такий рік уже існує.", "warning")
         else:
             flash(f"Сезон урожаю {year} створено.", "success")
-            session["harvest_year"] = year
     return redirect(url_for("fields.seasons_manager"))
 
 
@@ -224,7 +223,6 @@ def copy_season(year):
             flash("Копіювання зупинено через конфлікт даних.", "danger")
         else:
             flash(f"Сезон {year - 1} скопійовано в {year}. Перевірте культури та площі.", "success")
-            session["harvest_year"] = year
     return redirect(url_for("fields.seasons_manager"))
 
 

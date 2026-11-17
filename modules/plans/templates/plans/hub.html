@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% from 'base.html' import erp_season_controls %}
 
 {% block title %}Плани{% endblock %}
 {% block header %}📋 Плани{% endblock %}
@@ -9,7 +8,6 @@
   <a href="/" class="btn btn-outline-secondary">🏠 На головну</a>
 </div>
 
-{{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.path) }}
 <p class="text-muted small">Плани відображаються лише для сезону {{ active_year or '—' }}.</p>
 <div class="container mt-4">
   <div class="row g-3">

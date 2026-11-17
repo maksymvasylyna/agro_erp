@@ -55,7 +55,9 @@ def create_app():
 
     @app.route('/')
     def index():
-        return render_template('index.html')
+        # The home page is the one place to select the shared harvest season.
+        from modules.reference.fields.routes import _view_context
+        return render_template('index.html', **_view_context())
 
     # ── куди редіректити після помилки
     def _safe_redirect_target() -> str:

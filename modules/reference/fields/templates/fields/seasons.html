@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% from 'base.html' import erp_navigation, erp_season_controls with context %}
+{% from 'base.html' import erp_navigation with context %}
 
 {% block title %}Поля — керування сезонами{% endblock %}
 {% block header %}Керування сезонами полів{% endblock %}
 {% block page_top %}
-  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), none, request.full_path.rstrip('?')) }}
+  <div class="text-muted small mb-2">Обраний сезон: {{ active_year or '—' }}. Змінити сезон можна на головній сторінці.</div>
 {% endblock %}
 
 {% block content %}
@@ -38,7 +38,9 @@
           <td>{{ 'Закритий' if row.season.is_closed else 'Відкритий' }}</td>
           <td>
             <div class="d-flex flex-wrap align-items-center gap-2">
-              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('fields.select_season', year=row.season.year, next=url_for('fields.index')) }}">Відкрити поля</a>
+              {% if row.season.year == active_year %}
+                <span class="small text-muted">Поточний сезон</span>
+              {% endif %}
               {% if row.previous and row.fields == 0 and not row.season.is_closed %}
                 <form method="post" action="{{ url_for('fields.copy_season', year=row.season.year) }}"
                       onsubmit="return confirm('Скопіювати {{ row.season.year - 1 }} рік у {{ row.season.year }}?');">

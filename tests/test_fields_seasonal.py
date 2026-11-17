@@ -60,7 +60,7 @@ class FieldSeasonsTest(unittest.TestCase):
         page = self.client.get("/fields")
         self.assertEqual(page.status_code, 200)
         html = page.get_data(as_text=True)
-        self.assertIn('id="global-season-select"', html)
+        self.assertNotIn('id="global-season-select"', html)
         self.assertIn("Постійний каталог", html)
         self.assertIn("СТАРЕ 001", html)
         self.assertEqual(FieldSeason.query.count(), 0)
@@ -159,7 +159,11 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertEqual(self.client.post("/fields/seasons/create", data={
             "new-year": 2028,
         }).status_code, 302)
+        with self.client.session_transaction() as sess:
+            self.assertEqual(sess["harvest_year"], 2027)
         self.assertEqual(self.client.post("/fields/seasons/2028/copy").status_code, 302)
+        with self.client.session_transaction() as sess:
+            self.assertEqual(sess["harvest_year"], 2027)
         target = FieldSeason.query.join(Season).filter(
             Season.year == 2028, FieldSeason.field_id == field.id
         ).one()
@@ -311,7 +315,7 @@ class FieldSeasonsTest(unittest.TestCase):
         self.assertIn("65", html)
         self.assertIn("До головного меню", html)
         self.assertIn("Завантажити PDF", html)
-        self.assertIn('id="global-season-select"', html)
+        self.assertNotIn('id="global-season-select"', html)
 
         filtered = self.client.get("/summary_structure/", query_string={"cluster_id": self.cluster_b})
         self.assertEqual(filtered.status_code, 200)

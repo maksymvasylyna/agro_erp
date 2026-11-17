@@ -1,10 +1,7 @@
 {% extends "base.html" %}
-{% from 'base.html' import erp_navigation, erp_season_controls with context %}
+{% from 'base.html' import erp_navigation with context %}
 {% block title %}Загальна структура посівів — {{ season.year if season else '—' }}{% endblock %}
 {% block header %}📊 Загальна структура посівних площ — урожай {{ season.year if season else '—' }}{% endblock %}
-{% block page_top %}
-  {{ erp_season_controls(seasons, active_year, url_for('fields.select_season'), url_for('fields.seasons_manager'), request.full_path.rstrip('?')) }}
-{% endblock %}
 {% block content %}
 {{ erp_navigation(url_for('structure.index'), url_for('index')) }}
 <style>
