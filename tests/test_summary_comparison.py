@@ -177,7 +177,7 @@ class SummaryYearComparisonTests(unittest.TestCase):
         html = response.get_data(as_text=True)
         self.assertIn("Порівняння посівних площ: 2024 з 2026, 2025", html)
         self.assertIn("Основний сезон: 2024", html)
-        self.assertNotIn('type="checkbox" name="years" value="2024"', html)
+        self.assertNotRegex(html, r'name="years"\\s+value="2024"')
         data = _multi_comparison_context(self.s24, [self.s26, self.s25], None)
         self.assertEqual(data["overall"]["base"], Decimal("50.00"))
         self.assertEqual(data["overall"]["compared"][0]["area"], Decimal("175.00"))
