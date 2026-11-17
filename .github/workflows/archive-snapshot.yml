@@ -1,4 +1,4 @@
-name: One-time AgroERP full source history archive
+name: Milestone AgroERP 2 modules source history archive
 
 on:
   push:
@@ -28,15 +28,17 @@ jobs:
           git fetch origin '+refs/heads/*:refs/remotes/origin/*' --tags --prune
           git bundle create agroerp_snapshot/AgroERP_git_history.bundle --all
           git bundle verify agroerp_snapshot/AgroERP_git_history.bundle
-          git archive --format=tar HEAD | gzip -9 > agroerp_snapshot/AgroERP_source.tar.gz
-          git show --no-patch --format=fuller HEAD > agroerp_snapshot/COMMIT.txt
+          git archive --format=tar origin/archive/AgroERP-2-blocks-2026-11-17 | gzip -9 > agroerp_snapshot/AgroERP_source.tar.gz
+          git show --no-patch --format=fuller origin/archive/AgroERP-2-blocks-2026-11-17 > agroerp_snapshot/COMMIT.txt
           git for-each-ref --format='%(refname:short) %(objectname)' refs/heads refs/remotes/origin refs/tags > agroerp_snapshot/BRANCHES_TAGS.txt
-          printf '%s\n' 'AgroERP full repository archive' 'Git bundle contains full accessible Git history and branches.' 'The source.tar.gz is the exact backup branch source tree.' 'Restore full Git repository with: git clone AgroERP_git_history.bundle agro_erp' 'This artifact does not contain the production PostgreSQL database, Render environment secrets or runtime volumes.' > agroerp_snapshot/README.txt
+          git rev-parse origin/archive/AgroERP-2-blocks-2026-11-17 > agroerp_snapshot/ARCHIVED_MILESTONE_SHA.txt
+          test "$(cat agroerp_snapshot/ARCHIVED_MILESTONE_SHA.txt)" = "28fa184d1dab15c0e684de4ef9dd3e992fbb76d4"
+          printf '%s\n' 'AgroERP full repository archive' 'Git bundle contains full accessible Git history and branches.' 'The source.tar.gz is the exact two-module milestone source tree (commit 28fa184d1dab15c0e684de4ef9dd3e992fbb76d4).' 'Restore full Git repository with: git clone AgroERP_git_history.bundle agro_erp' 'This artifact does not contain the production PostgreSQL database, Render environment secrets or runtime volumes.' > agroerp_snapshot/README.txt
           (cd agroerp_snapshot && sha256sum AgroERP_git_history.bundle AgroERP_source.tar.gz > SHA256SUMS.txt)
       - name: Publish user-downloadable backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AgroERP_source_history_2026-11-16
+          name: AgroERP_source_history_2_blocks_2026-11-17
           path: agroerp_snapshot/
           if-no-files-found: error
           retention-days: 90
