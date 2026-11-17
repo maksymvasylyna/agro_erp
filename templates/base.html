@@ -7,7 +7,7 @@
 {%- endmacro %}
 {# Reusable season selector, initially used by Fields and later by reports/plans. #}
 {% macro erp_season_controls(seasons, active_year, select_url, manager_url, return_to) -%}
-<div class="d-flex flex-wrap align-items-center gap-2 mb-3 erp-reference-page" id="season-navigation">
+<div class="d-flex flex-wrap align-items-center gap-2 mb-0 erp-reference-page" id="season-navigation">
   <form method="get" action="{{ select_url }}" class="d-flex flex-wrap align-items-center gap-2">
     <input type="hidden" name="next" value="{{ return_to }}">
     <label for="global-season-select" class="form-label mb-0">Сезон урожаю:</label>
@@ -37,7 +37,11 @@
 </head>
 <body>
   <div class="container mt-4">
-    <div class="d-flex justify-content-end align-items-center mb-2">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2" id="erp-topbar">
+      <div class="d-flex flex-wrap align-items-center" id="erp-topbar-left">
+        {% block topbar_left %}{% endblock %}
+      </div>
+      <div class="d-flex align-items-center ms-auto" id="erp-topbar-auth">
       {% if erp_is_admin %}
         <form method="post" action="{{ url_for('admin_auth.logout') }}" class="d-flex align-items-center gap-2">
           <span class="small text-muted">Адміністратор</span>
@@ -47,6 +51,7 @@
       {% else %}
         <a href="{{ url_for('admin_auth.login', next=request.full_path.rstrip('?')) }}" class="small text-muted">Вхід адміністратора</a>
       {% endif %}
+      </div>
     </div>
     {% block page_top %}{% endblock %}
     <h1 class="erp-page-title mb-4">{% block header %}Agro ERP{% endblock %}</h1>

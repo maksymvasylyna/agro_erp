@@ -98,6 +98,14 @@ class PlanningSeasonsTests(unittest.TestCase):
         self.assertEqual(home.status_code, 200)
         html = home.get_data(as_text=True)
         self.assertEqual(html.count('id="global-season-select"'), 1)
+        # The only year picker sits to the left of authorization,
+        # both above the home page heading; no standalone season card.
+        picker = html.index('id="global-season-select"')
+        auth = html.index('id="erp-topbar-auth"')
+        heading = html.index('class="erp-page-title')
+        self.assertLess(picker, auth)
+        self.assertLess(auth, heading)
+        self.assertNotIn('aria-label="Робочий сезон AgroERP"', html)
         self.assertIn('value="2026" selected', html)
         paths = (
             "/plans/", "/new_plans/", "/plans/ready/",
