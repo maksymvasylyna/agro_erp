@@ -2,7 +2,7 @@ name: AgroERP area summary year-comparison tests
 
 on:
   push:
-    branches: [main, feature/summary-year-comparison]
+    branches: [main, feature/summary-year-comparison, feature/summary-choose-two-years]
     paths:
       - "modules/structure/summary_structure/**"
       - "tests/test_summary_comparison.py"
