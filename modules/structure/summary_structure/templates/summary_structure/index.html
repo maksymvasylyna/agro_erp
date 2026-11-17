@@ -12,6 +12,14 @@
   .area-report .cluster-header td { background: #e8eef6 !important; color: #12385c; font-weight: 700; }
   .area-report .cluster-total td { background: #edf2f8 !important; font-weight: 700; }
   .area-report .grand-total td { background: #d9d9d9 !important; font-weight: 700; }
+  .compare-grid thead tr:first-child th { background: #193b69; color: #fff; border-bottom: 2px solid #d8ae4d; }
+  .compare-grid thead tr:nth-child(2) th { background: #eaf1f9; color: #193b69; }
+  .compare-grid th, .compare-grid td { white-space: nowrap; }
+  .compare-grid .company-title { white-space: normal; }
+  .compare-grid .compare-positive { color: #167445; font-weight: 600; }
+  .compare-grid .compare-negative { color: #a93535; font-weight: 600; }
+  .compare-grid .company-indent { padding-left: 1.5rem; }
+  #year-multiselect .dropdown-menu { color: #253951; }
 </style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div class="d-flex flex-wrap align-items-center gap-2">
@@ -21,12 +29,21 @@
       <a href="{{ url_for('summary_structure.index', cluster_id=selected_cluster) }}"
          class="btn btn-outline-secondary" id="close-year-comparison">Закрити порівняння</a>
     {% elif default_comparison_year %}
-      <a href="{{ url_for('summary_structure.index', cluster_id=selected_cluster, year_a=default_comparison_year, year_b=active_year) }}"
+      <a href="{{ url_for('summary_structure.index', cluster_id=selected_cluster, years=default_comparison_year) }}"
          class="btn btn-outline-primary" id="open-year-comparison">Порівняти роки</a>
     {% endif %}
   </div>
   <a href="{{ url_for('fields_structure.index') }}" class="btn btn-outline-primary">Структура по полях</a>
 </div>
+{% macro comparison_cells(item) -%}
+<td class="area-cell fw-semibold">{{ item.base|ua_area }}</td>
+{% for value in item.compared %}
+<td class="area-cell">{{ value.area|ua_area }}</td>
+<td class="area-cell {{ 'compare-positive' if value.difference > 0 else 'compare-negative' if value.difference < 0 else '' }}">{{ '+' if value.difference > 0 else '' }}{{ value.difference|ua_area }}</td>
+<td class="area-cell {{ 'compare-positive' if value.difference > 0 else 'compare-negative' if value.difference < 0 else '' }}">{{ value.percent|ua_difference_percent }}</td>
+{% endfor %}
+{%- endmacro %}
+
 <form method="get" action="{{ url_for('summary_structure.index') }}" class="row align-items-end g-2 mb-3" id="summary-report-filters">
   <div class="col-auto">
     <label for="cluster_id" class="form-label">Кластер</label>
@@ -39,122 +56,132 @@
   </div>
   {% if comparison %}
   <div class="col-auto">
-    <label for="year_a" class="form-label">Рік 1 — база</label>
-    <select id="year_a" name="year_a" class="form-select" required>
-      {% for candidate in comparison_options %}
-        <option value="{{ candidate.year }}" {% if candidate.year == comparison.previous_year %}selected{% endif %}>{{ candidate.year }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <label for="year_b" class="form-label">Рік 2 — порівнюємо</label>
-    <select id="year_b" name="year_b" class="form-select" required>
-      {% for candidate in comparison_options %}
-        <option value="{{ candidate.year }}" {% if candidate.year == comparison.current_year %}selected{% endif %}>{{ candidate.year }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <button class="btn btn-primary" type="submit" id="apply-year-comparison">Порівняти</button>
-  </div>
-  <div class="col-12 text-danger small" id="comparison-year-error" role="alert" hidden>
-    Для порівняння виберіть два різні роки.
+    <label for="comparison-year-toggle" class="form-label">Роки для порівняння з {{ comparison.base_year }}</label>
+    <div class="dropdown" id="year-multiselect">
+      <button type="button" class="btn btn-outline-primary dropdown-toggle text-start"
+              data-bs-toggle="dropdown" data-bs-auto-close="outside"
+              aria-expanded="false" id="comparison-year-toggle">
+        <span id="selected-years-label">{{ comparison.selected_years|join(', ') }}</span>
+      </button>
+      <div class="dropdown-menu p-3 shadow" aria-labelledby="comparison-year-toggle"
+           style="min-width: 260px; max-height: min(70vh, 430px); overflow-y: auto;">
+        <div class="small fw-semibold mb-1">Основний сезон: {{ comparison.base_year }}</div>
+        <div class="small text-muted mb-2">Оберіть один або декілька інших років</div>
+        <div class="d-flex justify-content-between gap-2 mb-2 border-bottom pb-2">
+          <button type="button" class="btn btn-sm btn-link p-0" id="compare-select-all">Вибрати всі</button>
+          <button type="button" class="btn btn-sm btn-link p-0" id="compare-clear-all">Очистити</button>
+        </div>
+        <div id="compare-year-checkboxes">
+        {% for item in comparison_options %}
+          <label class="form-check d-flex align-items-center gap-2 mb-2">
+            <input class="form-check-input mt-0" type="checkbox" name="years"
+                   value="{{ item.year }}" {% if item.year in comparison.selected_years %}checked{% endif %}>
+            <span>{{ item.year }}</span>
+          </label>
+        {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-100 mt-2"
+                id="apply-year-comparison">Показати порівняння</button>
+        <div class="small text-danger mt-2" id="comparison-year-error" role="alert" hidden>
+          Оберіть принаймні один рік.
+        </div>
+      </div>
+    </div>
   </div>
   {% else %}
   <div class="col-auto">
-    <noscript><button class="btn btn-success" type="submit">Застосувати</button></noscript>
+    <noscript><button type="submit" class="btn btn-success">Застосувати</button></noscript>
   </div>
   {% endif %}
 </form>
 {% if comparison %}
-  <section class="compare-report" id="year-comparison-report">
-    <h4 class="mb-2">Порівняння посівних площ: {{ comparison.previous_year }} і {{ comparison.current_year }}</h4>
-    <p class="small text-muted">
-      Робочий сезон AgroERP залишається {{ active_year }} незалежно від вибраних для порівняння років.
-      Різниця = рік 2 ({{ comparison.current_year }}) мінус рік 1 ({{ comparison.previous_year }}).
-      Відсоток розраховується від року 1; «—» означає, що в базовому році площа дорівнювала нулю.
-      Враховано лише посівні площі. Фільтр кластера однаковий для обох років.
-    </p>
+<section id="year-comparison-report" class="compare-report">
+  <h4 class="mb-2">Порівняння посівних площ: {{ comparison.base_year }} з {{ comparison.selected_years|join(', ') }}</h4>
+  <p class="small text-muted">
+    Основний сезон — {{ comparison.base_year }} (визначений на головній сторінці).
+    Різниця для кожного року = {{ comparison.base_year }} мінус відповідний рік.
+    Зміна у відсотках розрахована від відповідного порівнюваного року; «—» означає нульову базу.
+    Показані посівні площі; фільтр кластера однаковий для всіх років.
+  </p>
 
-    <h5>За культурами</h5>
-    <div class="table-responsive mb-4">
-      <table class="table table-bordered table-sm area-report align-middle" id="comparison-by-crop">
-        <thead>
-          <tr>
-            <th class="company-title text-start" scope="col">Культура</th>
-            <th class="area-cell" scope="col">{{ comparison.previous_year }}, га</th>
-            <th class="area-cell" scope="col">{{ comparison.current_year }}, га</th>
-            <th class="area-cell" scope="col">Різниця, га</th>
-            <th class="area-cell" scope="col">Зміна, %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in comparison.crop_rows %}
-          <tr>
-            <td>{{ item.name }}</td>
-            <td class="area-cell">{{ item.before|ua_area }}</td>
-            <td class="area-cell">{{ item.after|ua_area }}</td>
-            <td class="area-cell {{ 'compare-positive' if item.difference > 0 else 'compare-negative' if item.difference < 0 else '' }}">{{ '+' if item.difference > 0 else '' }}{{ item.difference|ua_area }}</td>
-            <td class="area-cell {{ 'compare-positive' if item.difference > 0 else 'compare-negative' if item.difference < 0 else '' }}">{{ item.percent|ua_difference_percent }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-muted text-center">Немає посівів в обох вибраних роках для цього кластера.</td></tr>
+  <h5>За культурами</h5>
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered table-sm area-report align-middle compare-grid" id="comparison-by-crop">
+      <thead>
+        <tr>
+          <th class="company-title text-start" rowspan="2" scope="col">Культура</th>
+          <th class="area-cell" rowspan="2" scope="col">{{ comparison.base_year }}, га</th>
+          {% for year in comparison.selected_years %}
+          <th colspan="3" scope="colgroup">{{ year }} порівняно з {{ comparison.base_year }}</th>
           {% endfor %}
-          <tr class="grand-total fw-bold">
-            <td>Разом</td>
-            <td class="area-cell">{{ comparison.overall.before|ua_area }}</td>
-            <td class="area-cell">{{ comparison.overall.after|ua_area }}</td>
-            <td class="area-cell">{{ '+' if comparison.overall.difference > 0 else '' }}{{ comparison.overall.difference|ua_area }}</td>
-            <td class="area-cell">{{ comparison.overall.percent|ua_difference_percent }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        </tr>
+        <tr>
+          {% for year in comparison.selected_years %}
+          <th class="area-cell" scope="col">Площа, га</th>
+          <th class="area-cell" scope="col">± га</th>
+          <th class="area-cell" scope="col">± %</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in comparison.crop_rows %}
+        <tr>
+          <td>{{ item.name }}</td>
+          {{ comparison_cells(item) }}
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 2 + 3 * comparison.selected_years|length }}" class="text-center text-muted">Для обраних років немає посівів у цьому кластері.</td></tr>
+        {% endfor %}
+        <tr class="grand-total fw-bold">
+          <td>Разом</td>
+          {{ comparison_cells(comparison.overall) }}
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-    <h5>За кластерами та підприємствами</h5>
-    <div class="table-responsive">
-      <table class="table table-bordered table-sm area-report align-middle" id="comparison-by-company">
-        <thead>
-          <tr>
-            <th class="company-title text-start" scope="col">Кластер / підприємство</th>
-            <th class="area-cell" scope="col">{{ comparison.previous_year }}, га</th>
-            <th class="area-cell" scope="col">{{ comparison.current_year }}, га</th>
-            <th class="area-cell" scope="col">Різниця, га</th>
-            <th class="area-cell" scope="col">Зміна, %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for cluster in comparison.cluster_rows %}
-          <tr class="cluster-total">
-            <td class="fw-bold">{{ cluster.name }}</td>
-            <td class="area-cell">{{ cluster.before|ua_area }}</td>
-            <td class="area-cell">{{ cluster.after|ua_area }}</td>
-            <td class="area-cell">{{ '+' if cluster.difference > 0 else '' }}{{ cluster.difference|ua_area }}</td>
-            <td class="area-cell">{{ cluster.percent|ua_difference_percent }}</td>
-          </tr>
-          {% for company in cluster.companies %}
-          <tr>
-            <td class="company-indent">{{ company.name }}</td>
-            <td class="area-cell">{{ company.before|ua_area }}</td>
-            <td class="area-cell">{{ company.after|ua_area }}</td>
-            <td class="area-cell {{ 'compare-positive' if company.difference > 0 else 'compare-negative' if company.difference < 0 else '' }}">{{ '+' if company.difference > 0 else '' }}{{ company.difference|ua_area }}</td>
-            <td class="area-cell">{{ company.percent|ua_difference_percent }}</td>
-          </tr>
+  <h5>За кластерами та підприємствами</h5>
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm area-report align-middle compare-grid" id="comparison-by-company">
+      <thead>
+        <tr>
+          <th class="company-title text-start" rowspan="2" scope="col">Кластер / підприємство</th>
+          <th class="area-cell" rowspan="2" scope="col">{{ comparison.base_year }}, га</th>
+          {% for year in comparison.selected_years %}
+          <th colspan="3" scope="colgroup">{{ year }} порівняно з {{ comparison.base_year }}</th>
           {% endfor %}
-          {% else %}
-          <tr><td colspan="5" class="text-muted text-center">Немає посівів для вибраних років.</td></tr>
+        </tr>
+        <tr>
+          {% for year in comparison.selected_years %}
+          <th class="area-cell" scope="col">Площа, га</th>
+          <th class="area-cell" scope="col">± га</th>
+          <th class="area-cell" scope="col">± %</th>
           {% endfor %}
-          <tr class="grand-total fw-bold">
-            <td>Разом{% if selected_cluster %} у вибраному кластері{% endif %}</td>
-            <td class="area-cell">{{ comparison.overall.before|ua_area }}</td>
-            <td class="area-cell">{{ comparison.overall.after|ua_area }}</td>
-            <td class="area-cell">{{ '+' if comparison.overall.difference > 0 else '' }}{{ comparison.overall.difference|ua_area }}</td>
-            <td class="area-cell">{{ comparison.overall.percent|ua_difference_percent }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cluster in comparison.cluster_rows %}
+        <tr class="cluster-total">
+          <td class="fw-bold">{{ cluster.name }}</td>
+          {{ comparison_cells(cluster) }}
+        </tr>
+        {% for company in cluster.companies %}
+        <tr>
+          <td class="company-indent">{{ company.name }}</td>
+          {{ comparison_cells(company) }}
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="{{ 2 + 3 * comparison.selected_years|length }}" class="text-center text-muted">Немає посівів для обраних років.</td></tr>
+        {% endfor %}
+        <tr class="grand-total fw-bold">
+          <td>Разом{% if selected_cluster %} у вибраному кластері{% endif %}</td>
+          {{ comparison_cells(comparison.overall) }}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 {% else %}
 <h4>Структура посівів за культурами — урожай {{ season.year if season else '—' }}</h4>
 <div class="table-responsive">
@@ -202,24 +229,40 @@
 {% if comparison %}
 <script>
 (function () {
+  "use strict";
   const form = document.getElementById("summary-report-filters");
-  const first = document.getElementById("year_a");
-  const second = document.getElementById("year_b");
+  const picker = document.getElementById("compare-year-checkboxes");
+  const text = document.getElementById("selected-years-label");
+  const submit = document.getElementById("apply-year-comparison");
   const error = document.getElementById("comparison-year-error");
-  if (!form || !first || !second || !error) return;
+  const all = document.getElementById("compare-select-all");
+  const clear = document.getElementById("compare-clear-all");
+  if (!form || !picker) return;
+  const boxes = [...picker.querySelectorAll('input[type="checkbox"][name="years"]')];
 
+  function update() {
+    const years = boxes.filter(box => box.checked).map(box => box.value);
+    text.textContent = years.length ? years.join(", ") : "Виберіть роки";
+    submit.disabled = years.length === 0;
+    error.hidden = years.length !== 0;
+  }
+
+  boxes.forEach(box => box.addEventListener("change", update));
+  all.addEventListener("click", function () {
+    boxes.forEach(box => { box.checked = true; });
+    update();
+  });
+  clear.addEventListener("click", function () {
+    boxes.forEach(box => { box.checked = false; });
+    update();
+  });
   form.addEventListener("submit", function (event) {
-    if (first.value === second.value) {
+    if (!boxes.some(box => box.checked)) {
       event.preventDefault();
       error.hidden = false;
-      second.focus();
-    } else {
-      error.hidden = true;
     }
   });
-  [first, second].forEach(function (selector) {
-    selector.addEventListener("change", function () { error.hidden = true; });
-  });
+  update();
 })();
 </script>
 {% endif %}

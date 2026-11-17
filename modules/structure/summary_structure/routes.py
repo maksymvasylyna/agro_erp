@@ -79,44 +79,52 @@ def _summary_context():
             cluster_totals[row.cluster][row.culture] += allocation
             grand_totals[row.culture] += allocation
 
-    # The report's comparison years are read-only selections independent
-    # of the one globally selected working season.
+    # The global year is always the baseline. Checkbox selections affect
+    # only this read-only report and never mutate the shared user session.
     comparison = None
-    comparison_options = common["seasons"]
-    seasons_by_year = {item.year: item for item in comparison_options}
-    previous_options = [
-        item for item in comparison_options
-        if season is not None and item.year < season.year
+    comparison_options = [
+        item for item in common["seasons"]
+        if season is not None and item.id != season.id
     ]
-    default_comparison_year = (
-        previous_options[0].year if previous_options else
-        next((item.year for item in comparison_options
-              if season is not None and item.id != season.id), None)
+    available = {item.year: item for item in comparison_options}
+    default_comparison_year = next(
+        (item.year for item in comparison_options if item.year < season.year),
+        comparison_options[0].year if comparison_options else None,
     )
 
-    if "year_a" in request.args or "year_b" in request.args:
-        # Require both years: never silently bind an unspecified side to the
-        # working season, because that could unexpectedly alter a comparison.
+    requested_years = request.args.getlist("years")
+    if requested_years:
+        if not season or len(requested_years) > len(comparison_options):
+            abort(400, description="Некоректний вибір років для порівняння.")
         try:
-            year_a = int(request.args["year_a"])
-            year_b = int(request.args["year_b"])
-        except (KeyError, ValueError, TypeError):
-            abort(400, description="Оберіть два коректні роки для порівняння.")
-        earlier = seasons_by_year.get(year_a)
-        later = seasons_by_year.get(year_b)
-        if earlier is None or later is None or year_a == year_b:
-            abort(400, description="Для порівняння потрібні два різні наявні роки.")
-        comparison = _comparison_context(later, earlier, selected_cluster)
-    elif "compare_year" in request.args:
-        # Keep previously shared comparison links functional.
+            years = [int(value) for value in requested_years]
+        except (TypeError, ValueError):
+            abort(400, description="Некоректний рік для порівняння.")
+        if len(years) != len(set(years)) or any(year not in available for year in years):
+            abort(400, description="Оберіть різні наявні роки, крім робочого сезону.")
+        # Always show comparison columns in descending order, regardless of
+        # the order in which checkboxes were submitted.
+        chosen_seasons = [item for item in comparison_options if item.year in years]
+        comparison = _multi_comparison_context(season, chosen_seasons, selected_cluster)
+    elif "compare_year" in request.args or "year_a" in request.args or "year_b" in request.args:
+        # Existing saved links from the two older versions still open the
+        # matching single-year comparison when anchored to the global season.
         try:
-            comparison_year = int(request.args["compare_year"])
-        except (ValueError, TypeError):
-            abort(400, description="Некоректний рік порівняння.")
-        other = seasons_by_year.get(comparison_year)
-        if season is None or other is None or other.id == season.id:
-            abort(400, description="Виберіть інший наявний сезон для порівняння.")
-        comparison = _comparison_context(season, other, selected_cluster)
+            if "compare_year" in request.args:
+                year = int(request.args["compare_year"])
+            else:
+                first, second = int(request.args["year_a"]), int(request.args["year_b"])
+                if first == season.year and second in available:
+                    year = second
+                elif second == season.year and first in available:
+                    year = first
+                else:
+                    abort(400, description="Порівняння має включати робочий сезон.")
+        except (KeyError, TypeError, ValueError):
+            abort(400, description="Некоректний рік для порівняння.")
+        if year not in available:
+            abort(400, description="Виберіть інший наявний сезон.")
+        comparison = _multi_comparison_context(season, [available[year]], selected_cluster)
 
     return dict(
         comparison=comparison,
@@ -146,13 +154,18 @@ def _delta_row(previous, current):
     }
 
 
-def _comparison_context(current_season, other_season, selected_cluster):
-    """Read-only, ID-based reconciliation of two seasons.
+def _multi_comparison_context(base_season, other_seasons, selected_cluster):
+    """Compare multiple seasons to one fixed working-season baseline.
 
-    A field that changes company, cluster, or crop correctly moves between
-    those categories. A culture/company that exists in only one year is kept
-    with zero area in the other. Only planted area is compared.
+    Query only allocated crop areas, grouped by IDs. A crop/enterprise that
+    exists in just one year still appears with zero for all other years.
+    Each comparison column is baseline minus selected year.
     """
+    seasons = [base_season, *other_seasons]
+    by_id = {item.id: item.year for item in seasons}
+    selected_years = [item.year for item in other_seasons]
+    baseline_year = base_season.year
+
     query = (
         db.session.query(
             FieldSeason.season_id.label("season_id"),
@@ -169,77 +182,76 @@ def _comparison_context(current_season, other_season, selected_cluster):
         .join(Cluster, Cluster.id == FieldSeason.cluster_id)
         .join(Company, Company.id == FieldSeason.company_id)
         .join(Culture, Culture.id == FieldPlanting.culture_id)
-        .filter(FieldSeason.season_id.in_((current_season.id, other_season.id)))
+        .filter(FieldSeason.season_id.in_(by_id))
     )
     if selected_cluster is not None:
         query = query.filter(FieldSeason.cluster_id == selected_cluster)
-
     query = query.group_by(
         FieldSeason.season_id, Cluster.id, Cluster.name,
         Company.id, Company.name, Culture.id, Culture.name,
     )
-    allocations = {}
-    labels = {"clusters": {}, "companies": {}, "cultures": {}}
-    for row in query.all():
-        key = (row.cluster_id, row.company_id, row.culture_id)
-        allocations.setdefault(key, {})[row.season_id] = Decimal(row.area or 0)
-        labels["clusters"][row.cluster_id] = row.cluster
-        labels["companies"][(row.cluster_id, row.company_id)] = row.company
-        labels["cultures"][row.culture_id] = row.culture
 
-    crops = defaultdict(lambda: [ZERO, ZERO])
-    companies = defaultdict(lambda: [ZERO, ZERO])
-    company_crops = defaultdict(lambda: [ZERO, ZERO])
-    clusters = defaultdict(lambda: [ZERO, ZERO])
-    overall = [ZERO, ZERO]
-    for (cluster_id, company_id, culture_id), years in allocations.items():
-        previous = years.get(other_season.id, ZERO)
-        present = years.get(current_season.id, ZERO)
-        amounts = (previous, present)
-        for index, value in enumerate(amounts):
-            crops[culture_id][index] += value
-            companies[(cluster_id, company_id)][index] += value
-            company_crops[(cluster_id, company_id, culture_id)][index] += value
-            clusters[cluster_id][index] += value
-            overall[index] += value
+    crop_totals = defaultdict(lambda: defaultdict(lambda: ZERO))
+    company_totals = defaultdict(lambda: defaultdict(lambda: ZERO))
+    cluster_totals = defaultdict(lambda: defaultdict(lambda: ZERO))
+    total = defaultdict(lambda: ZERO)
+    names = {"crop": {}, "cluster": {}, "company": {}}
+
+    for item in query.all():
+        year = by_id[item.season_id]
+        amount = Decimal(item.area or 0)
+        crop_totals[item.culture_id][year] += amount
+        company_key = (item.cluster_id, item.company_id)
+        company_totals[company_key][year] += amount
+        cluster_totals[item.cluster_id][year] += amount
+        total[year] += amount
+        names["crop"][item.culture_id] = item.culture
+        names["cluster"][item.cluster_id] = item.cluster
+        names["company"][company_key] = item.company
+
+    def row(name, areas):
+        base = areas.get(baseline_year, ZERO)
+        compared = []
+        for year in selected_years:
+            value = areas.get(year, ZERO)
+            difference = base - value
+            compared.append({
+                "year": year,
+                "area": value,
+                "difference": difference,
+                "percent": (
+                    (difference * Decimal(100) / value).quantize(Decimal("0.1"))
+                    if value else None
+                ),
+            })
+        return {"name": name, "base": base, "compared": compared}
 
     crop_rows = [
-        {"name": labels["cultures"][crop_id], **_delta_row(*crops[crop_id])}
-        for crop_id in sorted(crops, key=lambda key: labels["cultures"][key].casefold())
+        row(names["crop"][key], crop_totals[key])
+        for key in sorted(crop_totals, key=lambda i: names["crop"][i].casefold())
     ]
     cluster_rows = []
-    for cluster_id in sorted(clusters, key=lambda key: labels["clusters"][key].casefold()):
-        company_rows = []
-        pairs = sorted(
-            [key for key in companies if key[0] == cluster_id],
-            key=lambda key: labels["companies"][key].casefold(),
-        )
-        for key in pairs:
-            culture_rows = [
-                {"name": labels["cultures"][crop_id],
-                 **_delta_row(*company_crops[(key[0], key[1], crop_id)])}
-                for cid, coid, crop_id in sorted(
-                    [item for item in company_crops if item[:2] == key],
-                    key=lambda item: labels["cultures"][item[2]].casefold(),
-                )
-            ]
-            company_rows.append({
-                "name": labels["companies"][key],
-                "cultures": culture_rows,
-                **_delta_row(*companies[key]),
-            })
+    for cluster_id in sorted(
+        cluster_totals, key=lambda i: names["cluster"][i].casefold()
+    ):
+        companies = [
+            row(names["company"][key], company_totals[key])
+            for key in sorted(
+                (k for k in company_totals if k[0] == cluster_id),
+                key=lambda k: names["company"][k].casefold(),
+            )
+        ]
         cluster_rows.append({
-            "name": labels["clusters"][cluster_id],
-            "companies": company_rows,
-            **_delta_row(*clusters[cluster_id]),
+            **row(names["cluster"][cluster_id], cluster_totals[cluster_id]),
+            "companies": companies,
         })
 
     return {
-        "previous_year": other_season.year,
-        "current_year": current_season.year,
+        "base_year": baseline_year,
+        "selected_years": selected_years,
         "crop_rows": crop_rows,
         "cluster_rows": cluster_rows,
-        "overall": _delta_row(*overall),
+        "overall": row("Разом", total),
     }
 
 

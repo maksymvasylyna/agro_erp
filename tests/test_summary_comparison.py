@@ -14,7 +14,7 @@ from modules.reference.companies.models import Company  # noqa: E402
 from modules.reference.cultures.models import Culture  # noqa: E402
 from modules.reference.fields.field_models import Field  # noqa: E402
 from modules.reference.fields.season_models import Season, FieldSeason, FieldPlanting  # noqa: E402
-from modules.structure.summary_structure.routes import _comparison_context  # noqa: E402
+from modules.structure.summary_structure.routes import _multi_comparison_context  # noqa: E402
 
 
 class SummaryYearComparisonTests(unittest.TestCase):
@@ -81,63 +81,108 @@ class SummaryYearComparisonTests(unittest.TestCase):
         db.drop_all()
         self.ctx.pop()
 
-    def test_comparison_uses_both_years_and_union_of_crops(self):
-        rows = _comparison_context(self.s26, self.s25, None)
-        self.assertEqual(rows["overall"]["before"], Decimal("140.00"))
-        self.assertEqual(rows["overall"]["after"], Decimal("175.00"))
-        self.assertEqual(rows["overall"]["difference"], Decimal("35.00"))
-        self.assertEqual(rows["overall"]["percent"], Decimal("25.0"))
-        crops = {row["name"]: row for row in rows["crop_rows"]}
+    def get_comparison(self, *years, cluster=None):
+        params = [("years", year) for year in years]
+        if cluster is not None:
+            params.append(("cluster_id", cluster))
+        return self.client.get("/summary_structure/", query_string=params)
+
+    def test_multiple_checkbox_years_are_compared_against_global_2026(self):
+        result = _multi_comparison_context(self.s26, [self.s25, self.s24], None)
+        self.assertEqual(result["base_year"], 2026)
+        self.assertEqual(result["selected_years"], [2025, 2024])
+        total = result["overall"]
+        self.assertEqual(total["base"], Decimal("175.00"))
+        self.assertEqual(total["compared"][0]["year"], 2025)
+        self.assertEqual(total["compared"][0]["area"], Decimal("140.00"))
+        self.assertEqual(total["compared"][0]["difference"], Decimal("35.00"))
+        self.assertEqual(total["compared"][0]["percent"], Decimal("25.0"))
+        self.assertEqual(total["compared"][1]["year"], 2024)
+        self.assertEqual(total["compared"][1]["area"], Decimal("50.00"))
+        self.assertEqual(total["compared"][1]["difference"], Decimal("125.00"))
+        self.assertEqual(total["compared"][1]["percent"], Decimal("250.0"))
+        crops = {entry["name"]: entry for entry in result["crop_rows"]}
         self.assertEqual(set(crops), {"Пшениця", "Соняшник", "Кукурудза"})
-        self.assertEqual(crops["Пшениця"]["before"], Decimal("60.00"))
-        self.assertEqual(crops["Пшениця"]["after"], Decimal("50.00"))
-        self.assertEqual(crops["Соняшник"]["before"], Decimal("80.00"))
-        self.assertEqual(crops["Соняшник"]["after"], Decimal("25.00"))
-        self.assertEqual(crops["Кукурудза"]["before"], Decimal("0.00"))
-        self.assertEqual(crops["Кукурудза"]["after"], Decimal("100.00"))
-        self.assertIsNone(crops["Кукурудза"]["percent"])
-        clusters = {row["name"]: row for row in rows["cluster_rows"]}
-        self.assertEqual(clusters["Кластер А"]["after"], Decimal("75.00"))
-        self.assertEqual(clusters["Кластер Б"]["before"], Decimal("80.00"))
-        self.assertEqual(clusters["Кластер Б"]["after"], Decimal("100.00"))
+        self.assertEqual(crops["Пшениця"]["base"], Decimal("50.00"))
+        self.assertEqual(crops["Пшениця"]["compared"][0]["area"], Decimal("60.00"))
+        self.assertEqual(crops["Пшениця"]["compared"][1]["area"], Decimal("20.00"))
+        self.assertEqual(crops["Кукурудза"]["compared"][0]["area"], Decimal("0.00"))
+        self.assertIsNone(crops["Кукурудза"]["compared"][0]["percent"])
+        self.assertEqual(crops["Кукурудза"]["base"], Decimal("100.00"))
 
-    def test_comparison_filters_both_years_without_changing_session(self):
-        a = _comparison_context(self.s26, self.s25, self.cluster_a)
-        self.assertEqual(a["overall"]["before"], Decimal("60.00"))
-        self.assertEqual(a["overall"]["after"], Decimal("75.00"))
-        self.assertEqual(a["overall"]["difference"], Decimal("15.00"))
-        self.assertEqual(a["overall"]["percent"], Decimal("25.0"))
-        self.assertEqual(len(a["cluster_rows"]), 1)
-        self.assertEqual(a["cluster_rows"][0]["companies"][0]["name"],
-                         "Підприємство А")
-        b = _comparison_context(self.s26, self.s25, self.cluster_b)
-        self.assertEqual(b["overall"]["before"], Decimal("80.00"))
-        self.assertEqual(b["overall"]["after"], Decimal("100.00"))
-
-        response = self.client.get(
-            "/summary_structure/",
-            query_string={"compare_year": 2025, "cluster_id": self.cluster_a},
-        )
+    def test_multiselect_html_and_selected_checkboxes(self):
+        response = self.get_comparison(2024, 2025)
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
+        self.assertIn('id="year-multiselect"', html)
+        self.assertIn('id="compare-year-checkboxes"', html)
+        self.assertIn('type="checkbox" name="years"', html)
+        self.assertIn('value="2025" checked', html)
+        self.assertIn('value="2024" checked', html)
+        self.assertNotIn('id="year_a"', html)
+        self.assertNotIn('id="year_b"', html)
+        self.assertIn("Порівняння посівних площ: 2026 з 2025, 2024", html)
+        self.assertIn("Основний сезон — 2026", html)
         self.assertIn('id="comparison-by-crop"', html)
         self.assertIn('id="comparison-by-company"', html)
-        self.assertIn("Порівняння посівних площ: 2025 і 2026", html)
-        self.assertIn("Підприємство А", html)
-        self.assertNotIn("Підприємство Б", html)
-        self.assertIn("Закрити порівняння", html)
+        self.assertIn("+125,00", html)
+        self.assertIn("250,0%", html)
+        self.assertIn("Кукурудза", html)
+        self.assertIn("Вибрати всі", html)
+        self.assertIn("Очистити", html)
         self.assertIn("PDF поточного сезону", html)
+        self.assertIn("Закрити порівняння", html)
         self.assertNotIn('id="global-season-select"', html)
         with self.client.session_transaction() as state:
             self.assertEqual(state["harvest_year"], 2026)
 
-    def test_normal_view_pdf_and_bad_years(self):
-        response = self.client.get("/summary_structure/")
+    def test_selected_years_sorted_and_filtered_for_each_cluster(self):
+        response = self.get_comparison(2024, 2025, cluster=self.cluster_a)
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
+        self.assertIn("Порівняння посівних площ: 2026 з 2025, 2024", html)
+        self.assertIn("Підприємство А", html)
+        self.assertNotIn("Підприємство Б", html)
+        result = _multi_comparison_context(self.s26, [self.s25, self.s24], self.cluster_a)
+        self.assertEqual(result["overall"]["base"], Decimal("75.00"))
+        self.assertEqual(result["overall"]["compared"][0]["area"], Decimal("60.00"))
+        self.assertEqual(result["overall"]["compared"][1]["area"], Decimal("20.00"))
+        result_b = _multi_comparison_context(self.s26, [self.s25, self.s24], self.cluster_b)
+        self.assertEqual(result_b["overall"]["base"], Decimal("100.00"))
+        self.assertEqual(result_b["overall"]["compared"][0]["area"], Decimal("80.00"))
+        self.assertEqual(result_b["overall"]["compared"][1]["area"], Decimal("30.00"))
+
+    def test_single_year_and_empty_year(self):
+        single = self.get_comparison(2025)
+        self.assertEqual(single.status_code, 200)
+        h = single.get_data(as_text=True)
+        self.assertIn("Порівняння посівних площ: 2026 з 2025", h)
+        self.assertNotIn('value="2024" checked', h)
+        empty = self.get_comparison(2027)
+        self.assertEqual(empty.status_code, 200)
+        e = empty.get_data(as_text=True)
+        self.assertIn("Порівняння посівних площ: 2026 з 2027", e)
+        result = _multi_comparison_context(self.s26, [self.s27], None)
+        self.assertEqual(result["overall"]["compared"][0]["area"], Decimal("0.00"))
+        self.assertIsNone(result["overall"]["compared"][0]["percent"])
+
+    def test_invalid_multi_year_selection_is_rejected(self):
+        bad = [
+            [2026], [2050], ["oops"], [""],
+            [2025, 2025], [2025, 2050], [2024, "wrong"],
+        ]
+        for values in bad:
+            response = self.get_comparison(*values)
+            self.assertEqual(response.status_code, 400, values)
+        with self.client.session_transaction() as state:
+            self.assertEqual(state["harvest_year"], 2026)
+
+    def test_closing_comparison_preserves_global_year_and_standard_pdf(self):
+        normal = self.client.get("/summary_structure/")
+        self.assertEqual(normal.status_code, 200)
+        html = normal.get_data(as_text=True)
         self.assertIn('id="open-year-comparison"', html)
-        self.assertNotIn('id="comparison-by-crop"', html)
-        self.assertIn("Завантажити PDF", html)
+        self.assertNotIn('id="year-multiselect"', html)
         self.assertIn("Структура посівів за культурами", html)
         self.assertIn("175,00", html)
         pdf = self.client.get("/summary_structure/pdf")
@@ -145,87 +190,28 @@ class SummaryYearComparisonTests(unittest.TestCase):
         self.assertTrue(pdf.data.startswith(b"%PDF"))
         self.assertIn("zagalna_struktura_2026.pdf",
                       pdf.headers["Content-Disposition"])
-        for invalid in ("2026", "2050", "oops", ""):
-            self.assertEqual(
-                self.client.get("/summary_structure/",
-                                query_string={"compare_year": invalid}).status_code,
-                400,
-                invalid,
-            )
-
-    def test_two_any_selected_years_not_global_season(self):
-        response = self.client.get(
-            "/summary_structure/",
-            query_string={"year_a": 2024, "year_b": 2025},
+        compare_pdf = self.client.get(
+            "/summary_structure/pdf", query_string=[("years", "2025"), ("years", "2024")]
         )
-        self.assertEqual(response.status_code, 200)
-        html = response.get_data(as_text=True)
-        self.assertIn("Порівняння посівних площ: 2024 і 2025", html)
-        self.assertIn('id="year_a"', html)
-        self.assertIn('id="year_b"', html)
-        self.assertIn('value="2024" selected', html)
-        self.assertIn('value="2025" selected', html)
-        self.assertIn("Робочий сезон AgroERP залишається 2026", html)
-        # Both compared years are populated; 2026's 175 ha is not used.
-        result = _comparison_context(self.s25, self.s24, None)
-        self.assertEqual(result["overall"]["before"], Decimal("50.00"))
-        self.assertEqual(result["overall"]["after"], Decimal("140.00"))
-        self.assertEqual(result["overall"]["difference"], Decimal("90.00"))
-        self.assertEqual(result["overall"]["percent"], Decimal("180.0"))
-        self.assertIn("50,00", html)
-        self.assertIn("140,00", html)
-        self.assertIn("+90,00", html)
-        self.assertNotIn(">175,00<", html)
-        with self.client.session_transaction() as state:
-            self.assertEqual(state["harvest_year"], 2026)
-        self.assertEqual(
-            self.client.get("/summary_structure/").status_code, 200
-        )
-
-    def test_reversed_selection_and_cluster_filter(self):
-        # Comparison direction follows dropdown order, not calendar order.
-        response = self.client.get(
-            "/summary_structure/",
-            query_string={
-                "year_a": 2025, "year_b": 2024,
-                "cluster_id": self.cluster_a,
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        html = response.get_data(as_text=True)
-        self.assertIn("Порівняння посівних площ: 2025 і 2024", html)
-        self.assertIn("Підприємство А", html)
-        self.assertNotIn("Підприємство Б", html)
-        self.assertIn("-40,00", html)  # Wheat: 20 in 2024 minus 60 in 2025.
-        self.assertIn("-66,7%", html)
-        self.assertIn('name="year_a"', html)
-        self.assertIn('name="year_b"', html)
-        self.assertIn('name="cluster_id"', html)
-
-    def test_bad_or_equal_comparison_pair_is_rejected(self):
-        for query in (
-            {"year_a": 2026},
-            {"year_b": 2025},
-            {"year_a": "", "year_b": 2025},
-            {"year_a": "oops", "year_b": 2025},
-            {"year_a": 2023, "year_b": 2025},
-            {"year_a": 2025, "year_b": 2060},
-            {"year_a": 2025, "year_b": 2025},
-        ):
-            response = self.client.get("/summary_structure/", query_string=query)
-            self.assertEqual(response.status_code, 400, query)
+        self.assertEqual(compare_pdf.status_code, 200)
+        self.assertIn("zagalna_struktura_2026.pdf",
+                      compare_pdf.headers["Content-Disposition"])
         with self.client.session_transaction() as state:
             self.assertEqual(state["harvest_year"], 2026)
 
-    def test_zero_comparison_season_is_not_a_missing_current_year(self):
-        result = _comparison_context(self.s26, self.s27, None)
-        self.assertEqual(result["overall"]["before"], Decimal("0.00"))
-        self.assertEqual(result["overall"]["after"], Decimal("175.00"))
-        self.assertIsNone(result["overall"]["percent"])
+    def test_legacy_single_year_link_stays_anchored_to_global_season(self):
+        response = self.client.get("/summary_structure/", query_string={"compare_year": 2025})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("2026 з 2025", response.get_data(as_text=True))
         response = self.client.get("/summary_structure/",
-                                   query_string={"compare_year": 2027})
+                                   query_string={"year_a": 2025, "year_b": 2026})
         self.assertEqual(response.status_code, 200)
-        self.assertIn("2027 і 2026", response.get_data(as_text=True))
+        self.assertIn("2026 з 2025", response.get_data(as_text=True))
+        bad = self.client.get("/summary_structure/",
+                              query_string={"year_a": 2024, "year_b": 2025})
+        self.assertEqual(bad.status_code, 400)
+
+
 
 
 if __name__ == "__main__":
