@@ -47,6 +47,10 @@ def create_app():
         from modules.plans.migration import ensure_schema as ensure_plans_schema
         ensure_plans_schema()
         db.create_all()
+        # Guarded one-time import from the verified 2027 history source.
+        # This is inert unless the operator explicitly sets its one-use flag.
+        from modules.reference.fields.import_structure_2027 import import_if_requested
+        import_if_requested()
         # Add empty seasons only; legacy fields have no verified year and must
         # never be silently attributed to 2026 or 2027.
         if not Season.query.first():

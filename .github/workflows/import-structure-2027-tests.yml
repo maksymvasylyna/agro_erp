@@ -1,0 +1,37 @@
+name: AgroERP 2027 structure import safety tests
+
+on:
+  push:
+    branches: [main, feature/import-structure-2027]
+    paths:
+      - "app.py"
+      - "modules/reference/fields/import_structure_2027.py"
+      - "modules/reference/fields/import_data/structure_2027.json"
+      - "tests/test_import_structure_2027.py"
+      - ".github/workflows/import-structure-2027-tests.yml"
+  pull_request:
+    paths:
+      - "modules/reference/fields/import_structure_2027.py"
+      - "modules/reference/fields/import_data/structure_2027.json"
+      - "tests/test_import_structure_2027.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-season-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify 2027 import on isolated in-memory database
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "integration-tests-not-production"
+        run: python -m unittest discover -s tests -p "test_import_structure_2027.py" -v
