@@ -51,6 +51,9 @@ def create_app():
         # This is inert unless the operator explicitly sets its one-use flag.
         from modules.reference.fields.import_structure_2027 import import_if_requested
         import_if_requested()
+        # Explicit, audited one-time fix of the two original 2027 demo records.
+        from modules.reference.fields.correct_structure_2027 import correct_if_requested
+        correct_if_requested()
         # Add empty seasons only; legacy fields have no verified year and must
         # never be silently attributed to 2026 or 2027.
         if not Season.query.first():

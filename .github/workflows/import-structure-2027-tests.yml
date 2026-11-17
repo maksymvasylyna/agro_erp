@@ -2,16 +2,18 @@ name: AgroERP 2027 structure import safety tests
 
 on:
   push:
-    branches: [main, feature/import-structure-2027]
+    branches: [main, feature/import-structure-2027, feature/correct-2027-demo-fields]
     paths:
       - "app.py"
       - "modules/reference/fields/import_structure_2027.py"
+      - "modules/reference/fields/correct_structure_2027.py"
       - "modules/reference/fields/import_data/structure_2027.json"
       - "tests/test_import_structure_2027.py"
       - ".github/workflows/import-structure-2027-tests.yml"
   pull_request:
     paths:
       - "modules/reference/fields/import_structure_2027.py"
+      - "modules/reference/fields/correct_structure_2027.py"
       - "modules/reference/fields/import_data/structure_2027.json"
       - "tests/test_import_structure_2027.py"
   workflow_dispatch:
