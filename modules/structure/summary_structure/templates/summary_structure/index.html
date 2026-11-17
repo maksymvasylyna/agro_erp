@@ -112,7 +112,7 @@
           <th class="company-title text-start" rowspan="2" scope="col">Культура</th>
           <th class="area-cell" rowspan="2" scope="col">{{ comparison.base_year }}, га</th>
           {% for year in comparison.selected_years %}
-          <th colspan="3" scope="colgroup">{{ year }} порівняно з {{ comparison.base_year }}</th>
+          <th colspan="3" scope="colgroup">Порівняння з {{ year }}</th>
           {% endfor %}
         </tr>
         <tr>
@@ -148,7 +148,7 @@
           <th class="company-title text-start" rowspan="2" scope="col">Кластер / підприємство</th>
           <th class="area-cell" rowspan="2" scope="col">{{ comparison.base_year }}, га</th>
           {% for year in comparison.selected_years %}
-          <th colspan="3" scope="colgroup">{{ year }} порівняно з {{ comparison.base_year }}</th>
+          <th colspan="3" scope="colgroup">Порівняння з {{ year }}</th>
           {% endfor %}
         </tr>
         <tr>
