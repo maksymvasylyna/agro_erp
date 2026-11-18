@@ -146,6 +146,6 @@ function reindex() {
 initialRows.forEach(x => addOperation(x));
 if (!initialRows.length) addOperation();
 const addButton = document.getElementById('add-operation');
-if (addButton) addButton.addEventListener('click', () => addOperation({basis_unit:'ha', basis_quantity:{{ planting.area|tojson }}}));
+if (addButton) addButton.addEventListener('click', () => addOperation({basis_unit:'ha', basis_quantity:{{ planting.area|float|tojson }}}));
 </script>
 {% endblock %}
