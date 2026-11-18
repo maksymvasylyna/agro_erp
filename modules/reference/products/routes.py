@@ -3,17 +3,30 @@
 Existing product IDs and all related operational data remain intact.
 """
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from extensions import db
 from modules.reference.shared_crud import linked_record_counts
 from .forms import ProductDeleteForm, ProductFilterForm, ProductForm
-from .models import Product
+from .models import Product, ProductIngredient
+from .catalog_import import sync_components
 
 
 products_bp = Blueprint("products", __name__, template_folder="templates")
+
+
+def _operational_dependency_counts():
+    # Ingredients are owned by Product and cascade with it; exclude these
+    # internal metadata rows from the operational deletion safeguard.
+    counts = linked_record_counts(Product)
+    internal = dict(
+        db.session.query(ProductIngredient.product_id, func.count())
+        .group_by(ProductIngredient.product_id).all()
+    )
+    return {product_id: max(0, count - internal.get(product_id, 0))
+            for product_id, count in counts.items()}
 
 
 def _identity(name, manufacturer_id, category_id, container):
@@ -47,6 +60,14 @@ def _apply_values(product, form):
     product.manufacturer_id = form.manufacturer.data.id
     product.unit_id = form.unit.data.id
     product.container = form.container.data or None
+    product.formulation_code = form.formulation_code.data or None
+    product.formulation_name = form.formulation_name.data or None
+    product.composition = form.composition.data or None
+    product.registration_status = form.registration_status.data
+    product.registration_number = form.registration_number.data or None
+    product.registration_valid_until = form.registration_valid_until.data
+    product.source_url = form.source_url.data or None
+    product.source_note = form.source_note.data or None
 
 
 @products_bp.route("/products")
@@ -60,7 +81,16 @@ def index():
     )
     search = (request.args.get("q") or "").strip()
     if search:
-        query = query.filter(Product.name.ilike(f"%{search}%"))
+        query = query.filter(or_(
+            Product.name.ilike(f"%{search}%"),
+            Product.composition.ilike(f"%{search}%"),
+        ))
+    archived = (request.args.get("archived") or "active").strip()
+    if archived == "archived":
+        query = query.filter(Product.is_archived.is_(True))
+    elif archived != "all":
+        archived = "active"
+        query = query.filter(Product.is_archived.is_(False))
     if form.category.data:
         query = query.filter(Product.category_id == form.category.data.id)
     if form.group.data:
@@ -73,7 +103,10 @@ def index():
         items=query.order_by(Product.name, Product.id).all(),
         form=form,
         search=search,
-        dependencies=linked_record_counts(Product),
+        dependencies=_operational_dependency_counts(),
+        archived=archived,
+        active_count=Product.query.filter(Product.is_archived.is_(False)).count(),
+        archive_count=Product.query.filter(Product.is_archived.is_(True)).count(),
         delete_form=ProductDeleteForm(),
         create_url=url_for("products.create"),
     )
@@ -92,6 +125,8 @@ def create():
             _apply_values(product, form)
             try:
                 db.session.add(product)
+                db.session.flush()
+                sync_components(product, product.composition)
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
@@ -124,6 +159,7 @@ def edit(id):
         else:
             _apply_values(product, form)
             try:
+                sync_components(product, product.composition)
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
@@ -141,7 +177,7 @@ def delete(id):
         return redirect(url_for("products.index"))
 
     product = Product.query.get_or_404(id)
-    if linked_record_counts(Product).get(product.id, 0):
+    if _operational_dependency_counts().get(product.id, 0):
         flash(
             "Продукт використовується в планах, закупівлях, заявках або "
             "складських операціях. Видалення заблоковано.",
