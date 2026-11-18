@@ -28,33 +28,49 @@ class PlanningWorkspaceTests(unittest.TestCase):
         self.ctx.push()
         cluster = Cluster(name="Північ")
         company = Company(name="Підприємство А", cluster=cluster)
+        southern = Cluster(name="Південь")
+        company_south = Company(name="Підприємство Б", cluster=southern)
         wheat = Culture(name="Пшениця")
         rape = Culture(name="Ріпак")
-        field = Field(name="ПОЛЕ 125", area=999.0, cluster=cluster,
+        field = Field(name="ПОЛЕ 125-А", area=999.0, cluster=cluster,
                       company=company, culture=wheat, is_active=True)
+        rape_field = Field(name="ПОЛЕ 125-Б", area=40.0, cluster=cluster,
+                           company=company, culture=rape, is_active=True)
+        south_field = Field(name="ПОЛЕ 999", area=10.0, cluster=southern,
+                            company=company_south, culture=rape, is_active=True)
         unit = Unit(name="л")
         product = Product(name="Продукт А", unit=unit)
         second = Product(name="Продукт Б", unit=unit)
         archived = Product(name="Неактивний продукт", unit=unit, is_archived=True)
         treatment_type = TreatmentType(name="Фунгіцид Т1")
-        db.session.add_all([cluster, company, wheat, rape, field, unit, product,
-                            second, archived, treatment_type])
+        db.session.add_all([cluster, company, southern, company_south,
+                            wheat, rape, field, rape_field, south_field, unit,
+                            product, second, archived, treatment_type])
         db.session.flush()
         s26 = Season.query.filter_by(year=2026).one()
         s27 = Season.query.filter_by(year=2027).one()
         fs26 = FieldSeason(season_id=s26.id, field_id=field.id, cluster_id=cluster.id,
-                           company_id=company.id, area=Decimal("100.00"))
+                           company_id=company.id, area=Decimal("60.00"))
+        rape_fs = FieldSeason(season_id=s26.id, field_id=rape_field.id, cluster_id=cluster.id,
+                              company_id=company.id, area=Decimal("40.00"))
         fs27 = FieldSeason(season_id=s27.id, field_id=field.id, cluster_id=cluster.id,
                            company_id=company.id, area=Decimal("90.00"))
-        db.session.add_all([fs26, fs27])
+        south_fs = FieldSeason(season_id=s26.id, field_id=south_field.id, cluster_id=southern.id,
+                               company_id=company_south.id, area=Decimal("10.00"))
+        db.session.add_all([fs26, rape_fs, fs27, south_fs])
         db.session.flush()
         pw = FieldPlanting(field_season_id=fs26.id, culture_id=wheat.id, area=Decimal("60"))
-        pr = FieldPlanting(field_season_id=fs26.id, culture_id=rape.id, area=Decimal("40"))
+        pr = FieldPlanting(field_season_id=rape_fs.id, culture_id=rape.id, area=Decimal("40"))
         later = FieldPlanting(field_season_id=fs27.id, culture_id=rape.id, area=Decimal("90"))
-        db.session.add_all([pw, pr, later])
+        south_planting = FieldPlanting(field_season_id=south_fs.id, culture_id=rape.id,
+                                       area=Decimal("10"))
+        db.session.add_all([pw, pr, later, south_planting])
         db.session.commit()
-        self.ids = dict(wheat=pw.id, rape=pr.id, later=later.id, product=product.id,
-                        second=second.id, archived=archived.id,
+        self.ids = dict(wheat=pw.id, rape=pr.id, later=later.id, south=south_planting.id,
+                        field=field.id, rape_field=rape_field.id, south_field=south_field.id,
+                        north_cluster=cluster.id, south_cluster=southern.id,
+                        company=company.id, company_south=company_south.id,
+                        product=product.id, second=second.id, archived=archived.id,
                         type=treatment_type.id, season26=s26.id, season27=s27.id)
         self.client = self.app.test_client()
 
@@ -89,7 +105,7 @@ class PlanningWorkspaceTests(unittest.TestCase):
         self.select_year(2026)
         landing = self.client.get("/plans/workspace/")
         self.assertEqual(landing.status_code, 200, landing.get_data(as_text=True)[:900])
-        self.assertIn("ПОЛЕ 125", landing.get_data(as_text=True))
+        self.assertNotIn("ПОЛЕ 125", landing.get_data(as_text=True))
         for planting_id in (self.ids["wheat"], self.ids["rape"]):
             response = self.client.get(f"/plans/workspace/planting/{planting_id}")
             self.assertEqual(response.status_code, 200,
@@ -100,8 +116,10 @@ class PlanningWorkspaceTests(unittest.TestCase):
         self.assertEqual(self.create_plan(self.ids["wheat"]).status_code, 302)
         self.assertEqual(self.client.get(
             f"/plans/workspace/planting/{self.ids['wheat']}").status_code, 200)
+        self.assertIn("ПОЛЕ 125-А", self.client.get(
+            "/plans/workspace/").get_data(as_text=True))
 
-    def test_two_crops_on_same_field_have_independent_plans(self):
+    def test_split_fields_have_independent_plans(self):
         self.select_year(2026)
         a = self.create_plan(self.ids["wheat"])
         b = self.create_plan(self.ids["rape"], basis="40")
@@ -115,8 +133,68 @@ class PlanningWorkspaceTests(unittest.TestCase):
         page = self.client.get("/plans/workspace/").get_data(as_text=True)
         self.assertIn("Пшениця", page)
         self.assertIn("Ріпак", page)
+        self.assertIn("ПОЛЕ 125-А", page)
+        self.assertIn("ПОЛЕ 125-Б", page)
         self.assertIn("60", page)
         self.assertNotIn("999.0", page)
+
+    def test_creation_wizard_cascade_and_excludes_planned_fields(self):
+        self.select_year(2026)
+        entry = self.client.get("/new_plans/")
+        self.assertEqual(entry.status_code, 200)
+        self.assertIn("/plans/workspace/create/cluster", entry.get_data(as_text=True))
+        first = self.client.get("/plans/workspace/create/cluster")
+        self.assertEqual(first.status_code, 200)
+        self.assertIn("Північ", first.get_data(as_text=True))
+        self.assertIn("Південь", first.get_data(as_text=True))
+        north_url = f"/plans/workspace/create/cluster/{self.ids['north_cluster']}/company"
+        company_page = self.client.get(north_url)
+        self.assertEqual(company_page.status_code, 200)
+        self.assertIn("Підприємство А", company_page.get_data(as_text=True))
+        self.assertNotIn("Підприємство Б", company_page.get_data(as_text=True))
+        fields_url = (f"/plans/workspace/create/cluster/{self.ids['north_cluster']}"
+                      f"/company/{self.ids['company']}/field")
+        fields = self.client.get(fields_url).get_data(as_text=True)
+        self.assertIn("ПОЛЕ 125-А", fields)
+        self.assertIn("ПОЛЕ 125-Б", fields)
+        self.assertNotIn("ПОЛЕ 999", fields)
+        self.create_plan(self.ids["wheat"])
+        fields = self.client.get(fields_url).get_data(as_text=True)
+        self.assertNotIn("ПОЛЕ 125-А", fields)
+        self.assertIn("ПОЛЕ 125-Б", fields)
+        self.create_plan(self.ids["rape"], basis="40")
+        fields = self.client.get(fields_url).get_data(as_text=True)
+        self.assertNotIn("ПОЛЕ 125-А", fields)
+        self.assertNotIn("ПОЛЕ 125-Б", fields)
+        self.assertNotIn("Підприємство А", self.client.get(north_url).get_data(as_text=True))
+        self.assertNotIn("Північ", self.client.get("/plans/workspace/create/cluster").get_data(as_text=True))
+        self.assertIn("Південь", self.client.get("/plans/workspace/create/cluster").get_data(as_text=True))
+
+    def test_legacy_plan_excludes_field_and_blocks_direct_creation(self):
+        from modules.plans.models import Plan
+        self.select_year(2026)
+        db.session.add(Plan(field_id=self.ids["field"], season_id=self.ids["season26"]))
+        db.session.commit()
+        url = (f"/plans/workspace/create/cluster/{self.ids['north_cluster']}"
+               f"/company/{self.ids['company']}/field")
+        page = self.client.get(url).get_data(as_text=True)
+        self.assertNotIn("ПОЛЕ 125-А", page)
+        self.assertIn("ПОЛЕ 125-Б", page)
+        self.assertEqual(self.client.get(
+            f"/plans/workspace/planting/{self.ids['wheat']}").status_code, 409)
+        self.assertEqual(self.create_plan(self.ids["wheat"]).status_code, 409)
+        self.assertEqual(TechnologyPlan.query.count(), 0)
+
+    def test_field_with_multiple_crops_must_be_split_before_creation(self):
+        self.select_year(2026)
+        original = db.session.get(FieldPlanting, self.ids["wheat"])
+        db.session.add(FieldPlanting(field_season_id=original.field_season_id,
+                                     culture_id=original.culture_id, area=Decimal("1")))
+        db.session.commit()
+        url = (f"/plans/workspace/create/cluster/{self.ids['north_cluster']}"
+               f"/company/{self.ids['company']}/field")
+        self.assertNotIn("ПОЛЕ 125-А", self.client.get(url).get_data(as_text=True))
+        self.assertEqual(self.create_plan(self.ids["wheat"]).status_code, 409)
 
     def test_season_isolation_and_reject_stale_form(self):
         self.select_year(2026)
