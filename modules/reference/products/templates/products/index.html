@@ -19,7 +19,8 @@
 {% endblock %}
 
 {% block filter_form %}
-  <form method="get" action="{{ url_for('products.index') }}" class="row g-2 align-items-end mb-3">
+  <form id="products-filter-form" method="get" action="{{ url_for('products.index') }}"
+        class="row g-2 align-items-end mb-3" role="search">
     <input type="hidden" name="archived" value="{{ archived }}">
     <div class="col-sm-6 col-lg-3">
       <label for="product-search" class="form-label">Назва або діюча речовина</label>
@@ -38,9 +39,15 @@
       {{ form.manufacturer.label(class="form-label") }}
       {{ form.manufacturer(class="form-select") }}
     </div>
-    <div class="col-12 d-flex flex-wrap gap-2">
-      {{ form.submit(class="btn btn-primary") }}
-      <a href="{{ url_for('products.index', archived=archived) }}" class="btn btn-outline-secondary">Скинути фільтри</a>
+    <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+      <a id="products-reset-filters" href="{{ url_for('products.index', archived=archived) }}"
+         class="btn btn-outline-secondary">Скинути фільтри</a>
+      <span id="products-visible-count" role="status" aria-live="polite" class="text-muted small">
+        Показано {{ items|length }} із {{ items|length }}
+      </span>
+      <noscript>
+        <button type="submit" name="server_filter" value="1" class="btn btn-primary">Фільтрувати</button>
+      </noscript>
     </div>
   </form>
 {% endblock %}
@@ -61,7 +68,11 @@
 {% block table_rows %}
   {% for product in items %}
     {% set dependent = dependencies.get(product.id, 0) %}
-    <tr class="{{ 'text-muted' if product.is_archived else '' }}">
+    <tr class="{{ 'text-muted' if product.is_archived else '' }}" data-product-row
+        data-category="{{ product.category_id or '' }}"
+        data-group="{{ product.group_id or '' }}"
+        data-manufacturer="{{ product.manufacturer_id or '' }}"
+        data-search="{{ product.name }} {{ product.composition or '' }}">
       <td>{{ product.id }}</td>
       <td class="text-start fw-semibold" style="min-width:175px">
         {{ product.name }}
@@ -97,6 +108,16 @@
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="10" class="text-muted">Продуктів за вибраними фільтрами немає.</td></tr>
+    <tr><td colspan="10" class="text-muted">Продуктів у цьому переліку немає.</td></tr>
   {% endfor %}
+  {% if items %}
+    <tr id="products-no-matches" class="d-none">
+      <td colspan="10" class="text-muted text-center">За вибраними фільтрами продуктів немає.</td>
+    </tr>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/products_filters.js') }}" defer></script>
 {% endblock %}
