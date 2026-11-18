@@ -1,0 +1,551 @@
+{
+  "catalog": "Syngenta Ukraine: largest documented packaging, 2026",
+  "principle": "Only the maximum declared package size for the same product/formulation is stored. Packaging is not formulation or a dose.",
+  "date_researched": "2026-11-18",
+  "primary_source_url": "https://library.syngenta.in.ua/books/qknt/",
+  "primary_source_transcript": "https://fliphtml5.com/kdoezf/qknt/",
+  "secondary_source_url": "https://store.syngenta.ua/",
+  "note": "Some industrial pack sizes are 100/200/1000 L. ATUVA 4 L is the inoculant component of the 4+1 L kit; do not treat the kit volume as a single canister.",
+  "entries": [
+    {
+      "index": 1,
+      "name": "ATUVA",
+      "container": "4 л"
+    },
+    {
+      "index": 2,
+      "name": "ACTARA 25 WG",
+      "container": "0,25 кг"
+    },
+    {
+      "index": 3,
+      "name": "ACTELLIC 500 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 4,
+      "name": "AMPLIGO 150 ZC",
+      "container": "5 л"
+    },
+    {
+      "index": 5,
+      "name": "ENGEO 247 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 6,
+      "name": "FORCE 1.5 G",
+      "container": "20 кг"
+    },
+    {
+      "index": 7,
+      "name": "KARATE 050 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 8,
+      "name": "KARATE ZEON 050 CS",
+      "container": "5 л"
+    },
+    {
+      "index": 9,
+      "name": "LIRUM 78 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 10,
+      "name": "LUFOX 105 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 11,
+      "name": "MATCH 050 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 12,
+      "name": "PLENUM 50 WG",
+      "container": "1 кг"
+    },
+    {
+      "index": 13,
+      "name": "PROCLAIM 5 SG",
+      "container": "1 кг"
+    },
+    {
+      "index": 14,
+      "name": "VERDAVIS 250 ZC",
+      "container": "5 л"
+    },
+    {
+      "index": 15,
+      "name": "VERTIMEC 018 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 16,
+      "name": "VERTIMEC NEO 018 SL",
+      "container": "5 л"
+    },
+    {
+      "index": 17,
+      "name": "VOLIAM FLEXI 300 SC",
+      "container": "1 л"
+    },
+    {
+      "index": 18,
+      "name": "BOROPLUS",
+      "container": "10 л"
+    },
+    {
+      "index": 19,
+      "name": "BREXIL MIX",
+      "container": "5 кг"
+    },
+    {
+      "index": 20,
+      "name": "BREXIL ZN",
+      "container": "5 кг"
+    },
+    {
+      "index": 21,
+      "name": "ISABION",
+      "container": "5 л"
+    },
+    {
+      "index": 22,
+      "name": "QUANTIS",
+      "container": "10 л"
+    },
+    {
+      "index": 23,
+      "name": "TAEGRO WP",
+      "container": "0,37 кг"
+    },
+    {
+      "index": 24,
+      "name": "AQUATI 800 EC",
+      "container": "10 л"
+    },
+    {
+      "index": 25,
+      "name": "AXIAL 050 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 26,
+      "name": "AXIAL CROSS 050 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 27,
+      "name": "BOUNDARY 777.5 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 28,
+      "name": "CALLISTO 480 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 29,
+      "name": "CAPTORA PLUS SL",
+      "container": "10 л"
+    },
+    {
+      "index": 30,
+      "name": "CAPTORA SL",
+      "container": "20 л"
+    },
+    {
+      "index": 31,
+      "name": "DERBY 175 SC",
+      "container": "0,5 л"
+    },
+    {
+      "index": 32,
+      "name": "DIALEN SUPER 464 SL",
+      "container": "10 л"
+    },
+    {
+      "index": 33,
+      "name": "DUAL GOLD 960 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 34,
+      "name": "ELUMIS 105 OD",
+      "container": "20 л"
+    },
+    {
+      "index": 35,
+      "name": "FLUENCE 75 WG",
+      "container": "0,5 кг"
+    },
+    {
+      "index": 36,
+      "name": "FUSILADE FORTE 150 EC",
+      "container": "20 л"
+    },
+    {
+      "index": 37,
+      "name": "GESAGARD 500 FW",
+      "container": "5 л"
+    },
+    {
+      "index": 38,
+      "name": "HURRICANE FORTE 500 SL",
+      "container": "20 л"
+    },
+    {
+      "index": 39,
+      "name": "LINTUR 70 WG",
+      "container": "1 кг"
+    },
+    {
+      "index": 40,
+      "name": "LOGRAN 75 WG",
+      "container": "0,12 кг"
+    },
+    {
+      "index": 41,
+      "name": "LONTREL GRAND WG",
+      "container": "2 кг"
+    },
+    {
+      "index": 42,
+      "name": "LUMAX 537.5 SE",
+      "container": "20 л"
+    },
+    {
+      "index": 43,
+      "name": "MILAGRO 040 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 44,
+      "name": "PEAK 75 WG",
+      "container": "0,1 кг"
+    },
+    {
+      "index": 45,
+      "name": "PRIMA FORTE 195 SE",
+      "container": "5 л"
+    },
+    {
+      "index": 46,
+      "name": "PRIMEXTRA GOLD 720 SC",
+      "container": "20 л"
+    },
+    {
+      "index": 47,
+      "name": "PRIMEXTRA TZ GOLD 500 SC",
+      "container": "100 л"
+    },
+    {
+      "index": 48,
+      "name": "RAKER EXTRA OD",
+      "container": "10 л"
+    },
+    {
+      "index": 49,
+      "name": "REGLONE AIR 200 SL",
+      "container": "20 л"
+    },
+    {
+      "index": 50,
+      "name": "REGLONE FORTE 200 SL",
+      "container": "10 л"
+    },
+    {
+      "index": 51,
+      "name": "REGLONE SUPER 150 SL",
+      "container": "10 л"
+    },
+    {
+      "index": 52,
+      "name": "TAKOMIR SL",
+      "container": "5 л"
+    },
+    {
+      "index": 53,
+      "name": "TWIST 250 WG",
+      "container": "0,5 кг"
+    },
+    {
+      "index": 54,
+      "name": "CELEST MAX 165 FS",
+      "container": "20 л"
+    },
+    {
+      "index": 55,
+      "name": "CELEST TOP 312.5 FS",
+      "container": "5 л"
+    },
+    {
+      "index": 56,
+      "name": "CRUISER OSR 322 FS",
+      "container": "1000 л"
+    },
+    {
+      "index": 57,
+      "name": "VIBRANCE INTEGRAL 235 FS",
+      "container": "20 л"
+    },
+    {
+      "index": 58,
+      "name": "APRON XL 350 ES",
+      "container": "20 л"
+    },
+    {
+      "index": 59,
+      "name": "MAXIM 025 FS",
+      "container": "1000 л"
+    },
+    {
+      "index": 60,
+      "name": "MAXIM FORTE 050 FS",
+      "container": "20 л"
+    },
+    {
+      "index": 61,
+      "name": "MAXIM QUATTRO 382.5 FS",
+      "container": "20 л"
+    },
+    {
+      "index": 62,
+      "name": "MAXIM XL 035 FS",
+      "container": "1000 л"
+    },
+    {
+      "index": 63,
+      "name": "VIBRANCE 500 FS",
+      "container": "200 л"
+    },
+    {
+      "index": 64,
+      "name": "VIBRANCE PREMIUM 90 FS",
+      "container": "5 л"
+    },
+    {
+      "index": 65,
+      "name": "VIBRANCE RFC 112.5 FS",
+      "container": "5 л"
+    },
+    {
+      "index": 66,
+      "name": "VIBRANCE TRIO FS",
+      "container": "20 л"
+    },
+    {
+      "index": 67,
+      "name": "CRUISER 350 FS",
+      "container": "1000 л"
+    },
+    {
+      "index": 68,
+      "name": "EQVENTO 100 FS",
+      "container": "5 л"
+    },
+    {
+      "index": 69,
+      "name": "FORCE 200 CS",
+      "container": "20 л"
+    },
+    {
+      "index": 70,
+      "name": "FORCE ZEA 280 FS",
+      "container": "1000 л"
+    },
+    {
+      "index": 71,
+      "name": "MODDUS 250 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 72,
+      "name": "MODDUS START 250 DC",
+      "container": "5 л"
+    },
+    {
+      "index": 73,
+      "name": "SETAR 375 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 74,
+      "name": "TALON RB — GRAINS",
+      "container": "40 кг"
+    },
+    {
+      "index": 75,
+      "name": "TALON RB — WAX BRICKS",
+      "container": "10 кг"
+    },
+    {
+      "index": 76,
+      "name": "ALTO SUPER 330 EC",
+      "container": "20 л"
+    },
+    {
+      "index": 77,
+      "name": "AMISTAR EXTRA 280 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 78,
+      "name": "AMISTAR GOLD 250 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 79,
+      "name": "CIDELY TOP 140 DC",
+      "container": "5 л"
+    },
+    {
+      "index": 80,
+      "name": "CYPRESS 400 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 81,
+      "name": "DINALI 90 DC",
+      "container": "5 л"
+    },
+    {
+      "index": 82,
+      "name": "ELATUS RIA 358 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 83,
+      "name": "GEOXE 50 WG",
+      "container": "1 кг"
+    },
+    {
+      "index": 84,
+      "name": "HORUS 75 WG",
+      "container": "1 кг"
+    },
+    {
+      "index": 85,
+      "name": "MAGNELLO 350 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 86,
+      "name": "MIRAVIS 200 SC",
+      "container": "1 л"
+    },
+    {
+      "index": 87,
+      "name": "MIRAVIS ACE 275 SE",
+      "container": "5 л"
+    },
+    {
+      "index": 88,
+      "name": "MIRAVIS DUO 200 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 89,
+      "name": "MIRAVIS MAX 325 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 90,
+      "name": "MIRAVIS NEO 300 SE",
+      "container": "5 л"
+    },
+    {
+      "index": 91,
+      "name": "MIRAVIS PRIME 400 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 92,
+      "name": "ORONDIS EVO 262 SC",
+      "container": "1 л"
+    },
+    {
+      "index": 93,
+      "name": "ORONDIS ULTRA 280 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 94,
+      "name": "PERGADO R 270 WG",
+      "container": "5 кг"
+    },
+    {
+      "index": 95,
+      "name": "QUADRIS 250 SC",
+      "container": "1 л"
+    },
+    {
+      "index": 96,
+      "name": "QUADRIS TOP 325 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 97,
+      "name": "REKWANS FLEX 430 WG",
+      "container": "5 кг"
+    },
+    {
+      "index": 98,
+      "name": "REVUS TOP 500 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 99,
+      "name": "RIDOMIL GOLD MZ 68 WG",
+      "container": "5 кг"
+    },
+    {
+      "index": 100,
+      "name": "RIDOMIL GOLD R 162 WG",
+      "container": "5 кг"
+    },
+    {
+      "index": 101,
+      "name": "SCORE 250 EC",
+      "container": "1 л"
+    },
+    {
+      "index": 102,
+      "name": "SHIRLAN 500 SC",
+      "container": "5 л"
+    },
+    {
+      "index": 103,
+      "name": "SPIRALE 475 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 104,
+      "name": "SWITCH 62.5 WG",
+      "container": "1 кг"
+    },
+    {
+      "index": 105,
+      "name": "THIOVIT JET 80 WG",
+      "container": "20 кг"
+    },
+    {
+      "index": 106,
+      "name": "TILT TURBO 575 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 107,
+      "name": "TOPAZ 100 EC",
+      "container": "5 л"
+    },
+    {
+      "index": 108,
+      "name": "UNIFORM 446 SE",
+      "container": "1 л"
+    }
+  ]
+}
