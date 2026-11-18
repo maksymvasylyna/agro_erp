@@ -1,0 +1,1087 @@
+{
+  "catalog": "Syngenta Ukraine 2026",
+  "source_spreadsheet": "1U5C9cS0d2qyGSPm19_Jra6vECxW64L__bk8bQHiqG6Y",
+  "registration_verified": false,
+  "products": [
+    {
+      "name": "ATUVA",
+      "formulation_code": "БІО",
+      "formulation_name": "Біологічний інокулянт",
+      "composition": "Bradyrhizobium japonicum, штами 5079 і 5080",
+      "type": "Інокулянт",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ACTARA 25 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "тіаметоксам 250 г/кг",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ACTELLIC 500 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "піриміфос-метил 500 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "AMPLIGO 150 ZC",
+      "formulation_code": "ZC",
+      "formulation_name": "Комбінована форма CS + SC",
+      "composition": "хлорантраніліпрол 100 г/л; лямбда-цигалотрин 50 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ENGEO 247 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "тіаметоксам 141 г/л; лямбда-цигалотрин 106 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "FORCE 1.5 G",
+      "formulation_code": "GR",
+      "formulation_name": "Гранули",
+      "composition": "тефлутрин 15 г/кг",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "KARATE 050 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "лямбда-цигалотрин 50 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "KARATE ZEON 050 CS",
+      "formulation_code": "CS",
+      "formulation_name": "Капсульована суспензія",
+      "composition": "лямбда-цигалотрин 50 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "LIRUM 78 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "ціантраніліпрол 60 г/л; абамектин 18 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "LUFOX 105 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "люфенурон; феноксикарб",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MATCH 050 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "люфенурон 50 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "PLENUM 50 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "піметрозин 500 г/кг",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "PROCLAIM 5 SG",
+      "formulation_code": "SG",
+      "formulation_name": "Водорозчинні гранули",
+      "composition": "емамектину бензоат 50 г/кг",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VERDAVIS 250 ZC",
+      "formulation_code": "ZC",
+      "formulation_name": "Комбінована форма CS + SC",
+      "composition": "пліназолін 100 г/л; лямбда-цигалотрин 150 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VERTIMEC 018 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "абамектин 18 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VERTIMEC NEO 018 SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "абамектин 18 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VOLIAM FLEXI 300 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "тіаметоксам 200 г/л; хлорантраніліпрол 100 г/л",
+      "type": "Інсектицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "BOROPLUS",
+      "formulation_code": "РК",
+      "formulation_name": "Рідкий препарат / уточнити",
+      "composition": "бор у комплексі (склад уточнити)",
+      "type": "Біостимулятор / мікродобриво",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "BREXIL MIX",
+      "formulation_code": "WG",
+      "formulation_name": "Водорозчинні гранули",
+      "composition": "MgO 6%; Fe 0,6%; Mn 0,7%; Zn 5%; B 1,2%; Cu 0,8%; Mo 1%",
+      "type": "Біостимулятор / мікродобриво",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "BREXIL ZN",
+      "formulation_code": "WG",
+      "formulation_name": "Водорозчинні гранули",
+      "composition": "Zn у комплексі з LSA",
+      "type": "Біостимулятор / мікродобриво",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ISABION",
+      "formulation_code": "РК",
+      "formulation_name": "Рідкий препарат / уточнити",
+      "composition": "амінокислоти й пептиди",
+      "type": "Біостимулятор / мікродобриво",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "QUANTIS",
+      "formulation_code": "РК",
+      "formulation_name": "Рідкий препарат / уточнити",
+      "composition": "вільні амінокислоти; органічні сполуки (склад уточнити)",
+      "type": "Біостимулятор / мікродобриво",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "TAEGRO WP",
+      "formulation_code": "WP",
+      "formulation_name": "Змочуваний порошок",
+      "composition": "Bacillus amyloliquefaciens (штам уточнити)",
+      "type": "Біофунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "AQUATI 800 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "просульфокарб 800 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "AXIAL 050 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "піноксаден 50 г/л; антидот клоквінтосет-мексил",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "AXIAL CROSS 050 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "піноксаден 45 г/л; флорасулам 5 г/л; антидот клоквінтосет-мексил 11,25 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "BOUNDARY 777.5 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "S-метолахлор 628,13 г/л; метрибузин 149,36 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CALLISTO 480 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "мезотріон 480 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CAPTORA PLUS SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "імазапір; імазамокс (співвідношення уточнити)",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "CAPTORA SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "імазапір; імазамокс",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "DERBY 175 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "флорасулам; флуметсулам",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "DIALEN SUPER 464 SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "дикамба; 2,4-Д (диметиламінна сіль)",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "DUAL GOLD 960 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "S-метолахлор 960 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ELUMIS 105 OD",
+      "formulation_code": "OD",
+      "formulation_name": "Олійна дисперсія",
+      "composition": "мезотріон 75 г/л; нікосульфурон 30 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "FLUENCE 75 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Водорозчинні гранули",
+      "composition": "трибенурон-метил 750 г/кг",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "FUSILADE FORTE 150 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "флуазифоп-П-бутил 150 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "GESAGARD 500 FW",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "прометрин 500 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "HURRICANE FORTE 500 SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "гліфосат (калійна сіль) 500 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "LINTUR 70 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "триасульфурон; дикамба",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "LOGRAN 75 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "триасульфурон 750 г/кг",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "LONTREL GRAND WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "клопіралід",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "LUMAX 537.5 SE",
+      "formulation_code": "SE",
+      "formulation_name": "Суспензійна емульсія",
+      "composition": "S-метолахлор; мезотріон; тербутилазин",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MILAGRO 040 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "нікосульфурон 40 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "PEAK 75 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "просульфурон 750 г/кг",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "PRIMA FORTE 195 SE",
+      "formulation_code": "SE",
+      "formulation_name": "Суспензійна емульсія",
+      "composition": "2,4-Д; флорасулам; амінопіралід",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "PRIMEXTRA GOLD 720 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "S-метолахлор; атразин (склад уточнити)",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "PRIMEXTRA TZ GOLD 500 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "S-метолахлор; тербутилазин",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "RAKER EXTRA OD",
+      "formulation_code": "OD",
+      "formulation_name": "Олійна дисперсія",
+      "composition": "нікосульфурон 30 г/л; толпіралат 30 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "REGLONE AIR 200 SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "дикват 200 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "REGLONE FORTE 200 SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "дикват 200 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "REGLONE SUPER 150 SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "дикват 150 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "TAKOMIR SL",
+      "formulation_code": "SL",
+      "formulation_name": "Розчинний концентрат",
+      "composition": "імазамокс 40 г/л",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "TWIST 250 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "галауксифен-метил; флорасулам; антидот клоквінтосет-мексил",
+      "type": "Гербіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CELEST MAX 165 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл; тебуконазол; тіаметоксам",
+      "type": "Протруйник комбінований",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CELEST TOP 312.5 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл; дифеноконазол; тіаметоксам",
+      "type": "Протруйник комбінований",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CRUISER OSR 322 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "тіаметоксам; металаксил-М; флудіоксоніл",
+      "type": "Протруйник комбінований",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VIBRANCE INTEGRAL 235 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "седаксан 25 г/л; флудіоксоніл 25 г/л; тебуконазол 10 г/л; тіаметоксам 175 г/л",
+      "type": "Протруйник комбінований",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "APRON XL 350 ES",
+      "formulation_code": "ES",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "металаксил-М 350 г/л",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MAXIM 025 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл 25 г/л",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MAXIM FORTE 050 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл; тебуконазол; азоксистробін (склад уточнити)",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "MAXIM QUATTRO 382.5 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл; металаксил-М; азоксистробін; тіабендазол",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MAXIM XL 035 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл 25 г/л; металаксил-М 10 г/л",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VIBRANCE 500 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "седаксан 500 г/л",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "VIBRANCE PREMIUM 90 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "флудіоксоніл; седаксан; тебуконазол (склад уточнити)",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "VIBRANCE RFC 112.5 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "седаксан; флудіоксоніл; металаксил-М (склад уточнити)",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "VIBRANCE TRIO FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "седаксан; флудіоксоніл; тебуконазол (склад уточнити)",
+      "type": "Протруйник фунгіцидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "CRUISER 350 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "тіаметоксам 350 г/л",
+      "type": "Протруйник інсектицидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "EQVENTO 100 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "пліназолін 100 г/л",
+      "type": "Протруйник інсектицидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "FORCE 200 CS",
+      "formulation_code": "CS",
+      "formulation_name": "Капсульована суспензія",
+      "composition": "тефлутрин 200 г/л",
+      "type": "Протруйник інсектицидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "FORCE ZEA 280 FS",
+      "formulation_code": "FS",
+      "formulation_name": "Текучий концентрат для обробки насіння",
+      "composition": "тефлутрин; тіаметоксам",
+      "type": "Протруйник інсектицидний",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MODDUS 250 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "тринексапак-етил 250 г/л",
+      "type": "Регулятор росту / ретардант",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MODDUS START 250 DC",
+      "formulation_code": "DC",
+      "formulation_name": "Дисперсійний концентрат",
+      "composition": "тринексапак-етил 250 г/л",
+      "type": "Регулятор росту / ретардант",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "SETAR 375 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "дифеноконазол 250 г/л; паклобутразол 125 г/л",
+      "type": "Регулятор росту / ретардант",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "TALON RB — GRAINS",
+      "formulation_code": "RB",
+      "formulation_name": "Готова принада — зернова",
+      "composition": "бродіфакум 0,05 г/кг",
+      "type": "Родентицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "TALON RB — WAX BRICKS",
+      "formulation_code": "RB",
+      "formulation_name": "Готова принада — воскові брикети",
+      "composition": "бродіфакум 0,05 г/кг",
+      "type": "Родентицид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ALTO SUPER 330 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "ципроконазол 80 г/л; пропіконазол 250 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "AMISTAR EXTRA 280 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "ципроконазол 80 г/л; азоксистробін 200 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "AMISTAR GOLD 250 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "азоксистробін 125 г/л; дифеноконазол 125 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CIDELY TOP 140 DC",
+      "formulation_code": "DC",
+      "formulation_name": "Дисперсійний концентрат",
+      "composition": "цифлуфенамід; дифеноконазол",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "CYPRESS 400 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "дифеноконазол 250 г/л; ципроконазол 150 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "DINALI 90 DC",
+      "formulation_code": "DC",
+      "formulation_name": "Дисперсійний концентрат",
+      "composition": "дифеноконазол; цифлуфенамід",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ELATUS RIA 358 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "бензовіндіфлупір; ципроконазол; пропіконазол (склад уточнити)",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "GEOXE 50 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "флудіоксоніл 500 г/кг",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "HORUS 75 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "ципродиніл 750 г/кг",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MAGNELLO 350 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "дифеноконазол 100 г/л; тебуконазол 250 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "MIRAVIS 200 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "підифлуметофен 200 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MIRAVIS ACE 275 SE",
+      "formulation_code": "SE",
+      "formulation_name": "Суспензійна емульсія",
+      "composition": "підифлуметофен 150 г/л; пропіконазол 125 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MIRAVIS DUO 200 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "підифлуметофен; дифеноконазол",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MIRAVIS MAX 325 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "підифлуметофен 75 г/л; дифеноконазол 125 г/л; азоксистробін 125 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MIRAVIS NEO 300 SE",
+      "formulation_code": "SE",
+      "formulation_name": "Суспензійна емульсія",
+      "composition": "підифлуметофен; азоксистробін; пропіконазол",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "MIRAVIS PRIME 400 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "підифлуметофен; флудіоксоніл",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "ORONDIS EVO 262 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "оксатиапіпролін; мандіпропамід (склад уточнити)",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація; перевірити склад"
+    },
+    {
+      "name": "ORONDIS ULTRA 280 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "оксатиапіпролін; мандіпропамід",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "PERGADO R 270 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "мандіпропамід; хлорокис міді",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "QUADRIS 250 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "азоксистробін 250 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "QUADRIS TOP 325 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "азоксистробін; дифеноконазол",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "REKWANS FLEX 430 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "мандіпропамід 250 г/кг; цимоксаніл 180 г/кг",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "REVUS TOP 500 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "мандіпропамід; дифеноконазол",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "RIDOMIL GOLD MZ 68 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "металаксил-М; манкоцеб",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "RIDOMIL GOLD R 162 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "металаксил-М; хлорокис міді",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "SCORE 250 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "дифеноконазол 250 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "SHIRLAN 500 SC",
+      "formulation_code": "SC",
+      "formulation_name": "Концентрат суспензії",
+      "composition": "флуазинам 500 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "SPIRALE 475 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "дифеноконазол 100 г/л; фенпропідин 375 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "SWITCH 62.5 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "ципродиніл; флудіоксоніл",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "THIOVIT JET 80 WG",
+      "formulation_code": "WG",
+      "formulation_name": "Вододисперсні гранули",
+      "composition": "сірка 800 г/кг",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "TILT TURBO 575 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "пропіконазол; фенпропідин",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "TOPAZ 100 EC",
+      "formulation_code": "EC",
+      "formulation_name": "Концентрат емульсії",
+      "composition": "пенконазол 100 г/л",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    },
+    {
+      "name": "UNIFORM 446 SE",
+      "formulation_code": "SE",
+      "formulation_name": "Суспензійна емульсія",
+      "composition": "азоксистробін; металаксил-М",
+      "type": "Фунгіцид",
+      "registration_status": "Потребує звірки з Держреєстром",
+      "source_url": "https://www.lnz.com.ua/uploads/sengenta2026zzr.pdf",
+      "source_note": "Каталог Syngenta 2026; наявність у каталозі ≠ підтверджена чинна реєстрація"
+    }
+  ]
+}
