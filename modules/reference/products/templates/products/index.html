@@ -4,19 +4,28 @@
 {% block header_text %}Продукти та препарати{% endblock %}
 
 {% block before_table %}
-  <p class="text-muted small mb-3">
-    Продукти використовуються в планах, закупівлях та складських операціях.
-    Доступні категорії, групи, виробники й одиниці виміру автоматично оновлюються
-    з відповідних довідників.
+  <p class="text-muted small mb-2">
+    Єдина база препаратів для планів, закупівель і складу. Латинська назва,
+    формуляція та склад зберігаються окремо від тари. Статус реєстрації
+    потребує підтвердження державним реєстром.
   </p>
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-sm {{ 'btn-primary' if archived == 'active' else 'btn-outline-primary' }}"
+       href="{{ url_for('products.index', archived='active') }}">Актуальний перелік ({{ active_count }})</a>
+    <a class="btn btn-sm {{ 'btn-secondary' if archived == 'archived' else 'btn-outline-secondary' }}"
+       href="{{ url_for('products.index', archived='archived') }}">Архівні ({{ archive_count }})</a>
+    <a class="btn btn-sm {{ 'btn-secondary' if archived == 'all' else 'btn-outline-secondary' }}"
+       href="{{ url_for('products.index', archived='all') }}">Усі</a>
+  </div>
 {% endblock %}
 
 {% block filter_form %}
   <form method="get" action="{{ url_for('products.index') }}" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="archived" value="{{ archived }}">
     <div class="col-sm-6 col-lg-3">
-      <label for="product-search" class="form-label">Назва продукту</label>
+      <label for="product-search" class="form-label">Назва або діюча речовина</label>
       <input id="product-search" type="search" name="q" class="form-control"
-             value="{{ search }}" placeholder="Пошук препарату">
+             value="{{ search }}" placeholder="Пошук препарату або складу">
     </div>
     <div class="col-sm-6 col-lg-3">
       {{ form.category.label(class="form-label") }}
@@ -32,40 +41,60 @@
     </div>
     <div class="col-12 d-flex flex-wrap gap-2">
       {{ form.submit(class="btn btn-primary") }}
-      <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">Скинути</a>
+      <a href="{{ url_for('products.index', archived=archived) }}" class="btn btn-outline-secondary">Скинути фільтри</a>
     </div>
   </form>
 {% endblock %}
 
 {% block table_headers %}
   <th>ID</th>
-  <th>Назва продукту</th>
+  <th>Препарат</th>
   <th>Категорія</th>
   <th>Група</th>
   <th>Виробник</th>
+  <th>Форма</th>
+  <th>Діючі речовини / концентрація</th>
+  <th>Реєстрація</th>
   <th>Од. виміру</th>
   <th>Тара</th>
-  <th>Залежних записів</th>
+  <th>Залежні записи</th>
   <th>Дії</th>
 {% endblock %}
 
 {% block table_rows %}
   {% for product in items %}
     {% set dependent = dependencies.get(product.id, 0) %}
-    <tr>
+    <tr class="{{ 'text-muted' if product.is_archived else '' }}">
       <td>{{ product.id }}</td>
-      <td class="text-start fw-semibold">{{ product.name }}</td>
+      <td class="text-start fw-semibold" style="min-width:175px">
+        {{ product.name }}
+        {% if product.is_archived %}<span class="badge bg-secondary">Архів</span>{% endif %}
+      </td>
       <td>{{ product.category.name if product.category else '—' }}</td>
       <td>{{ product.group.name if product.group else '—' }}</td>
       <td>{{ product.manufacturer.name if product.manufacturer else '—' }}</td>
+      <td>
+        <span class="fw-semibold">{{ product.formulation_code or '—' }}</span>
+        {% if product.formulation_name %}<div class="small text-muted" style="min-width:130px">{{ product.formulation_name }}</div>{% endif %}
+      </td>
+      <td class="text-start small" style="min-width:250px;max-width:350px;white-space:normal">
+        {{ product.composition or '—' }}
+      </td>
+      <td class="small" style="min-width:150px">
+        {{ product.registration_status or 'Не перевірено' }}
+        {% if product.registration_number %}<div>№ {{ product.registration_number }}</div>{% endif %}
+        {% if product.registration_valid_until %}<div>До {{ product.registration_valid_until }}</div>{% endif %}
+        {% if product.source_url %}
+          <div><a href="{{ product.source_url }}" target="_blank" rel="noopener noreferrer">Джерело</a></div>
+        {% endif %}
+      </td>
       <td>{{ product.unit.name if product.unit else '—' }}</td>
       <td>{{ product.container or '—' }}</td>
       <td>{{ dependent }}</td>
       <td>
         <div class="d-flex flex-wrap justify-content-center gap-2">
           <a href="{{ url_for('products.edit', id=product.id) }}"
-             class="btn btn-sm btn-primary"
-             aria-label="Редагувати {{ product.name }}">Редагувати</a>
+             class="btn btn-sm btn-primary" aria-label="Редагувати {{ product.name }}">Редагувати</a>
           {% if dependent %}
             <button type="button" class="btn btn-sm btn-outline-danger" disabled
                     title="Продукт використовується іншими модулями">Видалити</button>
@@ -80,6 +109,6 @@
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="9" class="text-muted">Продуктів за вибраними фільтрами немає.</td></tr>
+    <tr><td colspan="12" class="text-muted">Продуктів за вибраними фільтрами немає.</td></tr>
   {% endfor %}
 {% endblock %}
