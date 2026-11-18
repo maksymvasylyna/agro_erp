@@ -46,7 +46,7 @@ def _choices():
         TreatmentType.query.order_by(TreatmentType.name).all(),
         Product.query.options(
             joinedload(Product.manufacturer), joinedload(Product.unit)
-        ).order_by(Product.name).all(),
+        ).filter(Product.is_archived.is_(False)).order_by(Product.name).all(),
     )
 
 
