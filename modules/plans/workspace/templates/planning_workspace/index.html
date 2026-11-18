@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Технологічні плани · {{ active_year }}{% endblock %}
+{% block header %}Технологічне планування · {{ active_year }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary" href="{{ url_for('plans.hub') }}">← До планів</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">На головну</a>
+</div>
+<p class="text-muted small">Пілот нової механіки: один технологічний план на конкретний посів. Попередні плани не змінюються. Сезон обирається на головній сторінці.</p>
+<form method="get" id="plan-filters" class="row g-2 mb-3">
+  <div class="col-md-3">
+    <label class="form-label" for="cluster">Кластер</label>
+    <select class="form-select" id="cluster" name="cluster_id">
+      <option value="">Усі</option>
+      {% for id, name in clusters %}<option value="{{ id }}" {% if cluster_id == id %}selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label" for="company">Підприємство</label>
+    <select class="form-select" id="company" name="company_id">
+      <option value="">Усі</option>
+      {% for id, name in companies %}<option value="{{ id }}" {% if company_id == id %}selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label" for="culture">Культура</label>
+    <select class="form-select" id="culture" name="culture_id">
+      <option value="">Усі</option>
+      {% for id, name in cultures %}<option value="{{ id }}" {% if culture_id == id %}selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label" for="status">Статус</label>
+    <select class="form-select" id="status" name="status">
+      <option value="">Усі</option>
+      <option value="none" {% if status == 'none' %}selected{% endif %}>Без плану</option>
+      <option value="draft" {% if status == 'draft' %}selected{% endif %}>Чернетка</option>
+      <option value="ready" {% if status == 'ready' %}selected{% endif %}>Готовий</option>
+      <option value="approved" {% if status == 'approved' %}selected{% endif %}>Затверджений</option>
+    </select>
+  </div>
+  <div class="col-12"><a href="{{ url_for('planning_workspace.index') }}" class="btn btn-sm btn-outline-secondary">Скинути всі фільтри</a></div>
+</form>
+<div class="table-responsive">
+  <table class="table table-striped table-hover table-bordered align-middle">
+    <thead><tr><th>Кластер</th><th>Підприємство</th><th>Поле</th><th>Культура</th><th class="text-end">Площа, га</th><th>Статус</th><th>Дія</th></tr></thead>
+    <tbody>
+    {% for planting in rows %}
+      {% set fs = planting.field_season %}
+      {% set plan = plans.get(planting.id) %}
+      <tr>
+        <td>{{ fs.cluster.name }}</td>
+        <td>{{ fs.company.name }}</td>
+        <td>{{ fs.field.name }}</td>
+        <td>{{ planting.culture.name }}</td>
+        <td class="text-end">{{ planting.area }}</td>
+        <td>
+          {% if not plan %}<span class="text-muted">Без плану</span>
+          {% elif plan.status == 'draft' %}<span>Чернетка</span>
+          {% elif plan.status == 'ready' %}<span class="text-primary">Готовий</span>
+          {% else %}<span class="text-success fw-semibold">Затверджений</span>{% endif %}
+        </td>
+        <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('planning_workspace.edit', planting_id=planting.id) }}">{{ 'Відкрити' if plan else 'Створити' }}</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="text-center text-muted py-4">За цими фільтрами посівів немає.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="small text-muted">Посівів у вибірці: {{ rows|length }}. Архівні або дані інших сезонів тут не підтягуються.</p>
+<script>
+document.querySelectorAll('#plan-filters select').forEach(el => {
+  el.addEventListener('change', () => {
+    if (el.name === 'cluster_id') {
+      document.getElementById('company').value = '';
+      document.getElementById('culture').value = '';
+    } else if (el.name === 'company_id') {
+      document.getElementById('culture').value = '';
+    }
+    document.getElementById('plan-filters').requestSubmit();
+  });
+});
+</script>
+{% endblock %}
