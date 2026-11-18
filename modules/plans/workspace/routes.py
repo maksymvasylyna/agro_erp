@@ -1,4 +1,4 @@
-"""Additive technology planning workspace for one crop allocation in one season."""
+"""Seasonal technology planning: one field, one crop, one plan per season."""
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 from admin_auth import is_admin
 from extensions import db
 from modules.plans.season import context, current, validate_posted_season, writable
+from modules.plans.models import Plan
 from modules.plans.workspace.models import TechnologyPlan, TechnologyOperation, TechnologyProduct
 from modules.reference.fields.field_models import Field
 from modules.reference.fields.season_models import FieldPlanting, FieldSeason
@@ -130,6 +131,82 @@ def _form_rows(plan, planting):
     ]
 
 
+def _available_field_seasons(season):
+    """Only one-crop fields without a legacy or pilot plan are selectable.
+
+    The sowing structure is authoritative. A field with several crop allocations
+    must first be divided into distinct fields in that structure.
+    """
+    legacy_used = {
+        field_id for (field_id,) in db.session.query(Plan.field_id)
+        .filter(Plan.season_id == season.id).all()
+    }
+    workspace_used = {
+        fs_id for (fs_id,) in db.session.query(FieldPlanting.field_season_id)
+        .join(TechnologyPlan, TechnologyPlan.planting_id == FieldPlanting.id)
+        .filter(TechnologyPlan.season_id == season.id).all()
+    }
+    records = (
+        FieldSeason.query.join(Field, FieldSeason.field_id == Field.id)
+        .options(
+            joinedload(FieldSeason.field),
+            joinedload(FieldSeason.company),
+            joinedload(FieldSeason.cluster),
+            joinedload(FieldSeason.plantings).joinedload(FieldPlanting.culture),
+        )
+        .filter(FieldSeason.season_id == season.id)
+        .order_by(Field.name).all()
+    )
+    return [
+        r for r in records
+        if r.field_id not in legacy_used
+        and r.id not in workspace_used
+        and len(r.plantings) == 1
+    ]
+
+
+def _another_plan_exists(planting, season):
+    record = planting.field_season
+    if Plan.query.filter_by(field_id=record.field_id, season_id=season.id).first():
+        return True
+    return bool(
+        TechnologyPlan.query.join(
+            FieldPlanting, TechnologyPlan.planting_id == FieldPlanting.id
+        ).filter(
+            TechnologyPlan.season_id == season.id,
+            FieldPlanting.field_season_id == record.id,
+        ).first()
+    )
+
+
+@bp.get("/create/cluster")
+def select_cluster():
+    records = _available_field_seasons(current())
+    clusters = sorted({r.cluster_id: r.cluster for r in records}.values(),
+                      key=lambda c: c.name)
+    return render_template("planning_workspace/select_cluster.html",
+                           clusters=clusters, **context())
+
+
+@bp.get("/create/cluster/<int:cluster_id>/company")
+def select_company(cluster_id):
+    records = [r for r in _available_field_seasons(current())
+               if r.cluster_id == cluster_id]
+    companies = sorted({r.company_id: r.company for r in records}.values(),
+                       key=lambda c: c.name)
+    return render_template("planning_workspace/select_company.html",
+                           companies=companies, cluster_id=cluster_id, **context())
+
+
+@bp.get("/create/cluster/<int:cluster_id>/company/<int:company_id>/field")
+def select_field(cluster_id, company_id):
+    records = [r for r in _available_field_seasons(current())
+               if r.cluster_id == cluster_id and r.company_id == company_id]
+    return render_template("planning_workspace/select_field.html",
+                           rows=records, cluster_id=cluster_id, company_id=company_id,
+                           **context())
+
+
 @bp.get("/")
 def index():
     season = current()
@@ -156,6 +233,7 @@ def index():
     company_rows = [p for p in cluster_rows if not company_id or p.field_season.company_id == company_id]
     cultures = sorted({(p.culture.id, p.culture.name) for p in company_rows}, key=lambda v: v[1])
     plans = {p.planting_id: p for p in TechnologyPlan.query.filter_by(season_id=season.id)}
+    company_rows = [p for p in company_rows if p.id in plans]
     filtered = [p for p in company_rows
                 if (not culture_id or p.culture_id == culture_id)
                 and (not status or (plans[p.id].status if p.id in plans else "none") == status)]
@@ -171,6 +249,11 @@ def edit(planting_id):
     season = writable() if request.method == "POST" else current()
     planting = _planting(planting_id, season)
     plan = TechnologyPlan.query.filter_by(planting_id=planting.id).first()
+    if plan is None:
+        if len(planting.field_season.plantings) != 1:
+            abort(409, description="Спочатку розділіть поле з кількома культурами у структурі посівів.")
+        if _another_plan_exists(planting, season):
+            abort(409, description="Для цього поля вже є план у вибраному сезоні.")
     types, products = _items()
     form = ActionForm()
     if request.method == "POST":
