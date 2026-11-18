@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Створення плану · Поле{% endblock %}
+{% block header %}Створити план по полю · {{ active_year }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary" href="{{ url_for('planning_workspace.select_company', cluster_id=cluster_id) }}">← До підприємств</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('plans.hub') }}">До планування</a>
+</div>
+<p class="text-muted">Крок 3 із 3. Оберіть поле. Тут лише поля поточного сезону, які ще не мають технологічного плану.</p>
+<div class="row g-3">
+  {% for row in rows %}
+  {% set planting = row.plantings[0] %}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">🌾 {{ row.field.name }}</h5>
+        <p class="card-text mb-1">Культура: <strong>{{ planting.culture.name }}</strong></p>
+        <p class="text-muted small">Сезон {{ active_year }} · {{ row.area }} га</p>
+        <a class="btn btn-outline-primary w-100" href="{{ url_for('planning_workspace.edit', planting_id=planting.id) }}">Створити план</a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><p class="text-muted">У цьому підприємстві всі поля вже мають плани або ще не заповнена посівна структура.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

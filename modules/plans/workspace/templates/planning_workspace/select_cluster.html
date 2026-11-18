@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Створення плану · Кластер{% endblock %}
+{% block header %}Створити план по полю · {{ active_year }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary" href="{{ url_for('plans.hub') }}">← Планування</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">На головну</a>
+</div>
+<p class="text-muted">Крок 1 із 3. Оберіть кластер. Відображаються лише кластери, в яких є поля без планів для сезону {{ active_year }}.</p>
+<div class="row g-3">
+  {% for cluster in clusters %}
+  <div class="col-md-4">
+    <a href="{{ url_for('planning_workspace.select_company', cluster_id=cluster.id) }}" class="text-decoration-none">
+      <div class="card h-100 shadow-sm border-primary"><div class="card-body text-center">
+        <h5 class="card-title text-primary">🏢 {{ cluster.name }}</h5>
+        <span class="text-muted small">Вибрати кластер</span>
+      </div></div>
+    </a>
+  </div>
+  {% else %}
+  <div class="col-12"><p class="text-muted">Полів без планів у вибраному сезоні немає. Перевірте також структуру посівних площ.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

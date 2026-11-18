@@ -12,6 +12,17 @@
 <div class="container mt-4">
   <div class="row g-3">
 
+    <div class="col-md-12">
+      <a href="{{ url_for('planning_workspace.index') }}" class="text-decoration-none">
+        <div class="card shadow-sm rounded-2 border-primary">
+          <div class="card-body">
+            <h5 class="card-title text-primary mb-1">🌱 Перегляд технологічних планів (пілот)</h5>
+            <p class="text-muted small mb-0">Створення нового плану — у розділі «Нові плани» → «Створити план по полю»</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
     <div class="col-md-4">
       <a href="{{ url_for('new_plans.index') }}" class="text-decoration-none">
         <div class="card shadow-sm rounded-2 border-success">
