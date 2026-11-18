@@ -21,6 +21,9 @@ from modules.reference.fields.import_structure_2027 import (
 from modules.reference.fields.correct_structure_2027 import (
     correct_two_fields, OPERATION as FIX_OPERATION,
 )
+from modules.reference.fields.sync_structure_2027_revision import (
+    apply_revision, OPERATION as REVISION_OPERATION, _revision,
+)
 
 
 class Structure2027ImportTests(unittest.TestCase):
@@ -214,6 +217,63 @@ class Structure2027ImportTests(unittest.TestCase):
             Field.name == "МТ0 002",
         ).one()
         self.assertEqual(first.plantings[0].culture.name, "Горох зимуючий")
+
+    def test_2027_revision_updates_eight_and_removes_three(self):
+        run_import()
+        correct_two_fields()
+        old, new = _revision()
+        self.assertEqual((len(old), len(new)), (547, 544))
+        result = apply_revision()
+        self.assertEqual(result["updated"], 8)
+        self.assertEqual(result["removed_from_2027"], 3)
+        self.assertEqual(result["area_ha"], "34142.59")
+        db.session.expire_all()
+        records = FieldSeason.query.filter_by(season_id=self.year_id).all()
+        self.assertEqual(len(records), 544)
+        self.assertEqual(
+            sum((record.planted_area for record in records), Decimal("0.00")),
+            Decimal("34142.59"),
+        )
+        self.assertEqual(Field.query.count(), 547)
+        for name in ("ПЧ1 025/2", "ППО 026", "ЧК1 011/2"):
+            self.assertIsNotNone(Field.query.filter_by(name=name).first())
+            self.assertFalse(any(rec.field.name == name for rec in records))
+        for name, area in [
+            ("ГЗО 018", "32.64"), ("ЧК1 007", "65.50"),
+            ("ЧК1 008", "30.85"), ("ЧК1 009", "68.75"),
+            ("ЧК1 010", "61.00"), ("ЧК1 012", "10.20"),
+            ("ЧК2 009", "50.18"), ("ЧК3 006", "7.70"),
+        ]:
+            record = next(rec for rec in records if rec.field.name == name)
+            self.assertEqual(record.area, Decimal(area))
+            self.assertEqual(record.plantings[0].area, Decimal(area))
+        prior = FieldSeason.query.join(Season).filter(Season.year == 2026).one()
+        self.assertEqual(prior.area, Decimal("77.00"))
+        self.assertEqual(prior.plantings[0].area, Decimal("77.00"))
+        self.assertEqual(apply_revision(), {"already_applied": True})
+        audit = db.session.execute(db.text(
+            "SELECT before_count,after_count,before_area,after_area "
+            "FROM agroerp_structure_revisions WHERE operation_key=:key"
+        ), {"key": REVISION_OPERATION}).one()
+        self.assertEqual(tuple(audit), (547, 544, "34238.87", "34142.59"))
+
+    def test_2027_revision_rejects_intervening_edits(self):
+        run_import()
+        correct_two_fields()
+        item = FieldSeason.query.join(Field).filter(
+            FieldSeason.season_id == self.year_id, Field.name == "ЧК1 007"
+        ).one()
+        item.area = Decimal("66.00")
+        item.plantings[0].area = Decimal("66.00")
+        db.session.commit()
+        with self.assertRaisesRegex(RuntimeError, "diverged from prior snapshot"):
+            apply_revision()
+        db.session.expire_all()
+        self.assertEqual(FieldSeason.query.filter_by(season_id=self.year_id).count(), 547)
+        unchanged = FieldSeason.query.join(Field).filter(
+            FieldSeason.season_id == self.year_id, Field.name == "ГЗО 018"
+        ).one()
+        self.assertEqual(unchanged.area, Decimal("41.72"))
 
     def test_source_exact_controls(self):
         self.assertEqual(len(self.records), 547)

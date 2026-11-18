@@ -2,11 +2,13 @@ name: AgroERP 2027 structure import safety tests
 
 on:
   push:
-    branches: [main, feature/import-structure-2027, feature/correct-2027-demo-fields]
+    branches: [main, feature/import-structure-2027, feature/correct-2027-demo-fields, feature/reconcile-structure-2027-2026-11-18]
     paths:
       - "app.py"
       - "modules/reference/fields/import_structure_2027.py"
       - "modules/reference/fields/correct_structure_2027.py"
+      - "modules/reference/fields/sync_structure_2027_revision.py"
+      - "modules/reference/fields/import_data/structure_2027_revision_2026_11_18.json"
       - "modules/reference/fields/import_data/structure_2027.json"
       - "tests/test_import_structure_2027.py"
       - ".github/workflows/import-structure-2027-tests.yml"
@@ -14,6 +16,8 @@ on:
     paths:
       - "modules/reference/fields/import_structure_2027.py"
       - "modules/reference/fields/correct_structure_2027.py"
+      - "modules/reference/fields/sync_structure_2027_revision.py"
+      - "modules/reference/fields/import_data/structure_2027_revision_2026_11_18.json"
       - "modules/reference/fields/import_data/structure_2027.json"
       - "tests/test_import_structure_2027.py"
   workflow_dispatch:

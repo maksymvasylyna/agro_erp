@@ -54,6 +54,9 @@ def create_app():
         # Explicit, audited one-time fix of the two original 2027 demo records.
         from modules.reference.fields.correct_structure_2027 import correct_if_requested
         correct_if_requested()
+        # Guarded one-time 2027 source revision; no other season is affected.
+        from modules.reference.fields.sync_structure_2027_revision import apply_if_requested
+        apply_if_requested()
         # Add empty seasons only; legacy fields have no verified year and must
         # never be silently attributed to 2026 or 2027.
         if not Season.query.first():
