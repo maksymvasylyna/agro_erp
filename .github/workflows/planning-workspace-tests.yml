@@ -1,0 +1,40 @@
+name: AgroERP crop technology planning pilot
+
+on:
+  push:
+    branches:
+      - feature/planning-rebuild-v1-2026-11-18
+    paths:
+      - "modules/plans/workspace/**"
+      - "modules/plans/templates/plans/hub.html"
+      - "register_blueprints.py"
+      - "tests/test_planning_workspace.py"
+      - ".github/workflows/planning-workspace-tests.yml"
+  pull_request:
+    paths:
+      - "modules/plans/**"
+      - "register_blueprints.py"
+      - "tests/test_planning_workspace.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-technology-planning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Validate pilot and legacy season isolation on disposable SQLite
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "integration-tests-only-not-production-secret"
+        run: |
+          python -m unittest discover -s tests -p "test_planning_workspace.py" -v
+          python -m unittest discover -s tests -p "test_plans_seasonal.py" -v
