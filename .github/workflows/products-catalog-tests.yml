@@ -5,12 +5,18 @@ on:
       - "app.py"
       - "modules/reference/products/**"
       - "tests/test_products_syngenta_catalog.py"
+      - "scripts/cleanup_legacy_products_requests_2026.py"
+      - "tests/test_legacy_cleanup_guards.py"
+      - "wsgi.py"
   push:
     branches: [main]
     paths:
       - "app.py"
       - "modules/reference/products/**"
       - "tests/test_products_syngenta_catalog.py"
+      - "scripts/cleanup_legacy_products_requests_2026.py"
+      - "tests/test_legacy_cleanup_guards.py"
+      - "wsgi.py"
   workflow_dispatch:
 
 permissions:
@@ -30,4 +36,6 @@ jobs:
         env:
           DATABASE_URL: "sqlite:///:memory:"
           SECRET_KEY: "catalog-ci-only"
-        run: python -m unittest discover -s tests -p "test_products_syngenta_catalog.py" -v
+        run: |
+          python -m unittest discover -s tests -p "test_products_syngenta_catalog.py" -v
+          python -m unittest discover -s tests -p "test_legacy_cleanup_guards.py" -v
