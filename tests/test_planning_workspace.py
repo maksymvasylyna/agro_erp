@@ -84,6 +84,23 @@ class PlanningWorkspaceTests(unittest.TestCase):
             "operations-0-products-1-rate": "0.3",
         })
 
+    def test_page_rendering_and_editor_for_each_crop(self):
+        """Smoke test both pages that users open in a real browser."""
+        self.select_year(2026)
+        landing = self.client.get("/plans/workspace/")
+        self.assertEqual(landing.status_code, 200, landing.get_data(as_text=True)[:900])
+        self.assertIn("ПОЛЕ 125", landing.get_data(as_text=True))
+        for planting_id in (self.ids["wheat"], self.ids["rape"]):
+            response = self.client.get(f"/plans/workspace/planting/{planting_id}")
+            self.assertEqual(response.status_code, 200,
+                             response.get_data(as_text=True)[:1000])
+            page = response.get_data(as_text=True)
+            self.assertIn("technology-form", page)
+            self.assertIn("operations-container", page)
+        self.assertEqual(self.create_plan(self.ids["wheat"]).status_code, 302)
+        self.assertEqual(self.client.get(
+            f"/plans/workspace/planting/{self.ids['wheat']}").status_code, 200)
+
     def test_two_crops_on_same_field_have_independent_plans(self):
         self.select_year(2026)
         a = self.create_plan(self.ids["wheat"])
