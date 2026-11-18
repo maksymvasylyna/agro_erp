@@ -16,17 +16,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Check externally accessible preview endpoints
+      - name: Check entire creation wizard on external Render demo
         shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           base="https://agro-erp-planning-preview-2026.onrender.com"
-          for path in "/" "/plans/" "/plans/workspace/" "/plans/workspace/planting/1"; do
-            echo "::group::GET ${path}"
+          fetch() {
             curl --fail --location --silent --show-error --retry 10 --retry-all-errors \
               --retry-delay 8 --connect-timeout 20 --max-time 45 \
               --output /tmp/agro_page.html --write-out "HTTP %{http_code}, total %{time_total}s\n" \
-              "${base}${path}"
-            test -s /tmp/agro_page.html
-            echo "::endgroup::"
-          done
+              "${base}$1"
+            }
+          fetch "/plans/"
+          grep -q 'Нові плани' /tmp/agro_page.html
+          fetch "/new_plans/"
+          grep -q 'Створити план по полю' /tmp/agro_page.html
+          grep -q '/plans/workspace/create/cluster' /tmp/agro_page.html
+          fetch "/plans/workspace/create/cluster"
+          grep -q 'Крок 1 із 3' /tmp/agro_page.html
+          company_url="$(grep -oE '/plans/workspace/create/cluster/[0-9]+/company' /tmp/agro_page.html | head -n 1)"
+          test -n "$company_url"
+          fetch "$company_url"
+          grep -q 'Крок 2 із 3' /tmp/agro_page.html
+          field_url="$(grep -oE '/plans/workspace/create/cluster/[0-9]+/company/[0-9]+/field' /tmp/agro_page.html | head -n 1)"
+          test -n "$field_url"
+          fetch "$field_url"
+          grep -q 'Крок 3 із 3' /tmp/agro_page.html
+          planting_url="$(grep -oE '/plans/workspace/planting/[0-9]+' /tmp/agro_page.html | head -n 1)"
+          test -n "$planting_url"
+          fetch "$planting_url"
+          grep -q 'technology-form' /tmp/agro_page.html
