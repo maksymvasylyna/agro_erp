@@ -48,5 +48,45 @@ class SyngentaCatalogTests(unittest.TestCase):
             db.session.commit()
 
 
+    def test_directory_shows_informational_data_only(self):
+        app = create_app()
+        app.config["TESTING"] = True
+        with app.app_context():
+            product = Product(
+                name="TEST HIDDEN DETAILS",
+                formulation_code="SC",
+                composition="азоксистробін 100 г/л",
+                registration_status="Потребує звірки з Держреєстром",
+                registration_number="INTERNAL-REG-TEST",
+                source_note="INTERNAL-SOURCE-TEST",
+            )
+            db.session.add(product)
+            db.session.commit()
+            product_id = product.id
+
+            with app.test_client() as client:
+                index = client.get("/products")
+                self.assertEqual(200, index.status_code)
+                html = index.get_data(as_text=True)
+                self.assertIn("TEST HIDDEN DETAILS", html)
+                self.assertIn("азоксистробін 100 г/л", html)
+                self.assertNotIn("Залежні записи", html)
+                self.assertNotIn("Реєстрація", html)
+                self.assertNotIn("INTERNAL-REG-TEST", html)
+                self.assertNotIn("INTERNAL-SOURCE-TEST", html)
+                edit = client.get(f"/products/{product_id}/edit")
+                self.assertEqual(200, edit.status_code)
+                edit_html = edit.get_data(as_text=True)
+                self.assertNotIn("Статус державної реєстрації", edit_html)
+                self.assertNotIn("INTERNAL-REG-TEST", edit_html)
+                self.assertIn("Препаративна форма", edit_html)
+
+            saved = db.session.get(Product, product_id)
+            self.assertEqual("INTERNAL-REG-TEST", saved.registration_number)
+            self.assertEqual("INTERNAL-SOURCE-TEST", saved.source_note)
+            db.session.delete(saved)
+            db.session.commit()
+
+
 if __name__ == "__main__":
     unittest.main()
