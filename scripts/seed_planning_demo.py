@@ -27,7 +27,37 @@ def seed():
     # Explicit guard: avoid seeding real business records by mistake.
     if db.engine.dialect.name != "sqlite":
         raise RuntimeError("Demo seeding is allowed only on isolated SQLite.")
-    if Cluster.query.filter_by(name="DEMO — кластер").first():
+    existing = Cluster.query.filter_by(name="DEMO — кластер").first()
+    if existing:
+        # Upgrade only the isolated demo fixtures from the older sample where
+        # DEMO-001 had two crops. Preserve existing TechnologyPlan/planting IDs.
+        first = Field.query.filter_by(name="DEMO-001", cluster_id=existing.id).first()
+        if first:
+            original = FieldSeason.query.filter_by(field_id=first.id).first()
+            if original and len(original.plantings) == 2:
+                rapeseed = next((p for p in original.plantings
+                                if p.culture.name.startswith("Ріпак")), None)
+                if rapeseed:
+                    split = Field.query.filter_by(name="DEMO-003",
+                                                   cluster_id=existing.id).first()
+                    if not split:
+                        split = Field(name="DEMO-003", cluster_id=existing.id,
+                                      company_id=original.company_id,
+                                      culture_id=rapeseed.culture_id,
+                                      area=float(rapeseed.area), is_active=True)
+                        db.session.add(split)
+                        db.session.flush()
+                    new_fs = FieldSeason(season_id=original.season_id,
+                                         field_id=split.id,
+                                         cluster_id=original.cluster_id,
+                                         company_id=original.company_id,
+                                         area=rapeseed.area)
+                    db.session.add(new_fs)
+                    db.session.flush()
+                    rapeseed.field_season_id = new_fs.id
+                    original.area = original.area - new_fs.area
+                    first.area = float(original.area)
+                    db.session.commit()
         return
 
     season = Season.query.filter_by(year=2027).one()
@@ -37,9 +67,11 @@ def seed():
     rape = Culture(name="Ріпак озимий — демо")
     sunflower = Culture(name="Соняшник — демо")
     field1 = Field(name="DEMO-001", cluster=cluster, company=company,
-                   culture=wheat, area=120.0, is_active=True)
+                   culture=wheat, area=80.0, is_active=True)
     field2 = Field(name="DEMO-002", cluster=cluster, company=company,
                    culture=sunflower, area=150.0, is_active=True)
+    field3 = Field(name="DEMO-003", cluster=cluster, company=company,
+                   culture=rape, area=40.0, is_active=True)
     liter = Unit(name="л")
     kilo = Unit(name="кг")
     products = [
@@ -50,21 +82,23 @@ def seed():
     types = [TreatmentType(name="Демо — фунгіцид Т1"),
              TreatmentType(name="Демо — протруювання")]
     db.session.add_all([cluster, company, wheat, rape, sunflower, field1,
-                        field2, liter, kilo] + products + types)
+                        field2, field3, liter, kilo] + products + types)
     db.session.flush()
     fs1 = FieldSeason(season_id=season.id, field_id=field1.id, company_id=company.id,
-                      cluster_id=cluster.id, area=Decimal("120"))
+                      cluster_id=cluster.id, area=Decimal("80"))
     fs2 = FieldSeason(season_id=season.id, field_id=field2.id, company_id=company.id,
                       cluster_id=cluster.id, area=Decimal("150"))
-    db.session.add_all([fs1, fs2])
+    fs3 = FieldSeason(season_id=season.id, field_id=field3.id, company_id=company.id,
+                      cluster_id=cluster.id, area=Decimal("40"))
+    db.session.add_all([fs1, fs2, fs3])
     db.session.flush()
     db.session.add_all([
         FieldPlanting(field_season_id=fs1.id, culture_id=wheat.id, area=Decimal("80")),
-        FieldPlanting(field_season_id=fs1.id, culture_id=rape.id, area=Decimal("40")),
         FieldPlanting(field_season_id=fs2.id, culture_id=sunflower.id, area=Decimal("150")),
+        FieldPlanting(field_season_id=fs3.id, culture_id=rape.id, area=Decimal("40")),
     ])
     db.session.commit()
-    print("Seeded isolated planning demo: 2 fields, 3 crop allocations, 3 artificial products.")
+    print("Seeded isolated planning demo: 3 fields, 3 crop allocations, 3 artificial products.")
 
 
 if __name__ == "__main__":
