@@ -10,6 +10,8 @@ on:
       - "wsgi.py"
       - "scripts/backfill_syngenta_packaging_2026.py"
       - "tests/test_syngenta_packaging.py"
+      - "scripts/cap_syngenta_packaging_20_2026.py"
+      - "tests/test_syngenta_packaging_cap20.py"
   push:
     branches: [main]
     paths:
@@ -21,6 +23,8 @@ on:
       - "wsgi.py"
       - "scripts/backfill_syngenta_packaging_2026.py"
       - "tests/test_syngenta_packaging.py"
+      - "scripts/cap_syngenta_packaging_20_2026.py"
+      - "tests/test_syngenta_packaging_cap20.py"
   workflow_dispatch:
 
 permissions:
@@ -44,3 +48,4 @@ jobs:
           python -m unittest discover -s tests -p "test_products_syngenta_catalog.py" -v
           python -m unittest discover -s tests -p "test_legacy_cleanup_guards.py" -v
           python -m unittest discover -s tests -p "test_syngenta_packaging.py" -v
+          python -m unittest discover -s tests -p "test_syngenta_packaging_cap20.py" -v
