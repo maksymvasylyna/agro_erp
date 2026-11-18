@@ -9,10 +9,10 @@
 </div>
 
 <div class="container mt-4">
-  <p class="small text-muted">Створення планів на сезон {{ active_year or '—' }}.</p>
+  <p class="small text-muted">Створення технологічних планів на сезон {{ active_year or '—' }}.</p>
   <div class="row g-3">
     <div class="col-md-6">
-      <a href="{{ url_for('new_plans.select_cluster') }}" class="text-decoration-none">
+      <a href="{{ url_for('planning_workspace.select_cluster') }}" class="text-decoration-none">
         <div class="card shadow-sm rounded-2 border-success">
           <div class="card-body text-center">
             <h5 class="card-title text-success mb-0">📍 Створити план по полю</h5>
