@@ -32,3 +32,12 @@ if os.environ.get("AGROERP_CLEAN_2026_LEGACY_ONCE") == (
     from scripts.cleanup_legacy_products_requests_2026 import run_once
     with app.app_context():
         app.logger.warning("AgroERP legacy cleanup: %s", run_once())
+
+
+# Explicit one-time Syngenta reference packaging update; never runs by default.
+if os.environ.get("AGROERP_BACKFILL_SYNGENTA_PACKAGING_2026_ONCE") == (
+    "SET_MAX_PACK_FOR_108_SYNGENTA_PRODUCTS_2026_11_18"
+):
+    from scripts.backfill_syngenta_packaging_2026 import run_once as update_packaging_once
+    with app.app_context():
+        app.logger.warning("AgroERP Syngenta packaging: %s", update_packaging_once())
