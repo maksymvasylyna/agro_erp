@@ -5,9 +5,8 @@
 
 {% block before_table %}
   <p class="text-muted small mb-2">
-    Єдина база препаратів для планів, закупівель і складу. Латинська назва,
-    формуляція та склад зберігаються окремо від тари. Статус реєстрації
-    потребує підтвердження державним реєстром.
+    Довідник препаратів: назва, категорія, виробник, препаративна форма,
+    діючі речовини, одиниця виміру та тара.
   </p>
   <div class="d-flex flex-wrap gap-2 mb-3">
     <a class="btn btn-sm {{ 'btn-primary' if archived == 'active' else 'btn-outline-primary' }}"
@@ -54,10 +53,8 @@
   <th>Виробник</th>
   <th>Форма</th>
   <th>Діючі речовини / концентрація</th>
-  <th>Реєстрація</th>
   <th>Од. виміру</th>
   <th>Тара</th>
-  <th>Залежні записи</th>
   <th>Дії</th>
 {% endblock %}
 
@@ -80,17 +77,8 @@
       <td class="text-start small" style="min-width:250px;max-width:350px;white-space:normal">
         {{ product.composition or '—' }}
       </td>
-      <td class="small" style="min-width:150px">
-        {{ product.registration_status or 'Не перевірено' }}
-        {% if product.registration_number %}<div>№ {{ product.registration_number }}</div>{% endif %}
-        {% if product.registration_valid_until %}<div>До {{ product.registration_valid_until }}</div>{% endif %}
-        {% if product.source_url %}
-          <div><a href="{{ product.source_url }}" target="_blank" rel="noopener noreferrer">Джерело</a></div>
-        {% endif %}
-      </td>
       <td>{{ product.unit.name if product.unit else '—' }}</td>
       <td>{{ product.container or '—' }}</td>
-      <td>{{ dependent }}</td>
       <td>
         <div class="d-flex flex-wrap justify-content-center gap-2">
           <a href="{{ url_for('products.edit', id=product.id) }}"
@@ -109,6 +97,6 @@
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="12" class="text-muted">Продуктів за вибраними фільтрами немає.</td></tr>
+    <tr><td colspan="10" class="text-muted">Продуктів за вибраними фільтрами немає.</td></tr>
   {% endfor %}
 {% endblock %}

@@ -1,6 +1,6 @@
 """Forms for products, using live choices from the reference directories."""
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, SelectField, DateField
+from wtforms import StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length
 from wtforms_sqlalchemy.fields import QuerySelectField
 
@@ -73,19 +73,6 @@ class ProductForm(FlaskForm):
         "Діючі речовини та концентрації",
         validators=[Length(max=5000)],
     )
-    registration_status = SelectField(
-        "Статус державної реєстрації",
-        choices=[
-            ("Потребує звірки з Держреєстром", "Потребує звірки"),
-            ("Підтверджено чинну реєстрацію", "Підтверджено чинну реєстрацію"),
-            ("Реєстрація не чинна", "Реєстрація не чинна"),
-        ],
-        default="Потребує звірки з Держреєстром",
-    )
-    registration_number = StringField("Номер реєстрації", validators=[Length(max=120)])
-    registration_valid_until = DateField("Дійсна до", format="%Y-%m-%d")
-    source_url = StringField("Посилання на джерело", validators=[Length(max=2048)])
-    source_note = TextAreaField("Примітка щодо перевірки", validators=[Length(max=3000)])
     submit = SubmitField("Зберегти")
 
 
