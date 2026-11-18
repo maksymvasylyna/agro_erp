@@ -92,7 +92,6 @@ class ProductFilterForm(FlaskForm):
         "Виробник", query_factory=_choices(Manufacturer), get_label="name",
         allow_blank=True, blank_text="— Усі виробники —",
     )
-    submit = SubmitField("Фільтрувати")
 
 
 class ProductDeleteForm(FlaskForm):
