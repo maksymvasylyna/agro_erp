@@ -19,6 +19,7 @@ def register_blueprints(app):
     from modules.structure.summary_structure.routes import bp as summary_structure_bp
     from modules.plans.routes import plans_bp
     from modules.plans.new_plans.routes import new_plans_bp
+    from modules.plans.workspace.routes import bp as planning_workspace_bp
     from modules.plans.ready_plans.routes import ready_plans_bp
     from modules.plans.approved_plans import bp as approved_plans_bp
     from modules.reference.treatment_types.routes import treatment_types_bp
@@ -56,6 +57,7 @@ def register_blueprints(app):
     app.register_blueprint(summary_structure_bp)
     app.register_blueprint(plans_bp, url_prefix='/plans')
     app.register_blueprint(new_plans_bp)
+    app.register_blueprint(planning_workspace_bp)
     app.register_blueprint(ready_plans_bp)
     app.register_blueprint(treatment_types_bp)
     app.register_blueprint(approved_plans_bp, url_prefix='/approved_plans')
