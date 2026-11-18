@@ -45,8 +45,16 @@ def create_app():
 
     with app.app_context():
         from modules.plans.migration import ensure_schema as ensure_plans_schema
+        from modules.reference.products.catalog_import import (
+            ensure_schema as ensure_products_schema,
+            import_if_requested as import_syngenta_if_requested,
+        )
         ensure_plans_schema()
+        ensure_products_schema()
         db.create_all()
+        import_report = import_syngenta_if_requested()
+        if import_report.get("status") not in ("not_requested", "already_imported"):
+            app.logger.warning("Syngenta products catalog: %s", import_report)
         # Guarded one-time import from the verified 2027 history source.
         # This is inert unless the operator explicitly sets its one-use flag.
         from modules.reference.fields.import_structure_2027 import import_if_requested
