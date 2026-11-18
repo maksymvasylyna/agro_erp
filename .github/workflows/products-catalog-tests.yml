@@ -1,0 +1,33 @@
+name: AgroERP products catalog tests
+on:
+  pull_request:
+    paths:
+      - "app.py"
+      - "modules/reference/products/**"
+      - "tests/test_products_syngenta_catalog.py"
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "modules/reference/products/**"
+      - "tests/test_products_syngenta_catalog.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -r requirements.txt
+      - name: Verify Syngenta product catalog and normalized ingredients
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "catalog-ci-only"
+        run: python -m unittest discover -s tests -p "test_products_syngenta_catalog.py" -v

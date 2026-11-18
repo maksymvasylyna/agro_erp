@@ -5,9 +5,7 @@
 {% block back_url %}{{ url_for('products.index') }}{% endblock %}
 
 {% block form_fields %}
-  <div class="col-12">
-    {{ render_field(form.name) }}
-  </div>
+  <div class="col-12">{{ render_field(form.name) }}</div>
   <div class="col-md-6">
     {{ render_field(form.category) }}
     <div class="form-text"><a href="{{ url_for('categories.index') }}">Довідник категорій</a></div>
@@ -22,10 +20,24 @@
   </div>
   <div class="col-md-6">
     {{ render_field(form.unit) }}
-    <div class="form-text"><a href="{{ url_for('units.index') }}">Довідник одиниць виміру</a></div>
+    <div class="form-text">Для фасування використовується окрема одиниця. Зважайте на фактичну етикетку.</div>
   </div>
+  <div class="col-md-6">{{ render_field(form.formulation_code) }}</div>
+  <div class="col-md-6">{{ render_field(form.formulation_name) }}</div>
+  <div class="col-12">{{ render_field(form.composition) }}</div>
+  <div class="col-12">
+    <div class="form-text mb-2">Кожну діючу речовину відділяйте крапкою з комою.
+      Приклад: азоксистробін 125 г/л; дифеноконазол 125 г/л.
+      Система окремо зберігає назву та концентрацію кожної речовини.
+    </div>
+  </div>
+  <div class="col-md-6">{{ render_field(form.registration_status) }}</div>
+  <div class="col-md-3">{{ render_field(form.registration_number) }}</div>
+  <div class="col-md-3">{{ render_field(form.registration_valid_until) }}</div>
+  <div class="col-12">{{ render_field(form.source_url) }}</div>
+  <div class="col-12">{{ render_field(form.source_note) }}</div>
   <div class="col-md-6">
     {{ render_field(form.container) }}
-    <div class="form-text">Тара необов'язкова. Наприклад, 5 л, 10 кг або мішок.</div>
+    <div class="form-text">Тара необов'язкова: 5 л, 10 кг або мішок. Не плутати з формуляцією.</div>
   </div>
 {% endblock %}
