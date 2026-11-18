@@ -1,0 +1,115 @@
+{
+  "catalog": "Syngenta Ukraine packaging adjustment 2026-11-18: maximum verified available pack <=20 L/kg",
+  "selection_rule": "Select the largest evidenced actual package at or below 20 L (liquids) or 20 kg (solids). Never clip a 100/200/1000 L package to 20 unless 20 L is itself evidenced.",
+  "applied_to_previous_backfill": "syngenta_max_packaging_2026_11_18_v1",
+  "date_researched": "2026-11-18",
+  "entries": [
+    {
+      "index": 47,
+      "id": 99,
+      "name": "PRIMEXTRA TZ GOLD 500 SC",
+      "old": "100 л",
+      "next": "20 л",
+      "verified_options": [
+        "20 л",
+        "100 л"
+      ],
+      "source": "https://www.syngenta.ua/product/crop-protection/primekstra-tz-gold-500-sc-k-s",
+      "source_type": "manufacturer_current"
+    },
+    {
+      "index": 56,
+      "id": 108,
+      "name": "CRUISER OSR 322 FS",
+      "old": "1000 л",
+      "next": "5 л",
+      "verified_options": [
+        "5 л",
+        "200 л"
+      ],
+      "source": "https://www.syngenta.ua/product/crop-protection/kruyizer-osr-322-fs-th",
+      "source_type": "manufacturer_current"
+    },
+    {
+      "index": 59,
+      "id": 111,
+      "name": "MAXIM 025 FS",
+      "old": "1000 л",
+      "next": "5 л",
+      "verified_options": [
+        "5 л",
+        "200 л"
+      ],
+      "source": "https://www.syngenta.ua/product/crop-protection/maksim-025-fs-th",
+      "source_type": "manufacturer_current"
+    },
+    {
+      "index": 62,
+      "id": 114,
+      "name": "MAXIM XL 035 FS",
+      "old": "1000 л",
+      "next": "5 л",
+      "verified_options": [
+        "5 л",
+        "200 л"
+      ],
+      "source": "https://www.syngenta.ua/product/crop-protection/maksim-xl-035-fs-t-k-s",
+      "source_type": "manufacturer_current"
+    },
+    {
+      "index": 63,
+      "id": 115,
+      "name": "VIBRANCE 500 FS",
+      "old": "200 л",
+      "next": "5 л",
+      "verified_options": [
+        "5 л",
+        "200 л"
+      ],
+      "source": "https://www.syngenta.ua/sites/g/files/kgtney1466/files/migration/f/catalog_2018_web_-_small.pdf",
+      "source_type": "manufacturer_historical_catalog_2018",
+      "source_note": "2026 official product page mentions only 200 L; a 2018 Syngenta catalog lists 5 L. The current availability of 5 L is not confirmed."
+    },
+    {
+      "index": 67,
+      "id": 119,
+      "name": "CRUISER 350 FS",
+      "old": "1000 л",
+      "next": "20 л",
+      "verified_options": [
+        "20 л",
+        "1000 л"
+      ],
+      "source": "https://www.syngenta.ua/product/crop-protection/kruyizer-350-fs-t-k-s",
+      "source_type": "manufacturer_current"
+    },
+    {
+      "index": 70,
+      "id": 122,
+      "name": "FORCE ZEA 280 FS",
+      "old": "1000 л",
+      "next": "20 л",
+      "verified_options": [
+        "20 л",
+        "200 л",
+        "1000 л"
+      ],
+      "source": "https://growex.market/product/fors-zea-280-fs-th",
+      "source_type": "third_party_marketplace",
+      "source_note": "Retailers list 20 L, but the current Syngenta product page lists 200 and 1000 L only."
+    },
+    {
+      "index": 74,
+      "id": 126,
+      "name": "TALON RB — GRAINS",
+      "old": "40 кг",
+      "next": "2,5 кг",
+      "verified_options": [
+        "2,5 кг",
+        "40 кг"
+      ],
+      "source": "https://www.syngenta.ua/product/crop-protection/talon-rb-g-p-granuli",
+      "source_type": "manufacturer_current"
+    }
+  ]
+}

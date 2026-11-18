@@ -41,3 +41,12 @@ if os.environ.get("AGROERP_BACKFILL_SYNGENTA_PACKAGING_2026_ONCE") == (
     from scripts.backfill_syngenta_packaging_2026 import run_once as update_packaging_once
     with app.app_context():
         app.logger.warning("AgroERP Syngenta packaging: %s", update_packaging_once())
+
+
+# One-time operator-approved packaging correction; requires exact Render flag.
+if os.environ.get("AGROERP_CAP_SYNGENTA_PACKAGING_20_ONCE") == (
+    "APPLY_8_VERIFIED_PACKAGING_CORRECTIONS_2026_11_18"
+):
+    from scripts.cap_syngenta_packaging_20_2026 import run_once as cap_packaging_once
+    with app.app_context():
+        app.logger.warning("AgroERP Syngenta maximum 20 L/kg packaging: %s", cap_packaging_once())
