@@ -19,7 +19,7 @@ VALUE = "APPLY_8_VERIFIED_PACKAGING_CORRECTIONS_2026_11_18"
 KEY = "syngenta_package_cap20_2026_11_18_v1"
 DATA = Path(__file__).parents[1] / "modules/reference/products/syngenta_packaging_cap20_2026.json"
 CURRENT_SOURCE = Path(__file__).parents[1] / "modules/reference/products/syngenta_packaging_2026.json"
-PACK = re.compile(r"^(\\d+(?:,\\d+)?) (л|кг)$")
+PACK = re.compile(r"^(\d+(?:,\d+)?) (л|кг)$")
 
 
 def _size(raw):
