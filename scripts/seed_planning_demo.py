@@ -4,6 +4,11 @@ Use with a dedicated preview service without RENDER_DATABASE_URL / DATABASE_URL.
 Never run against production PostgreSQL.
 """
 from decimal import Decimal
+import os
+import sys
+
+# Direct script execution starts with scripts/ on sys.path, not repository root.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
 from config import Config
