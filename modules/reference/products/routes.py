@@ -75,7 +75,10 @@ def index():
         joinedload(Product.unit),
     )
     search = (request.args.get("q") or "").strip()
-    if search:
+    # JS gets the full selected archive tab to filter instantly, without
+    # refetching. Preserve server-side GET filtering for no-JS users only.
+    server_filter = request.args.get("server_filter") == "1"
+    if server_filter and search:
         query = query.filter(or_(
             Product.name.ilike(f"%{search}%"),
             Product.composition.ilike(f"%{search}%"),
@@ -86,12 +89,13 @@ def index():
     elif archived != "all":
         archived = "active"
         query = query.filter(Product.is_archived.is_(False))
-    if form.category.data:
-        query = query.filter(Product.category_id == form.category.data.id)
-    if form.group.data:
-        query = query.filter(Product.group_id == form.group.data.id)
-    if form.manufacturer.data:
-        query = query.filter(Product.manufacturer_id == form.manufacturer.data.id)
+    if server_filter:
+        if form.category.data:
+            query = query.filter(Product.category_id == form.category.data.id)
+        if form.group.data:
+            query = query.filter(Product.group_id == form.group.data.id)
+        if form.manufacturer.data:
+            query = query.filter(Product.manufacturer_id == form.manufacturer.data.id)
 
     return render_template(
         "products/index.html",
