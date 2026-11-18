@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Технологічний план · {{ planting.field_season.field.name }}{% endblock %}
+{% block header %}Технологічний план{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary" href="{{ url_for('planning_workspace.index') }}">← До посівів</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('plans.hub') }}">До планування</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">На головну</a>
+</div>
+<div class="border rounded p-3 mb-3 bg-light">
+  <strong>Сезон {{ active_year }} · {{ planting.field_season.cluster.name }} · {{ planting.field_season.company.name }}</strong>
+  <div>Поле <strong>{{ planting.field_season.field.name }}</strong> — {{ planting.culture.name }} — <strong>{{ planting.area }} га</strong></div>
+  <div>Статус: <strong>{{ {'draft':'Чернетка', 'ready':'Готовий', 'approved':'Затверджений'}.get(plan.status, 'Новий план') if plan else 'Новий план' }}</strong></div>
+</div>
+{% if plan %}
+<div class="d-flex gap-2 flex-wrap mb-3">
+  {% if plan.status == 'draft' %}
+  <form method="post" action="{{ url_for('planning_workspace.set_status', plan_id=plan.id) }}">
+    {{ form.csrf_token }}<input type="hidden" name="season_id" value="{{ season.id }}">
+    <button class="btn btn-outline-primary" name="action" value="ready">Передати в готові</button>
+  </form>
+  {% elif plan.status == 'ready' %}
+  <form method="post" action="{{ url_for('planning_workspace.set_status', plan_id=plan.id) }}">
+    {{ form.csrf_token }}<input type="hidden" name="season_id" value="{{ season.id }}">
+    <button class="btn btn-outline-secondary" name="action" value="revise">Повернути в чернетки</button>
+  </form>
+  {% if erp_is_admin %}
+  <form method="post" action="{{ url_for('planning_workspace.set_status', plan_id=plan.id) }}">
+    {{ form.csrf_token }}<input type="hidden" name="season_id" value="{{ season.id }}">
+    <button class="btn btn-success" name="action" value="approve">Затвердити</button>
+  </form>
+  {% endif %}
+  {% elif plan.status == 'approved' and erp_is_admin %}
+  <form method="post" action="{{ url_for('planning_workspace.set_status', plan_id=plan.id) }}" onsubmit="return confirm('Повернути затверджений план у чернетки?')">
+    {{ form.csrf_token }}<input type="hidden" name="season_id" value="{{ season.id }}">
+    <button class="btn btn-outline-warning" name="action" value="unlock">Повернути на доопрацювання</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{% if plan and plan.status == 'approved' %}
+<p class="text-muted">Затверджений план захищено від редагування. Операції та обсяг потреби можна переглянути нижче.</p>
+{% elif season.is_closed %}
+<p class="text-warning">Сезон закритий. План доступний лише для перегляду.</p>
+{% else %}
+<p class="small text-muted">Додайте операції, а всередині кожної — один або кілька препаратів. Кількість перераховується на сервері при збереженні. Для обприскування база — гектари, для протруювання можна обрати тонни насіння.</p>
+{% endif %}
+<form method="post" id="technology-form">
+  {{ form.hidden_tag() }}
+  <input type="hidden" name="season_id" value="{{ season.id }}">
+  <input type="hidden" id="operation_count" name="operation_count" value="0">
+  <div id="operations-container"></div>
+  {% if not (plan and plan.status == 'approved') and not season.is_closed %}
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <button type="button" id="add-operation" class="btn btn-outline-primary">+ Додати операцію</button>
+    <button type="submit" class="btn btn-success">Зберегти чернетку</button>
+  </div>
+  {% endif %}
+</form>
+<script>
+const initialRows = {{ initial_rows | tojson }};
+const typeOptions = [{% for t in types %}{id:{{ t.id }},name:{{ t.name|tojson }}},{% endfor %}];
+const productOptions = [{% for p in products %}{id:{{ p.id }},name:{{ p.name|tojson }},unit:{{ (p.unit.name if p.unit else '')|tojson }}},{% endfor %}];
+const readonly = {{ ('true' if (plan and plan.status == 'approved') or season.is_closed else 'false') }};
+const root = document.getElementById('operations-container');
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const selectOptions = (options, selected) => '<option value="">— Оберіть —</option>' +
+  options.map(x => '<option value="'+x.id+'"'+(String(x.id) === String(selected) ? ' selected' : '')+'>'+escapeHtml(x.name)+'</option>').join('');
+
+function addProduct(card, data={}) {
+  const holder = card.querySelector('.products');
+  const row = document.createElement('div');
+  row.className = 'product-row row g-2 align-items-end border-bottom pb-2 mb-2';
+  row.innerHTML = `
+    <div class="col-lg-5"><label class="form-label">Продукт</label><select class="form-select product-id" required>${selectOptions(productOptions,data.id)}</select></div>
+    <div class="col-lg-2"><label class="form-label">Норма</label><input class="form-control rate" type="number" min="0.0001" step="any" value="${escapeHtml(data.rate || '')}" required></div>
+    <div class="col-lg-3"><label class="form-label">Потреба</label><div class="form-control bg-light calculated">—</div></div>
+    <div class="col-lg-2"><button type="button" class="btn btn-outline-danger remove-product" ${readonly?'disabled':''}>Прибрати</button></div>`;
+  holder.appendChild(row);
+  row.querySelector('.remove-product').addEventListener('click', () => {
+    if (holder.querySelectorAll('.product-row').length > 1) { row.remove(); reindex(); }
+  });
+  row.querySelectorAll('select,input').forEach(node => node.addEventListener('input', () => calculate(card)));
+  reindex(); calculate(card);
+}
+
+function addOperation(data={}) {
+  const card = document.createElement('section');
+  card.className = 'operation-card border rounded p-3 mb-3';
+  card.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0 operation-title">Операція</h5><button type="button" class="btn btn-sm btn-outline-danger remove-operation" ${readonly?'disabled':''}>Видалити операцію</button>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-lg-3"><label class="form-label">Вид обробітку</label><select class="form-select operation-type" required>${selectOptions(typeOptions,data.type_id)}</select></div>
+      <div class="col-lg-3"><label class="form-label">Назва / примітка</label><input class="form-control operation-label" maxlength="180" value="${escapeHtml(data.label || '')}"></div>
+      <div class="col-lg-2"><label class="form-label">BBCH</label><input class="form-control operation-bbch" maxlength="30" value="${escapeHtml(data.bbch || '')}" placeholder="31–32"></div>
+      <div class="col-lg-2"><label class="form-label">Орієнтовна дата</label><input type="date" class="form-control operation-date" value="${escapeHtml(data.planned_date || '')}"></div>
+      <div class="col-lg-1"><label class="form-label">База</label><select class="form-select basis-unit"><option value="ha" ${data.basis_unit === 't'?'':'selected'}>га</option><option value="t" ${data.basis_unit === 't'?'selected':''}>т</option></select></div>
+      <div class="col-lg-1"><label class="form-label">Обсяг</label><input type="number" class="form-control basis-quantity" min="0.001" step="any" value="${escapeHtml(data.basis_quantity || '')}" required></div>
+    </div>
+    <div class="products"></div>
+    <button type="button" class="btn btn-sm btn-outline-primary add-product" ${readonly?'disabled':''}>+ Препарат у цю операцію</button>`;
+  root.appendChild(card);
+  card.querySelector('.add-product').addEventListener('click', () => addProduct(card));
+  card.querySelector('.remove-operation').addEventListener('click', () => {
+    if (root.querySelectorAll('.operation-card').length > 1) { card.remove(); reindex(); }
+  });
+  card.querySelectorAll('.basis-quantity,.basis-unit').forEach(node => node.addEventListener('input', () => calculate(card)));
+  (data.products && data.products.length ? data.products : [{id:'',rate:''}]).forEach(p => addProduct(card,p));
+  if (readonly) card.querySelectorAll('input,select').forEach(el => el.disabled = true);
+  reindex();
+}
+
+function calculate(card) {
+  const basis = parseFloat(card.querySelector('.basis-quantity').value);
+  const baseUnit = card.querySelector('.basis-unit').value;
+  card.querySelectorAll('.product-row').forEach(row => {
+    const id = row.querySelector('.product-id').value;
+    const item = productOptions.find(p => String(p.id) === id);
+    const rate = parseFloat(row.querySelector('.rate').value);
+    row.querySelector('.calculated').textContent = item && basis > 0 && rate > 0 ?
+      (basis*rate).toFixed(3)+' '+item.unit+' ( '+item.unit+'/'+baseUnit+' )' : '—';
+  });
+}
+
+function reindex() {
+  const cards = [...root.querySelectorAll('.operation-card')];
+  document.getElementById('operation_count').value = cards.length;
+  const fields = {'operation-type':'type','operation-label':'label','operation-bbch':'bbch',
+                  'operation-date':'planned_date','basis-unit':'basis_unit','basis-quantity':'basis_quantity'};
+  cards.forEach((card,i) => {
+    card.querySelector('.operation-title').textContent = 'Операція '+(i+1);
+    Object.keys(fields).forEach(k => card.querySelector('.'+k).name = 'operations-'+i+'-'+fields[k]);
+    const rows = [...card.querySelectorAll('.product-row')];
+    let count = card.querySelector('.product-count');
+    if (!count) { count=document.createElement('input');count.type='hidden';count.className='product-count';card.appendChild(count); }
+    count.name = 'operations-'+i+'-product_count';
+    count.value = rows.length;
+    rows.forEach((row,j) => {
+      row.querySelector('.product-id').name='operations-'+i+'-products-'+j+'-id';
+      row.querySelector('.rate').name='operations-'+i+'-products-'+j+'-rate';
+    });
+  });
+}
+initialRows.forEach(x => addOperation(x));
+if (!initialRows.length) addOperation();
+const addButton = document.getElementById('add-operation');
+if (addButton) addButton.addEventListener('click', () => addOperation({basis_unit:'ha', basis_quantity:{{ planting.area|tojson }}}));
+</script>
+{% endblock %}
