@@ -34,13 +34,7 @@ class ReferenceHubNavigationTests(unittest.TestCase):
             self.assertEqual(html.count('class="stretched-link"'), 13)
 
     def test_all_existing_reference_links_are_kept(self):
-        expected = {
-            "/units", "/categories", "/currencies", "/products",
-            "/manufacturers", "/payers", "/cultures", "/groups",
-            "/clusters", "/companies", "/warehouses", "/fields",
-            "/treatment-types",
-        }
-        with self.app.test_client() as client, self.app.test_request_context():
+        with self.app.test_request_context():
             # Calculate exact paths from blueprint routes instead of assuming
             # slash/underscore conventions differ across modules.
             from flask import url_for
@@ -53,6 +47,7 @@ class ReferenceHubNavigationTests(unittest.TestCase):
             ]
             links = [url_for(endpoint) for endpoint in endpoints]
             self.assertEqual(len(links), len(set(links)))
+        with self.app.test_client() as client:
             html = client.get("/reference").get_data(as_text=True)
             for link in links:
                 self.assertIn(f'href="{link}"', html)
