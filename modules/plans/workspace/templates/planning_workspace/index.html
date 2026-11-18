@@ -3,10 +3,11 @@
 {% block header %}Технологічне планування · {{ active_year }}{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a class="btn btn-outline-secondary" href="{{ url_for('plans.hub') }}">← До планів</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('plans.hub') }}">← До планування</a>
+  <a class="btn btn-primary" href="{{ url_for('planning_workspace.select_cluster') }}">+ Створити план по полю</a>
   <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">На головну</a>
 </div>
-<p class="text-muted small">Пілот нової механіки: один технологічний план на конкретний посів. Попередні плани не змінюються. Сезон обирається на головній сторінці.</p>
+<p class="text-muted small">Створення нового плану: кластер → підприємство → поле без плану. Нижче — уже створені технологічні плани вибраного сезону.</p>
 <form method="get" id="plan-filters" class="row g-2 mb-3">
   <div class="col-md-3">
     <label class="form-label" for="cluster">Кластер</label>
@@ -33,7 +34,6 @@
     <label class="form-label" for="status">Статус</label>
     <select class="form-select" id="status" name="status">
       <option value="">Усі</option>
-      <option value="none" {% if status == 'none' %}selected{% endif %}>Без плану</option>
       <option value="draft" {% if status == 'draft' %}selected{% endif %}>Чернетка</option>
       <option value="ready" {% if status == 'ready' %}selected{% endif %}>Готовий</option>
       <option value="approved" {% if status == 'approved' %}selected{% endif %}>Затверджений</option>
@@ -55,20 +55,19 @@
         <td>{{ planting.culture.name }}</td>
         <td class="text-end">{{ planting.area }}</td>
         <td>
-          {% if not plan %}<span class="text-muted">Без плану</span>
-          {% elif plan.status == 'draft' %}<span>Чернетка</span>
+          {% if plan.status == 'draft' %><span>Чернетка</span>
           {% elif plan.status == 'ready' %}<span class="text-primary">Готовий</span>
           {% else %}<span class="text-success fw-semibold">Затверджений</span>{% endif %}
         </td>
-        <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('planning_workspace.edit', planting_id=planting.id) }}">{{ 'Відкрити' if plan else 'Створити' }}</a></td>
+        <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('planning_workspace.edit', planting_id=planting.id) }}">Відкрити</a></td>
       </tr>
     {% else %}
-      <tr><td colspan="7" class="text-center text-muted py-4">За цими фільтрами посівів немає.</td></tr>
+      <tr><td colspan="7" class="text-center text-muted py-4">За цими фільтрами планів немає. Натисніть «Створити план по полю», щоб додати перший.</td></tr>
     {% endfor %}
     </tbody>
   </table>
 </div>
-<p class="small text-muted">Посівів у вибірці: {{ rows|length }}. Архівні або дані інших сезонів тут не підтягуються.</p>
+<p class="small text-muted">Планів у вибірці: {{ rows|length }}. Архівні або дані інших сезонів тут не підтягуються.</p>
 <script>
 document.querySelectorAll('#plan-filters select').forEach(el => {
   el.addEventListener('change', () => {
