@@ -63,11 +63,6 @@ def _apply_values(product, form):
     product.formulation_code = form.formulation_code.data or None
     product.formulation_name = form.formulation_name.data or None
     product.composition = form.composition.data or None
-    product.registration_status = form.registration_status.data
-    product.registration_number = form.registration_number.data or None
-    product.registration_valid_until = form.registration_valid_until.data
-    product.source_url = form.source_url.data or None
-    product.source_note = form.source_note.data or None
 
 
 @products_bp.route("/products")
