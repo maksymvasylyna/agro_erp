@@ -137,6 +137,8 @@ def _available_field_seasons(season):
     The sowing structure is authoritative. A field with several crop allocations
     must first be divided into distinct fields in that structure.
     """
+    if season.is_closed:
+        return []
     legacy_used = {
         field_id for (field_id,) in db.session.query(Plan.field_id)
         .filter(Plan.season_id == season.id).all()
