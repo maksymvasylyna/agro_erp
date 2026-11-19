@@ -46,10 +46,12 @@
 </table>
 
 <!-- Кнопка повернення до редагування -->
+{% if erp_is_admin %}
 <form method="POST" action="{{ url_for('approved_plans.unapprove_plan', plan_id=plan.id) }}">
-  <button type="submit" class="btn btn-outline-warning mt-3">
-    🔓 Дозволити редагування
-  </button>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="season_id" value="{{ plan.season_id }}">
+  <button type="submit" class="btn btn-outline-warning mt-3" onclick="return confirm('Повернути план до редагування?')">🔓 Дозволити редагування</button>
 </form>
+{% endif %}
 
 {% endblock %}
