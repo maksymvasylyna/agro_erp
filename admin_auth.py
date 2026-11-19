@@ -127,9 +127,12 @@ def login():
             flash("Неправильний пароль.", "warning")
         else:
             _clear_failed()
+            selected_year = session.get("harvest_year")
             session.clear()
             session.permanent = True
             session["agroerp_admin"] = _auth_tag()
+            if selected_year is not None:
+                session["harvest_year"] = selected_year
             return redirect(next_target)
     return render_template("admin/login.html", form=form, enabled=enabled, next_target=next_target)
 
