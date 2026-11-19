@@ -1,8 +1,9 @@
 
 from extensions import db
-from flask import request, render_template, redirect, url_for, flash
+from flask import abort, request, render_template, redirect, url_for, flash
 from . import bp
 from modules.plans.models import Plan, Treatment
+from modules.plans.security import verify_plan_action
 from modules.plans.season import context, current, plan_or_404
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
@@ -47,8 +48,9 @@ def index():
         selected_company=company_id,
         selected_culture=culture_id, **context()
     )
-@bp.route('/unlock/<int:plan_id>')
+@bp.post('/unlock/<int:plan_id>')
 def unlock_plan(plan_id):
+    verify_plan_action(admin=True)
     plan = plan_or_404(plan_id)
 
     if plan.is_approved:
@@ -73,9 +75,12 @@ def view_plan(plan_id):
         treatments=treatments
     )
 
-@bp.route('/<int:plan_id>/unapprove', methods=['POST'])
+@bp.post('/<int:plan_id>/unapprove')
 def unapprove_plan(plan_id):
+    verify_plan_action(admin=True)
     plan = plan_or_404(plan_id)
+    if not plan.is_approved:
+        abort(409, description="План уже не затверджений.")
     plan.is_approved = False
     db.session.commit()
     flash(f'План №{plan.id} знову перенесено до "Готових" ⬅️', 'info')
