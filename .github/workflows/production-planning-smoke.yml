@@ -1,0 +1,40 @@
+name: Verify production AgroERP planning pages (read-only)
+
+on:
+  push:
+    branches:
+      - test/production-planning-smoke-2026-11-19
+    paths:
+      - ".github/workflows/production-planning-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-production-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify public pages with GET only
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://agro-erp.onrender.com"
+          fetch() {
+            local path="$1"
+            local expected="$2"
+            curl --fail --location --silent --show-error --retry 15 --retry-all-errors \
+              --retry-delay 5 --connect-timeout 20 --max-time 70 \
+              --output /tmp/agro-production-page.html \
+              --write-out "GET $path -> HTTP %{http_code}\n" "${base}${path}"
+            grep -q "$expected" /tmp/agro-production-page.html
+          }
+          fetch "/" "Agro"
+          fetch "/plans/" "Нові плани"
+          fetch "/new_plans/" "Створити план по полю"
+          fetch "/new_plans/select_cluster" "Оберіть кластер"
+          fetch "/plans/ready/" "Готові плани"
+          fetch "/approved_plans/" "Затверджені плани"
+          fetch "/admin/login" "Пароль адміністратора"
+          echo "PRODUCTION LIVE HTTP CHECKS PASSED; no POST requests were made."
