@@ -4,7 +4,8 @@ from extensions import db
 
 from modules.plans.forms import PlanForm
 from modules.plans.models import Plan, Treatment
-from modules.plans.security import verify_plan_action
+from modules.plans.security import verify_plan_action, prepare_treatments
+from modules.reference.fields.season_models import FieldSeason
 from modules.plans.season import context, current, plan_or_404, validate_posted_season, writable
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
@@ -68,6 +69,9 @@ def edit_plan(plan_id):
     plan = plan_or_404(plan_id)
     if plan.is_approved:
         abort(409, description="Затверджений план потрібно спочатку розблокувати.")
+    season_record = FieldSeason.query.filter_by(
+        season_id=plan.season_id, field_id=plan.field_id
+    ).first_or_404()
     form = PlanForm()
     if request.method == 'POST':
         writable()
@@ -102,21 +106,13 @@ def edit_plan(plan_id):
             subform.product_id.choices = choices_product
 
         if form.validate_on_submit():
-            # оновлюємо склад плану
+            lines = prepare_treatments(form, season_record.area)
+            # Validate every new line first; then replace in one transaction.
             for old in plan.treatments:
                 db.session.delete(old)
             db.session.flush()
-
-            for subform in form.treatments.entries:
-                treatment = Treatment(
-                    plan_id=plan.id,
-                    treatment_type_id=subform.treatment_type_id.data,
-                    product_id=subform.product_id.data,
-                    rate=subform.rate.data,
-                    unit=subform.unit.data,
-                    manufacturer=subform.manufacturer.data,
-                    quantity=subform.quantity.data
-                )
+            for treatment in lines:
+                treatment.plan_id = plan.id
                 db.session.add(treatment)
 
             db.session.commit()
@@ -147,7 +143,7 @@ def edit_plan(plan_id):
         form=form,
         plan=plan,
         treatment_types=treatment_types,
-        products_data=products_data, **context()
+        products_data=products_data, field_area=season_record.area, **context()
     )
 
 @ready_plans_bp.post('/approve_plan/<int:plan_id>')
