@@ -27,7 +27,14 @@ def create_app():
     @app.context_processor
     def inject_admin_context():
         from admin_auth import is_admin, AdminLogoutForm
-        return {"erp_is_admin": is_admin(), "erp_logout_form": AdminLogoutForm()}
+        from flask_wtf.csrf import generate_csrf
+        return {
+            "erp_is_admin": is_admin(),
+            "erp_logout_form": AdminLogoutForm(),
+            # Older action templates expected this global without registering
+            # CSRFProtect. Exposing it does not turn on global CSRF enforcement.
+            "csrf_token": generate_csrf,
+        }
 
     # Імпорт моделей (зв’язки)
     from modules.reference.products.models import Product
