@@ -169,6 +169,30 @@ class PlanningHardeningTests(unittest.TestCase):
         }).status_code, 400)
         self.assertEqual(Treatment.query.filter_by(plan_id=plan.id).one().quantity, 125.0)
 
+    def test_real_csrf_required_for_sensitive_action(self):
+        import re
+        self.create_plan()
+        plan = Plan.query.one()
+        self.admin_login()
+        # Verify against actual Flask-WTF token validation, not the relaxed
+        # default used by the rest of the isolated integration tests.
+        self.app.config["WTF_CSRF_ENABLED"] = True
+        page = self.client.get("/plans/ready/")
+        self.assertEqual(page.status_code, 200)
+        match = re.search(r'name="csrf_token" value="([^"]+)"',
+                          page.get_data(as_text=True))
+        self.assertIsNotNone(match)
+        endpoint = f"/plans/ready/approve_plan/{plan.id}"
+        self.assertEqual(self.client.post(endpoint, data={
+            "season_id": str(self.ids["season"])
+        }).status_code, 400)
+        self.assertFalse(db.session.get(Plan, plan.id).is_approved)
+        self.assertEqual(self.client.post(endpoint, data={
+            "season_id": str(self.ids["season"]),
+            "csrf_token": match.group(1),
+        }).status_code, 302)
+        self.assertTrue(db.session.get(Plan, plan.id).is_approved)
+
     def test_one_crop_per_field_and_uniqueness(self):
         # A second planting in the same field violates business selection logic.
         p = FieldPlanting.query.filter_by(field_season_id=self.ids["field_season"]).one()
