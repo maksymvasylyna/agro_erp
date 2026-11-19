@@ -53,7 +53,7 @@
 
 <script>
   const products = {{ products_data | tojson }};
-  const fieldArea = {{ plan.field.area | round(2) }};
+  const fieldArea = {{ field_area|float|tojson }};
   const treatmentTypeChoices = {{ (form.treatments[0].treatment_type_id.choices if form.treatments|length > 0 else []) | tojson }};
   const productChoices = {{ (form.treatments[0].product_id.choices if form.treatments|length > 0 else []) | tojson }};
 
