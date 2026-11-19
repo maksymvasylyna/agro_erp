@@ -34,6 +34,7 @@ def create_app():
             # Older action templates expected this global without registering
             # CSRFProtect. Exposing it does not turn on global CSRF enforcement.
             "csrf_token": generate_csrf,
+            "erp_is_test_preview": os.environ.get("AGROERP_TEST_INSTANCE") == "1",
         }
 
     # Імпорт моделей (зв’язки)
