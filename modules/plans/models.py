@@ -23,6 +23,13 @@ class Plan(db.Model):
         "Treatment", backref="plan", cascade="all, delete-orphan"
     )
 
+    # On existing PostgreSQL this constraint requires a reviewed migration.
+    # db.create_all() does not add it to an existing table automatically.
+    __table_args__ = (
+        db.UniqueConstraint("season_id", "field_id",
+                            name="uq_plans_season_field"),
+    )
+
 
 class Treatment(db.Model):
     __tablename__ = "treatments"
