@@ -53,6 +53,12 @@
       {% endif %}
       </div>
     </div>
+    {% if erp_is_test_preview %}
+      <div class="alert alert-warning py-2 small mb-3" role="status">
+        <strong>ТЕСТОВА КОПІЯ AgroERP.</strong>
+        Тут лише вигадані демонстраційні поля й препарати. Це не робоча база підприємства.
+      </div>
+    {% endif %}
     {% block page_top %}{% endblock %}
     <h1 class="erp-page-title mb-4">{% block header %}Agro ERP{% endblock %}</h1>
 

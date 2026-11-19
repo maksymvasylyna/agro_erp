@@ -1,0 +1,46 @@
+name: AgroERP legacy planning hardening checks
+
+on:
+  push:
+    branches:
+      - feature/planning-hardening-phase1-2026-11-19
+  pull_request:
+    paths:
+      - "modules/plans/**"
+      - "admin_auth.py"
+      - "tests/test_plans_hardening.py"
+      - "tests/test_plans_seasonal.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-old-ui-and-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Test original seasonal workflow and hardening
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "integration-tests-only-not-production-secret"
+          ADMIN_PASSWORD: "planning-admin-only-for-tests-2026"
+        run: |
+          python -m unittest discover -s tests -p "test_plans_seasonal.py" -v
+          python -m unittest discover -s tests -p "test_plans_hardening.py" -v
+      - name: Seed and smoke-test isolated old-planning demo
+        env:
+          DATABASE_URL: "sqlite:////tmp/agro_erp_plans_hardening_2026.sqlite"
+          SECRET_KEY: "preview-fixture-ci-only-a-long-test-key-2026"
+          ADMIN_PASSWORD: "preview-fixture-ci-password-only"
+          AGROERP_TEST_INSTANCE: "1"
+        run: |
+          python scripts/seed_plans_hardening_demo.py
+          python scripts/seed_plans_hardening_demo.py
+          python scripts/smoke_plans_hardening_demo.py

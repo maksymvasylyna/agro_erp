@@ -1,11 +1,13 @@
 """New technological plans: all selections and writes belong to the current season."""
 from decimal import Decimal
+from sqlalchemy import func
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from sqlalchemy.orm import joinedload
 
 from extensions import db
 from modules.plans.models import Plan, Treatment
+from modules.plans.security import prepare_treatments
 from modules.plans.new_plans.forms import PlanForm
 from modules.plans.season import context, current, validate_posted_season, writable
 from modules.reference.clusters.models import Cluster
@@ -22,6 +24,9 @@ bp = Blueprint("new_plans", __name__, url_prefix="/new_plans",
 
 def _eligible_rows(season):
     used = db.session.query(Plan.field_id).filter(Plan.season_id == season.id)
+    single_crop = (db.session.query(FieldPlanting.field_season_id)
+                   .group_by(FieldPlanting.field_season_id)
+                   .having(func.count(FieldPlanting.id) == 1))
     return (
         FieldSeason.query.join(Field, FieldSeason.field_id == Field.id)
         .options(
@@ -31,6 +36,7 @@ def _eligible_rows(season):
             joinedload(FieldSeason.plantings).joinedload(FieldPlanting.culture),
         )
         .filter(FieldSeason.season_id == season.id,
+                FieldSeason.id.in_(single_crop),
                 ~FieldSeason.field_id.in_(used))
     )
 
@@ -115,9 +121,13 @@ def select_field(cluster_id, company_id):
 def create_plan(field_id):
     season = writable() if request.method == "POST" else current()
     field = Field.query.get_or_404(field_id)
-    record = FieldSeason.query.filter_by(
-        field_id=field_id, season_id=season.id
-    ).first_or_404()
+    record_query = FieldSeason.query.filter_by(field_id=field_id, season_id=season.id)
+    # On PostgreSQL hold the seasonal field row until the plan is committed:
+    # concurrent requests cannot both pass the duplicate check.
+    record = (record_query.with_for_update() if request.method == "POST"
+              else record_query).first_or_404()
+    if len(record.plantings) != 1:
+        abort(409, description="Поле повинно мати рівно одну культуру в структурі посівів.")
     if Plan.query.filter_by(field_id=field_id, season_id=season.id).first():
         flash("Для цього поля вже створено план у вибраному сезоні.", "warning")
         return redirect(url_for("new_plans.select_field",
@@ -129,25 +139,13 @@ def create_plan(field_id):
     if request.method == "POST":
         validate_posted_season(season)
         if form.validate_on_submit():
+            lines = prepare_treatments(form, record.area)
             plan = Plan(field_id=field.id, season_id=season.id)
             db.session.add(plan)
             db.session.flush()
-            for subform in form.treatments.entries:
-                rate = subform.rate.data
-                if rate is None or rate <= 0:
-                    abort(400, description="Норма внесення має бути більшою від нуля.")
-                product = db.session.get(Product, subform.product_id.data)
-                if product is None:
-                    abort(400)
-                db.session.add(Treatment(
-                    plan_id=plan.id,
-                    treatment_type_id=subform.treatment_type_id.data,
-                    product_id=product.id,
-                    rate=rate,
-                    unit=product.unit.name if product.unit else "",
-                    manufacturer=product.manufacturer.name if product.manufacturer else "",
-                    quantity=round(float(Decimal(str(rate)) * record.area), 3),
-                ))
+            for line in lines:
+                line.plan_id = plan.id
+                db.session.add(line)
             db.session.commit()
             flash(f"План збережено для сезону {season.year}.", "success")
             return redirect(url_for("new_plans.index"))
@@ -208,6 +206,14 @@ def bulk_template_create():
         abort(400)
     if not ids or len(ids) > 1000 or any(i < 1 for i in ids):
         abort(400)
+    if request.method == "POST":
+        validate_posted_season(season)
+        # Lock every selected field in deterministic order before rechecking
+        # its eligibility, including concurrent single-plan submissions.
+        (db.session.query(FieldSeason.id)
+         .filter(FieldSeason.season_id == season.id,
+                 FieldSeason.field_id.in_(ids))
+         .order_by(FieldSeason.id).with_for_update().all())
     rows = _eligible_rows(season).filter(FieldSeason.field_id.in_(ids)).all()
     if {r.field_id for r in rows} != set(ids):
         abort(400, description="Деякі поля відсутні у вибраному сезоні або вже мають план.")
@@ -221,24 +227,13 @@ def bulk_template_create():
         validate_posted_season(season)
         if form.validate_on_submit():
             for field in fields:
+                lines = prepare_treatments(form, mapping[field.id].area)
                 plan = Plan(field_id=field.id, season_id=season.id)
                 db.session.add(plan)
                 db.session.flush()
-                for subform in form.treatments.entries:
-                    rate = subform.rate.data
-                    if rate is None or rate <= 0:
-                        abort(400, description="Норма внесення має бути більшою від нуля.")
-                    product = db.session.get(Product, subform.product_id.data)
-                    if product is None:
-                        abort(400)
-                    db.session.add(Treatment(
-                        plan_id=plan.id,
-                        treatment_type_id=subform.treatment_type_id.data,
-                        product_id=product.id, rate=rate,
-                        unit=product.unit.name if product.unit else "",
-                        manufacturer=product.manufacturer.name if product.manufacturer else "",
-                        quantity=round(float(Decimal(str(rate)) * mapping[field.id].area), 3),
-                    ))
+                for line in lines:
+                    line.plan_id = plan.id
+                    db.session.add(line)
             db.session.commit()
             flash(f"Створено {len(fields)} планів для сезону {season.year}.", "success")
             return redirect(url_for("new_plans.index"))

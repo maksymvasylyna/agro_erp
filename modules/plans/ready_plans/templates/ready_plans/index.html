@@ -51,6 +51,7 @@
 {# 🔽 Окрема форма для масового затвердження (без вкладень у таблицю) #}
 <form id="bulk-approve-form" method="post" action="{{ url_for('ready_plans.bulk_approve') }}">
   {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+  <input type="hidden" name="season_id" value="{{ season.id }}">
 </form>
 
 <table class="table table-bordered table-striped text-center align-middle">
@@ -86,12 +87,17 @@
       <td>
         <a href="{{ url_for('ready_plans.view_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">🔍</a>
         {% if not plan.is_approved %}
-          <a href="{{ url_for('ready_plans.approve_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-success">✅</a>
+          <form method="post" action="{{ url_for('ready_plans.approve_plan', plan_id=plan.id) }}" class="d-inline">
+              <input type="hidden" name="season_id" value="{{ season.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-success" {% if not erp_is_admin %}disabled title="Лише адміністратор"{% endif %}>✅</button>
+            </form>
           <a href="{{ url_for('ready_plans.edit_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-warning">✏️</a>
 
           {# окрема форма видалення — НЕ всередині іншої форми #}
           <form method="post" action="{{ url_for('ready_plans.delete_plan', plan_id=plan.id) }}" style="display:inline;">
             {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+            <input type="hidden" name="season_id" value="{{ season.id }}">
             <button type="submit" class="btn btn-sm btn-outline-danger"
                     onclick="return confirm('Ви впевнені, що хочете видалити цей план?')">🗑️</button>
           </form>
@@ -105,7 +111,7 @@
 <p class="text-muted text-center py-3">У сезоні {{ active_year }} готових планів немає.</p>
 {% endif %}
 <div class="text-end mt-3">
-  <button type="submit" form="bulk-approve-form" class="btn btn-success">✅ Затвердити вибрані</button>
+  <button type="submit" form="bulk-approve-form" class="btn btn-success" {% if not erp_is_admin %}disabled title="Лише адміністратор"{% endif %}>✅ Затвердити вибрані</button>
 </div>
 {% endblock %}
 

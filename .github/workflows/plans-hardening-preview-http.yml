@@ -1,0 +1,54 @@
+name: AgroERP old-planning live preview HTTP
+
+on:
+  push:
+    branches:
+      - feature/planning-hardening-phase1-2026-11-19
+    paths:
+      - ".github/workflows/plans-hardening-preview-http.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-public-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe deployed old planning wizard and status pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://agro-erp-plans-hardening-2026.onrender.com"
+          fetch() {
+            local path="$1"
+            curl --fail --location --silent --show-error --retry 12 --retry-all-errors \
+              --retry-delay 6 --connect-timeout 15 --max-time 45 \
+              --output /tmp/preview.html --write-out "GET $path HTTP %{http_code}\n" \
+              "${base}${path}"
+            }
+          fetch "/"
+          grep -q 'ТЕСТОВА КОПІЯ AgroERP' /tmp/preview.html
+          fetch "/plans/"
+          grep -q 'Нові плани' /tmp/preview.html
+          fetch "/new_plans/"
+          grep -q 'Створити план по полю' /tmp/preview.html
+          fetch "/new_plans/select_cluster"
+          cluster_url="$(grep -oE '/new_plans/select_company/[0-9]+' /tmp/preview.html | head -n 1)"
+          test -n "$cluster_url"
+          fetch "$cluster_url"
+          field_url="$(grep -oE '/new_plans/select_field/[0-9]+/[0-9]+' /tmp/preview.html | head -n 1)"
+          test -n "$field_url"
+          fetch "$field_url"
+          grep -q 'Додати план' /tmp/preview.html
+          create_url="$(grep -oE '/new_plans/create/[0-9]+' /tmp/preview.html | head -n 1)"
+          test -n "$create_url"
+          fetch "$create_url"
+          grep -q 'create-plan-form' /tmp/preview.html
+          fetch "/plans/ready/"
+          grep -q 'DEMO-103' /tmp/preview.html
+          fetch "/approved_plans/"
+          grep -q 'DEMO-201' /tmp/preview.html
+          fetch "/admin/login"
+          grep -q 'Пароль адміністратора' /tmp/preview.html

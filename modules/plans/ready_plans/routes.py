@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+from flask import Blueprint, abort, render_template, request, redirect, url_for, flash, send_file
 from sqlalchemy.orm import joinedload
 from extensions import db
 
 from modules.plans.forms import PlanForm
 from modules.plans.models import Plan, Treatment
+from modules.plans.security import verify_plan_action, prepare_treatments
+from modules.reference.fields.season_models import FieldSeason
 from modules.plans.season import context, current, plan_or_404, validate_posted_season, writable
 from modules.reference.fields.field_models import Field
 from modules.reference.companies.models import Company
@@ -52,22 +54,24 @@ def view_plan(plan_id):
 @ready_plans_bp.route('/delete/<int:plan_id>', methods=['POST'])
 def delete_plan(plan_id):
     """Якщо план не затверджений — видаляємо; якщо затверджений — роззатверджуємо."""
+    verify_plan_action(admin=True)
     plan = plan_or_404(plan_id)
-
     if plan.is_approved:
-        plan.is_approved = False
-        db.session.commit()
-        flash(f'План #{plan.id} було роззатверджено і повернуто в "Готові".', 'warning')
-    else:
-        db.session.delete(plan)
-        db.session.commit()
-        flash(f'План #{plan.id} успішно видалено 🗑️', 'success')
+        abort(409, description="Затверджений план не можна видаляти.")
+    db.session.delete(plan)
+    db.session.commit()
+    flash(f'План #{plan.id} успішно видалено 🗑️', 'success')
 
     return redirect(url_for('ready_plans.index'))
 
 @ready_plans_bp.route('/<int:plan_id>/edit', methods=['GET', 'POST'])
 def edit_plan(plan_id):
     plan = plan_or_404(plan_id)
+    if plan.is_approved:
+        abort(409, description="Затверджений план потрібно спочатку розблокувати.")
+    season_record = FieldSeason.query.filter_by(
+        season_id=plan.season_id, field_id=plan.field_id
+    ).first_or_404()
     form = PlanForm()
     if request.method == 'POST':
         writable()
@@ -102,21 +106,13 @@ def edit_plan(plan_id):
             subform.product_id.choices = choices_product
 
         if form.validate_on_submit():
-            # оновлюємо склад плану
+            lines = prepare_treatments(form, season_record.area)
+            # Validate every new line first; then replace in one transaction.
             for old in plan.treatments:
                 db.session.delete(old)
             db.session.flush()
-
-            for subform in form.treatments.entries:
-                treatment = Treatment(
-                    plan_id=plan.id,
-                    treatment_type_id=subform.treatment_type_id.data,
-                    product_id=subform.product_id.data,
-                    rate=subform.rate.data,
-                    unit=subform.unit.data,
-                    manufacturer=subform.manufacturer.data,
-                    quantity=subform.quantity.data
-                )
+            for treatment in lines:
+                treatment.plan_id = plan.id
                 db.session.add(treatment)
 
             db.session.commit()
@@ -147,12 +143,15 @@ def edit_plan(plan_id):
         form=form,
         plan=plan,
         treatment_types=treatment_types,
-        products_data=products_data, **context()
+        products_data=products_data, field_area=season_record.area, **context()
     )
 
-@ready_plans_bp.route('/approve_plan/<int:plan_id>')
+@ready_plans_bp.post('/approve_plan/<int:plan_id>')
 def approve_plan(plan_id):
+    verify_plan_action(admin=True)
     plan = plan_or_404(plan_id)
+    if plan.status != 'готовий':
+        abort(409, description="Затверджувати можна лише готовий план.")
 
     if not plan.is_approved:
         plan.is_approved = True
@@ -165,15 +164,20 @@ def approve_plan(plan_id):
 
 @ready_plans_bp.route('/bulk_approve', methods=['POST'])
 def bulk_approve():
+    season = verify_plan_action(admin=True)
     plan_ids = request.form.getlist('plan_ids')
-    ids = [int(i) for i in plan_ids if str(i).isdigit()]
+    ids = list(dict.fromkeys(int(i) for i in plan_ids if str(i).isdigit()))
+    if len(ids) > 1000 or len(ids) != len(plan_ids):
+        abort(400, description="Некоректний вибір планів.")
 
     if not ids:
         flash("❗ Не обрано жодного плану для затвердження", "warning")
         return redirect(url_for('ready_plans.index'))
 
-    plans = Plan.query.filter(Plan.id.in_(ids), Plan.is_approved.is_(False), Plan.season_id == writable().id).all()
-
+    plans = Plan.query.filter(Plan.id.in_(ids), Plan.is_approved.is_(False),
+                              Plan.status == 'готовий', Plan.season_id == season.id).all()
+    if len(plans) != len(ids):
+        abort(409, description="Один або кілька планів уже змінені. Оновіть список.")
     for plan in plans:
         plan.is_approved = True
 
