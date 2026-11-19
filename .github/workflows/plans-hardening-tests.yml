@@ -34,3 +34,13 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_plans_seasonal.py" -v
           python -m unittest discover -s tests -p "test_plans_hardening.py" -v
+      - name: Seed and smoke-test isolated old-planning demo
+        env:
+          DATABASE_URL: "sqlite:////tmp/agro_erp_plans_hardening_2026.sqlite"
+          SECRET_KEY: "preview-fixture-ci-only-a-long-test-key-2026"
+          ADMIN_PASSWORD: "preview-fixture-ci-password-only"
+          AGROERP_TEST_INSTANCE: "1"
+        run: |
+          python scripts/seed_plans_hardening_demo.py
+          python scripts/seed_plans_hardening_demo.py
+          python scripts/smoke_plans_hardening_demo.py
