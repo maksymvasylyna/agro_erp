@@ -64,8 +64,13 @@
       <td>
         <a href="{{ url_for('approved_plans.view_plan', plan_id=plan.id) }}"
            class="btn btn-outline-primary btn-sm">👁️ Перегляд</a>
-        <a href="{{ url_for('approved_plans.unlock_plan', plan_id=plan.id) }}"
-           class="btn btn-outline-warning btn-sm">🔓 Дозволити редагування</a>
+        {% if erp_is_admin %}
+        <form method="post" action="{{ url_for('approved_plans.unlock_plan', plan_id=plan.id) }}" class="d-inline">
+          <input type="hidden" name="season_id" value="{{ season.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Повернути план до редагування?')">🔓 Дозволити редагування</button>
+        </form>
+        {% endif %}
       </td>
     </tr>
     {% else %}
